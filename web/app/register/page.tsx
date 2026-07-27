@@ -86,7 +86,7 @@ export default function RegisterPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
-              className="w-full rounded-xl bg-surface px-4 py-3.5 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
+              className="w-full rounded-lg bg-surface px-4 py-3.5 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
             />
           </div>
 
@@ -107,7 +107,7 @@ export default function RegisterPage() {
               required
               minLength={8}
               disabled={loading}
-              className="w-full rounded-xl bg-surface px-4 py-3.5 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
+              className="w-full rounded-lg bg-surface px-4 py-3.5 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
             />
           </div>
 
@@ -127,7 +127,7 @@ export default function RegisterPage() {
               onChange={(e) => setConfirm(e.target.value)}
               required
               disabled={loading}
-              className="w-full rounded-xl bg-surface px-4 py-3.5 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
+              className="w-full rounded-lg bg-surface px-4 py-3.5 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
             />
           </div>
 
@@ -140,7 +140,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading || !email || !password || !confirm}
-            className="w-full rounded-full bg-ink py-3.5 text-[15px] font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full rounded-lg bg-ink py-3.5 text-[15px] font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {loading ? "Création…" : "Créer mon compte"}
           </button>

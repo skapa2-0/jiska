@@ -28,7 +28,7 @@
 
   --color-ink: #191c1f;
   --color-surface: #f2f2f5;
-  --color-hairline: #c9c9d3;
+  --color-hairline: #e3e3e9;
   --color-stone: #66707a;
   --color-mute: #343b43;
 
@@ -41,6 +41,9 @@
   --color-success-soft: #e5f6f2;
   --color-info: #376cd5;
   --color-info-soft: #ebf1fb;
+
+  /* Profondeur : ombre légère plutôt que contours appuyés. */
+  --shadow-card: 0 1px 2px rgb(25 28 31 / 0.07), 0 3px 10px rgb(25 28 31 / 0.07);
 }
 
 body {

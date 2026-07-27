@@ -47,7 +47,7 @@ export default function UserMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Menu du compte"
-        className="flex items-center gap-1.5 rounded-full p-1 transition hover:bg-surface"
+        className="flex items-center gap-1.5 rounded-lg p-1 transition hover:bg-surface"
       >
         <span
           aria-hidden="true"
@@ -72,7 +72,7 @@ export default function UserMenu({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-10 mt-2 w-60 rounded-2xl border border-hairline bg-white py-2"
+          className="absolute right-0 z-10 mt-2 w-60 rounded-lg bg-white py-2 shadow-card"
         >
           <div className="px-4 py-2">
             <p className="text-xs text-stone">

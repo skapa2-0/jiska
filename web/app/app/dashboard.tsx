@@ -179,7 +179,7 @@ export default function Dashboard({
             key={f.key}
             type="button"
             onClick={() => setFiltre(f.key)}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
               filtre === f.key
                 ? "bg-ink text-white"
                 : "border border-hairline text-mute hover:bg-surface"
@@ -192,7 +192,7 @@ export default function Dashboard({
           aria-label="Filtrer par projet"
           value={projetId}
           onChange={(e) => setProjetId(e.target.value)}
-          className="rounded-full border border-hairline bg-white px-4 py-2 text-sm text-mute outline-none focus:ring-2 focus:ring-brand"
+          className="rounded-lg border border-hairline bg-white px-4 py-2 text-sm text-mute outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">Par projet</option>
           {projects.map((p) => (
@@ -205,7 +205,7 @@ export default function Dashboard({
           aria-label="Filtrer par responsable"
           value={responsableId}
           onChange={(e) => setResponsableId(e.target.value)}
-          className="rounded-full border border-hairline bg-white px-4 py-2 text-sm text-mute outline-none focus:ring-2 focus:ring-brand"
+          className="rounded-lg border border-hairline bg-white px-4 py-2 text-sm text-mute outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">Par responsable</option>
           {responsables.map((r) => (
@@ -220,14 +220,14 @@ export default function Dashboard({
           aria-label="Rechercher"
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
-          className="ml-auto w-full rounded-full border border-hairline bg-white px-4 py-2 text-sm text-ink placeholder-stone outline-none transition focus:ring-2 focus:ring-brand sm:w-72"
+          className="ml-auto w-full rounded-lg border border-hairline bg-white px-4 py-2 text-sm text-ink placeholder-stone outline-none transition focus:ring-2 focus:ring-brand sm:w-72"
         />
       </section>
 
       {/* Tableau principal : une ligne = un sujet (PRD §4B). Il occupe
           tout l'espace restant et scrolle en interne : la page, elle,
           tient dans le viewport. */}
-      <section className="min-h-0 flex-1 overflow-auto rounded-2xl border border-hairline bg-white">
+      <section className="min-h-0 flex-1 overflow-auto rounded-lg bg-white shadow-card">
         <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
           <thead>
             <tr className="text-xs text-ink">
@@ -274,7 +274,7 @@ export default function Dashboard({
                   key={s.id}
                   onClick={() => s.can_edit && setModal({ mode: "edit", sujet: s })}
                   className={`border-b border-hairline last:border-b-0 ${
-                    s.can_edit ? "cursor-pointer transition hover:bg-surface/60" : ""
+                    s.can_edit ? "cursor-pointer transition hover:bg-surface" : ""
                   }`}
                 >
                   <td className="relative px-4 py-3.5">
@@ -431,7 +431,7 @@ function Indicateur({
   ton?: string;
 }) {
   return (
-    <div className="rounded-xl border border-hairline bg-white px-3.5 py-2.5">
+    <div className="rounded-lg bg-white px-3.5 py-2.5 shadow-card">
       <p className={`font-display text-[22px] font-semibold ${ton ?? "text-ink"}`}>
         {valeur}
       </p>
@@ -442,7 +442,7 @@ function Indicateur({
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th className="sticky top-0 z-10 whitespace-nowrap bg-white px-4 py-3 font-semibold shadow-[inset_0_-1px_0_var(--color-hairline)]">
+    <th className="sticky top-0 z-10 whitespace-nowrap bg-surface px-4 py-2.5 font-semibold shadow-[inset_0_-1px_0_var(--color-hairline)]">
       {children}
     </th>
   );
@@ -457,7 +457,7 @@ function Chip({
 }) {
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${classe}`}
+      className={`inline-block whitespace-nowrap rounded-md px-2 py-1 text-xs font-semibold ${classe}`}
     >
       {children}
     </span>

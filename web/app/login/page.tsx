@@ -80,7 +80,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
-              className="w-full rounded-xl bg-surface px-4 py-3.5 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
+              className="w-full rounded-lg bg-surface px-4 py-3.5 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
             />
           </div>
 
@@ -110,7 +110,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full rounded-xl bg-surface px-4 py-3.5 pr-24 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
+                className="w-full rounded-lg bg-surface px-4 py-3.5 pr-24 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
               />
               <button
                 type="button"
@@ -120,7 +120,7 @@ export default function LoginPage() {
                     ? "Masquer le mot de passe"
                     : "Afficher le mot de passe"
                 }
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-2.5 py-1 text-xs font-medium text-mute hover:bg-hairline/60"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md px-2.5 py-1 text-xs font-medium text-mute hover:bg-hairline/60"
               >
                 {showPassword ? "Masquer" : "Afficher"}
               </button>
@@ -147,7 +147,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading || !email || !password}
-            className="w-full rounded-full bg-ink py-3.5 text-[15px] font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full rounded-lg bg-ink py-3.5 text-[15px] font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {loading ? "Connexion…" : "Se connecter"}
           </button>
@@ -167,7 +167,7 @@ export default function LoginPage() {
       {/* Comptes de démonstration : un par type de profil. */}
       <aside
         aria-label="Comptes de démonstration"
-        className="w-full max-w-sm rounded-2xl border border-hairline bg-white p-6 lg:w-72"
+        className="w-full max-w-sm rounded-lg bg-white shadow-card p-6 lg:w-72"
       >
         <h2 className="text-sm font-semibold text-ink">
           Comptes de démonstration

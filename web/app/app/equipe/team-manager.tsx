@@ -58,7 +58,7 @@ export default function TeamManager({
 
   return (
     <>
-      <ul className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-white">
+      <ul className="mt-8 divide-y divide-hairline rounded-lg bg-white shadow-card">
         {members.map((m) => (
           <li key={m.id} className="flex items-center gap-3 px-5 py-3.5">
             <span
@@ -78,7 +78,7 @@ export default function TeamManager({
               <button
                 type="button"
                 onClick={() => handleDelete(m)}
-                className="rounded-full px-3 py-1 text-xs font-medium text-danger transition hover:bg-surface"
+                className="rounded-md px-3 py-1 text-xs font-medium text-danger transition hover:bg-surface"
               >
                 Supprimer
               </button>
@@ -89,7 +89,7 @@ export default function TeamManager({
 
       <form
         onSubmit={handleCreate}
-        className="mt-8 rounded-2xl border border-hairline bg-white p-5"
+        className="mt-8 rounded-lg bg-white shadow-card p-5"
       >
         <h2 className="text-sm font-semibold text-ink">Ajouter un compte</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -101,7 +101,7 @@ export default function TeamManager({
             onChange={(e) => setEmail(e.target.value)}
             required
             disabled={loading}
-            className="w-full rounded-xl bg-surface px-4 py-3 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand"
+            className="w-full rounded-lg bg-surface px-4 py-3 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand"
           />
           <input
             type="password"
@@ -112,7 +112,7 @@ export default function TeamManager({
             required
             minLength={8}
             disabled={loading}
-            className="w-full rounded-xl bg-surface px-4 py-3 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand"
+            className="w-full rounded-lg bg-surface px-4 py-3 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand"
           />
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
@@ -143,7 +143,7 @@ export default function TeamManager({
           <button
             type="submit"
             disabled={loading || !email || !password}
-            className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg bg-ink px-5 py-2 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {loading ? "Création…" : "Créer le compte"}
           </button>

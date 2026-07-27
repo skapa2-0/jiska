@@ -111,7 +111,7 @@ export default function SujetModal({
   }
 
   const champ =
-    "w-full rounded-xl bg-surface px-3.5 py-2.5 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60";
+    "w-full rounded-lg bg-surface px-3.5 py-2.5 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60";
   const etiquette = "mb-1.5 block text-sm font-medium text-ink";
 
   return (
@@ -123,7 +123,7 @@ export default function SujetModal({
         role="dialog"
         aria-modal="true"
         aria-label={mode === "create" ? "Nouveau sujet" : "Modifier le sujet"}
-        className="max-h-full w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-7"
+        className="max-h-full w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-7 shadow-card"
       >
         <div className="mb-5 flex items-start justify-between">
           <h2 className="font-display text-xl font-medium tracking-[-0.01em] text-ink">
@@ -342,7 +342,7 @@ export default function SujetModal({
               <button
                 type="submit"
                 disabled={loading || !title || !responsableId || !projectId}
-                className="flex-1 rounded-full bg-ink py-3 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex-1 rounded-lg bg-ink py-3 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {loading
                   ? "Enregistrement…"
@@ -355,7 +355,7 @@ export default function SujetModal({
                   type="button"
                   onClick={handleDelete}
                   disabled={loading}
-                  className="rounded-full px-4 py-3 text-sm font-medium text-danger transition hover:bg-danger-soft"
+                  className="rounded-lg px-4 py-3 text-sm font-medium text-danger transition hover:bg-danger-soft"
                 >
                   Supprimer
                 </button>
