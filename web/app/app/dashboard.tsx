@@ -279,11 +279,6 @@ export default function Dashboard({
               const retard = s.due_date && s.due_date < today && s.etat !== "termine";
               const semaine =
                 s.due_date && s.due_date >= weekStart && s.due_date <= weekEnd;
-              const joursRetard = retard
-                ? Math.round(
-                    (Date.parse(today) - Date.parse(s.due_date!)) / 86400000,
-                  )
-                : 0;
               return (
                 <tr
                   key={s.id}
@@ -354,9 +349,6 @@ export default function Dashboard({
                     {s.due_date
                       ? s.due_date.split("-").reverse().join("/")
                       : "—"}
-                    {retard ? (
-                      <span className="block text-xs">⚠ {joursRetard} j</span>
-                    ) : null}
                   </td>
                   <td
                     className="px-4 py-3.5"
