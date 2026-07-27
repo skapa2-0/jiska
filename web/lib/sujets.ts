@@ -49,7 +49,7 @@ export type Etat = keyof typeof ETATS;
 export const CRITICITES = {
   critique: { label: "Critique", chip: "bg-danger-soft text-danger" },
   haute: { label: "Haute", chip: "bg-warn-soft text-warn" },
-  normale: { label: "Normale", chip: "bg-amber-50 text-amber-600" },
+  normale: { label: "Normale", chip: "bg-yellow-50 text-yellow-700" },
   faible: { label: "Faible", chip: "bg-success-soft text-success" },
 } as const;
 export type Criticite = keyof typeof CRITICITES;

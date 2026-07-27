@@ -27,10 +27,10 @@
   --color-brand-deep: #3a40c4;
 
   --color-ink: #191c1f;
-  --color-surface: #f4f4f4;
-  --color-hairline: #d6d6de;
-  --color-stone: #737d85;
-  --color-mute: #3f4750;
+  --color-surface: #f2f2f5;
+  --color-hairline: #c9c9d3;
+  --color-stone: #66707a;
+  --color-mute: #343b43;
 
   /* Sémantique (états, criticités, indicateurs), palette Revolut. */
   --color-danger: #e23b4a;

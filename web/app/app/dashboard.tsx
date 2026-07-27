@@ -130,11 +130,11 @@ export default function Dashboard({
   }
 
   return (
-    <main className="mx-auto w-full max-w-[1400px] flex-1 px-6 py-6">
+    <main className="flex min-h-0 w-full flex-1 flex-col gap-3 px-4 py-3 lg:px-6">
       {/* Bandeau supérieur : vision immédiate de l'activité (PRD §4A). */}
       <section
         aria-label="Indicateurs"
-        className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7"
+        className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7"
       >
         <Indicateur valeur={indicateurs.projets} label="Projets actifs" />
         <Indicateur valeur={indicateurs.ouverts} label="Sujets ouverts" />
@@ -172,7 +172,7 @@ export default function Dashboard({
       {/* Filtres volontairement limités (PRD §10) + recherche. */}
       <section
         aria-label="Filtres"
-        className="mt-6 flex flex-wrap items-center gap-2"
+        className="flex flex-wrap items-center gap-2"
       >
         {FILTRES.map((f) => (
           <button
@@ -220,15 +220,17 @@ export default function Dashboard({
           aria-label="Rechercher"
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
-          className="ml-auto w-full rounded-full bg-surface px-4 py-2 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand sm:w-72"
+          className="ml-auto w-full rounded-full border border-hairline bg-white px-4 py-2 text-sm text-ink placeholder-stone outline-none transition focus:ring-2 focus:ring-brand sm:w-72"
         />
       </section>
 
-      {/* Tableau principal : une ligne = un sujet (PRD §4B). */}
-      <section className="mt-4 overflow-x-auto rounded-2xl border border-hairline bg-white">
+      {/* Tableau principal : une ligne = un sujet (PRD §4B). Il occupe
+          tout l'espace restant et scrolle en interne : la page, elle,
+          tient dans le viewport. */}
+      <section className="min-h-0 flex-1 overflow-auto rounded-2xl border border-hairline bg-white">
         <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-hairline text-xs text-mute">
+            <tr className="text-xs text-ink">
               <Th>Projet</Th>
               <Th>Sujet</Th>
               <Th>Équipe</Th>
@@ -382,51 +384,29 @@ export default function Dashboard({
         </table>
       </section>
 
-      <p className="mt-3 text-xs text-stone">
-        {visibles.length} sujet{visibles.length > 1 ? "s" : ""} affiché
-        {visibles.length > 1 ? "s" : ""} sur {sujets.length} · cliquez sur une
-        ligne pour la mettre à jour
-      </p>
-
-      {/* Légende (états, criticités, jalons). */}
-      <section className="mt-6 grid gap-3 text-xs text-mute sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-hairline bg-white p-4">
-          <p className="mb-2 font-semibold text-ink">État</p>
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-            {Object.entries(ETATS).map(([k, e]) => (
-              <span key={k} className="flex items-center gap-1.5">
-                <span className={`h-2 w-2 rounded-full ${e.dot}`} />
-                {e.label}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="rounded-2xl border border-hairline bg-white p-4">
-          <p className="mb-2 font-semibold text-ink">Criticité</p>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(CRITICITES).map(([k, c]) => (
-              <Chip key={k} classe={c.chip}>
-                {c.label}
-              </Chip>
-            ))}
-          </div>
-        </div>
-        <div className="rounded-2xl border border-hairline bg-white p-4">
-          <p className="mb-2 font-semibold text-ink">Jalons techniques</p>
-          {Object.entries(JALONS_TECH).map(([pct, label]) => (
-            <p key={pct}>
-              {pct} % — {label}
-            </p>
+      {/* Pied compact : compteur + légende sur une ligne. */}
+      <section className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-mute">
+        <span className="font-semibold text-ink">
+          {visibles.length}/{sujets.length} sujet
+          {sujets.length > 1 ? "s" : ""}
+        </span>
+        <span className="text-stone">
+          Cliquez sur une ligne pour la mettre à jour
+        </span>
+        <span className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          {Object.entries(ETATS).map(([k, e]) => (
+            <span key={k} className="flex items-center gap-1.5">
+              <span className={`h-2 w-2 rounded-full ${e.dot}`} />
+              {e.label}
+            </span>
           ))}
-        </div>
-        <div className="rounded-2xl border border-hairline bg-white p-4">
-          <p className="mb-2 font-semibold text-ink">Jalons business</p>
-          {Object.entries(JALONS_BUSINESS).map(([pct, label]) => (
-            <p key={pct}>
-              {pct} % — {label}
-            </p>
+          <span className="text-stone">·</span>
+          {Object.entries(CRITICITES).map(([k, c]) => (
+            <Chip key={k} classe={c.chip}>
+              {c.label}
+            </Chip>
           ))}
-        </div>
+        </span>
       </section>
 
       {modal && (
@@ -451,18 +431,20 @@ function Indicateur({
   ton?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-hairline bg-white px-4 py-3.5">
-      <p className={`font-display text-2xl font-medium ${ton ?? "text-ink"}`}>
+    <div className="rounded-xl border border-hairline bg-white px-3.5 py-2.5">
+      <p className={`font-display text-[22px] font-semibold ${ton ?? "text-ink"}`}>
         {valeur}
       </p>
-      <p className="mt-0.5 text-xs font-medium text-mute">{label}</p>
+      <p className="text-xs font-medium text-mute">{label}</p>
     </div>
   );
 }
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th className="whitespace-nowrap px-4 py-3 font-medium">{children}</th>
+    <th className="sticky top-0 z-10 whitespace-nowrap bg-white px-4 py-3 font-semibold shadow-[inset_0_-1px_0_var(--color-hairline)]">
+      {children}
+    </th>
   );
 }
 

@@ -118,7 +118,7 @@ export default async function AppPage() {
   const canCreateSujet = projects.some((p) => p.canManage);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex h-dvh flex-col overflow-hidden bg-white">
       <Navbar
         email={user.email}
         role={user.role}
