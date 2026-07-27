@@ -21,14 +21,13 @@ export default function Navbar({
       </a>
       <div className="flex items-center gap-3">
         {canCreateSujet && (
-          <button
-            type="button"
-            title="Bientôt disponible"
-            className="flex cursor-not-allowed items-center gap-1.5 rounded-full border border-hairline px-4 py-2 text-sm font-semibold text-ink opacity-60"
+          <a
+            href="/app?sujet=nouveau"
+            className="flex items-center gap-1.5 rounded-full border border-hairline px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface"
           >
             <PlusIcon />
             Nouveau sujet
-          </button>
+          </a>
         )}
         {role === "dirigeant" && (
           <a

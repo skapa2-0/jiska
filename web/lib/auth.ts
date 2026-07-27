@@ -76,6 +76,20 @@ export async function isResponsable(userId: string): Promise<boolean> {
   return rows.length > 0;
 }
 
+// Peut gérer les sujets d'un projet (créer, tout modifier, supprimer) :
+// dirigeant, ou responsable de ce projet.
+export async function canManageSujets(
+  user: SessionUser,
+  projectId: string,
+): Promise<boolean> {
+  if (user.role === "dirigeant") return true;
+  const rows = await query(
+    "SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2 AND is_responsable",
+    [projectId, user.id],
+  );
+  return rows.length > 0;
+}
+
 export async function destroySession(): Promise<void> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;

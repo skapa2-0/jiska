@@ -31,7 +31,16 @@
   --color-hairline: #e2e2e7;
   --color-stone: #8d969e;
   --color-mute: #505a63;
+
+  /* Sémantique (états, criticités, indicateurs), palette Revolut. */
   --color-danger: #e23b4a;
+  --color-danger-soft: #fdedee;
+  --color-warn: #ec7e00;
+  --color-warn-soft: #fdf2e5;
+  --color-success: #00a87e;
+  --color-success-soft: #e5f6f2;
+  --color-info: #376cd5;
+  --color-info-soft: #ebf1fb;
 }
 
 body {
