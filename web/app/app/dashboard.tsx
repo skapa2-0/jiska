@@ -255,14 +255,13 @@ export default function Dashboard({
               <Th>Business · 40 %</Th>
               <Th>Global</Th>
               <Th>Criticité</Th>
-              <Th>État</Th>
               <Th>Commentaire</Th>
             </tr>
           </thead>
           <tbody>
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-4 py-16 text-center text-stone">
+                <td colSpan={10} className="px-4 py-16 text-center text-stone">
                   {sujets.length === 0
                     ? "Aucun sujet pour l'instant. Créez le premier avec « Nouveau sujet »."
                     : "Aucun sujet ne correspond aux filtres."}
@@ -277,8 +276,6 @@ export default function Dashboard({
               );
               const global = avancementGlobal(s.jalon_tech, s.jalon_business);
               const retard = s.due_date && s.due_date < today && s.etat !== "termine";
-              const semaine =
-                s.due_date && s.due_date >= weekStart && s.due_date <= weekEnd;
               return (
                 <tr
                   key={s.id}
@@ -293,12 +290,9 @@ export default function Dashboard({
                     />
                     <span className="flex items-center gap-2.5">
                       <span
-                        aria-hidden="true"
-                        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-base"
-                        style={{ backgroundColor: `${s.project_color}1a` }}
-                      >
-                        {s.project_icon}
-                      </span>
+                        title={ETATS[s.etat].label}
+                        className={`h-3 w-3 shrink-0 rounded-full ${ETATS[s.etat].dot}`}
+                      />
                       <span className="line-clamp-2 font-semibold text-ink">
                         {s.project_name}
                       </span>
@@ -339,11 +333,7 @@ export default function Dashboard({
                   </td>
                   <td
                     className={`whitespace-nowrap px-4 py-3.5 ${
-                      retard
-                        ? "font-medium text-danger"
-                        : semaine
-                          ? "font-medium text-warn"
-                          : "text-mute"
+                      retard ? "font-medium text-danger" : "text-ink"
                     }`}
                   >
                     {s.due_date
@@ -351,13 +341,13 @@ export default function Dashboard({
                       : "—"}
                   </td>
                   <td
-                    className="px-4 py-3.5"
+                    className="px-4 py-3.5 text-center align-middle"
                     title={JALONS_TECH[s.jalon_tech as 0]}
                   >
                     <Jauge valeur={s.jalon_tech} />
                   </td>
                   <td
-                    className="px-4 py-3.5"
+                    className="px-4 py-3.5 text-center align-middle"
                     title={JALONS_BUSINESS[s.jalon_business as 0]}
                   >
                     <Jauge valeur={s.jalon_business} />
@@ -376,11 +366,6 @@ export default function Dashboard({
                   <td className="px-4 py-3.5">
                     <Chip classe={CRITICITES[s.criticite].chip}>
                       {CRITICITES[s.criticite].label}
-                    </Chip>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <Chip classe={ETATS[s.etat].chip}>
-                      {ETATS[s.etat].label}
                     </Chip>
                   </td>
                   <td className="px-4 py-3.5 text-center">
@@ -552,14 +537,18 @@ function Chip({
 
 function Jauge({ valeur }: { valeur: number }) {
   return (
-    <div className="flex min-w-28 items-center gap-2">
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-surface">
-        <div
-          className={`h-full rounded-full ${valeur >= 75 ? "bg-success" : "bg-warn"}`}
-          style={{ width: `${valeur}%` }}
-        />
-      </div>
-      <span className="text-xs font-medium text-ink">{valeur} %</span>
+    <div className="relative mx-auto h-4.5 w-24 overflow-hidden rounded-full bg-surface">
+      <div
+        className={`h-full ${valeur >= 75 ? "bg-success" : "bg-warn"}`}
+        style={{ width: `${valeur}%` }}
+      />
+      <span
+        className={`absolute inset-0 grid place-items-center text-[10px] font-bold ${
+          valeur >= 50 ? "text-white" : "text-ink"
+        }`}
+      >
+        {valeur} %
+      </span>
     </div>
   );
 }
