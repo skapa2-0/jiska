@@ -20,8 +20,9 @@ npm run dev   # http://localhost:3000 (redirige vers /login)
 
 ## Déploiement
 
-L'app écoute en `:80` sur le réseau Docker `web` ; le HTTPS public sera géré
-par le Caddy global (`/home/projet/caddy`) quand le domaine sera choisi.
+L'app est servie sur **https://jiska.duckdns.org** : elle écoute en `:80` sur
+le réseau Docker `web`, et le HTTPS public est géré par le Caddy global
+(`/home/projet/caddy`, bloc `jiska.duckdns.org`).
 PostgreSQL reste sur le réseau interne `back`, jamais exposé.
 
 ```bash

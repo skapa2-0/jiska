@@ -1,6 +1,6 @@
-# Jiska — app Next.js + PostgreSQL.
+# Jiska — app Next.js + PostgreSQL, servie sur https://jiska.duckdns.org.
 # L'app écoute en :80 sur le réseau Docker `web` (convention du VPS) ;
-# le HTTPS public sera géré par le Caddy global quand le domaine sera choisi.
+# le HTTPS public est géré par le Caddy global (bloc `jiska.duckdns.org`).
 # La base n'est PAS exposée sur `web` : elle vit sur le réseau interne `back`.
 # Copier .env.example vers .env et choisir un mot de passe avant le premier lancement.
 
