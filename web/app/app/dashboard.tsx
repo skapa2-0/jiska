@@ -597,10 +597,10 @@ function Roue({ valeur, ton }: { valeur: number; ton: string }) {
       />
       <text
         x="18"
-        y="18.5"
+        y="18"
         textAnchor="middle"
-        dominantBaseline="middle"
-        className="fill-ink font-sans text-[9px] font-bold"
+        dominantBaseline="central"
+        className="fill-ink font-sans text-[7.5px] font-bold"
       >
         {valeur}%
       </text>
