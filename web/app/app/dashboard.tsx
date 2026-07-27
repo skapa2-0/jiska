@@ -136,11 +136,23 @@ export default function Dashboard({
         aria-label="Indicateurs"
         className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7"
       >
-        <Indicateur valeur={indicateurs.projets} label="Projets actifs" />
-        <Indicateur valeur={indicateurs.ouverts} label="Sujets ouverts" />
+        <Indicateur
+          valeur={indicateurs.projets}
+          label="Projets actifs"
+          tint="bg-brand/10 text-brand"
+          icone={<IconeDossier />}
+        />
+        <Indicateur
+          valeur={indicateurs.ouverts}
+          label="Sujets ouverts"
+          tint="bg-purple-50 text-purple-600"
+          icone={<IconeListe />}
+        />
         <Indicateur
           valeur={`${indicateurs.avancement} %`}
           label="Avancement moyen"
+          tint="bg-success-soft text-success"
+          icone={<IconeTendance />}
           ton={
             indicateurs.avancement >= 75
               ? "text-success"
@@ -152,19 +164,27 @@ export default function Dashboard({
         <Indicateur
           valeur={indicateurs.bloques}
           label="Sujets bloqués"
+          tint="bg-danger-soft text-danger"
+          icone={<IconeAlerte />}
           ton={indicateurs.bloques > 0 ? "text-danger" : "text-success"}
         />
         <Indicateur
           valeur={indicateurs.echeances}
           label="Échéances semaine"
+          tint="bg-warn-soft text-warn"
+          icone={<IconeCalendrier />}
         />
         <Indicateur
           valeur={indicateurs.charge}
           label="Sujets / collaborateur"
+          tint="bg-info-soft text-info"
+          icone={<IconeEquipe />}
         />
         <Indicateur
           valeur={indicateurs.clotures}
           label="Clôturés sur 7 jours"
+          tint="bg-success-soft text-success"
+          icone={<IconeCoche />}
           ton={indicateurs.clotures > 0 ? "text-success" : undefined}
         />
       </section>
@@ -425,19 +445,73 @@ function Indicateur({
   valeur,
   label,
   ton,
+  tint,
+  icone,
 }: {
   valeur: number | string;
   label: string;
   ton?: string;
+  tint: string;
+  icone: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg bg-white px-3.5 py-2.5 shadow-card">
-      <p className={`font-display text-[22px] font-semibold ${ton ?? "text-ink"}`}>
-        {valeur}
-      </p>
-      <p className="text-xs font-medium text-mute">{label}</p>
+    <div className="flex items-center gap-2.5 rounded-lg bg-white px-3 py-2.5 shadow-card">
+      <span
+        aria-hidden="true"
+        className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${tint}`}
+      >
+        {icone}
+      </span>
+      <span className="min-w-0">
+        <span
+          className={`block font-display text-[21px] font-semibold leading-tight ${ton ?? "text-ink"}`}
+        >
+          {valeur}
+        </span>
+        <span className="block truncate text-xs font-medium text-mute">
+          {label}
+        </span>
+      </span>
     </div>
   );
+}
+
+function Icone({ d }: { d: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-[18px] w-[18px]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={d} />
+    </svg>
+  );
+}
+
+function IconeDossier() {
+  return <Icone d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />;
+}
+function IconeListe() {
+  return <Icone d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01" />;
+}
+function IconeTendance() {
+  return <Icone d="M3 17l6-6 4 4 8-8m0 0h-5m5 0v5" />;
+}
+function IconeAlerte() {
+  return <Icone d="M12 4 2.5 20h19L12 4Zm0 6v4m0 3v.01" />;
+}
+function IconeCalendrier() {
+  return <Icone d="M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm3-3v4m8-4v4M4 11h16" />;
+}
+function IconeEquipe() {
+  return <Icone d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3.5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8 4.5a3.5 3.5 0 0 1 0 7m5 6v-2a4 4 0 0 0-2.5-3.7" />;
+}
+function IconeCoche() {
+  return <Icone d="M20 6 9 17l-5-5" />;
 }
 
 function Th({ children }: { children: React.ReactNode }) {
