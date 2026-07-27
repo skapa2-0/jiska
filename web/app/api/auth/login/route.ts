@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
+import { createSession, verifyPassword } from "@/lib/auth";
+import { query } from "@/lib/db";
 
-// Stub d'authentification : à brancher sur PostgreSQL (table users,
-// hachage argon2/bcrypt, session par cookie httpOnly).
 export async function POST(request: Request) {
   let body: { email?: string; password?: string; remember?: boolean };
   try {
@@ -10,15 +10,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
   }
 
-  if (!body.email || !body.password) {
+  const email = body.email?.trim().toLowerCase() ?? "";
+  const password = body.password ?? "";
+  if (!email || !password) {
     return NextResponse.json(
       { error: "E-mail et mot de passe requis." },
       { status: 400 },
     );
   }
 
-  return NextResponse.json(
-    { error: "L'authentification n'est pas encore branchée (PostgreSQL à venir)." },
-    { status: 501 },
+  const rows = await query<{ id: string; password_hash: string }>(
+    "SELECT id, password_hash FROM users WHERE email = $1",
+    [email],
   );
+
+  // Réponse identique que l'e-mail existe ou non.
+  const valid =
+    rows.length > 0 && (await verifyPassword(password, rows[0].password_hash));
+  if (!valid) {
+    return NextResponse.json(
+      { error: "Identifiants incorrects." },
+      { status: 401 },
+    );
+  }
+
+  await createSession(rows[0].id, body.remember === true);
+  return NextResponse.json({ ok: true });
 }

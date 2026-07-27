@@ -5,30 +5,36 @@ import type { FormEvent } from "react";
 
 type Status = "idle" | "loading" | "error";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(false);
+  const [confirm, setConfirm] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState("");
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (password !== confirm) {
+      setStatus("error");
+      setMessage("Les deux mots de passe ne correspondent pas.");
+      return;
+    }
+
     setStatus("loading");
     setMessage("");
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, remember }),
+        body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
 
       if (!res.ok) {
         setStatus("error");
-        setMessage(data.error ?? "Échec de la connexion.");
+        setMessage(data.error ?? "Échec de la création du compte.");
         return;
       }
 
@@ -43,7 +49,7 @@ export default function LoginPage() {
 
   return (
     <main className="flex flex-1 items-center justify-center bg-background px-6 py-16">
-      <section aria-labelledby="login-title" className="w-full max-w-sm">
+      <section aria-labelledby="register-title" className="w-full max-w-sm">
         <header className="mb-10 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG local, pas d'optimisation utile */}
           <img
@@ -53,13 +59,13 @@ export default function LoginPage() {
             className="mx-auto mb-8 h-10 w-auto"
           />
           <h1
-            id="login-title"
+            id="register-title"
             className="font-display text-[32px] font-medium leading-tight tracking-[-0.02em] text-ink"
           >
-            Connexion à Jiska
+            Créer un compte
           </h1>
           <p className="mt-3 text-[15px] text-stone">
-            Retrouvez votre espace en quelques secondes
+            Votre espace Jiska en moins d&apos;une minute
           </p>
         </header>
 
@@ -85,58 +91,45 @@ export default function LoginPage() {
           </div>
 
           <div className="mb-4">
-            <div className="mb-2 flex items-baseline justify-between">
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-ink"
-              >
-                Mot de passe
-              </label>
-              <a
-                href="#"
-                onClick={(e) => e.preventDefault()}
-                className="text-sm font-medium text-brand hover:text-brand-deep"
-              >
-                Mot de passe oublié ?
-              </a>
-            </div>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-                className="w-full rounded-xl bg-surface px-4 py-3.5 pr-24 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={
-                  showPassword
-                    ? "Masquer le mot de passe"
-                    : "Afficher le mot de passe"
-                }
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-2.5 py-1 text-xs font-medium text-mute hover:bg-hairline/60"
-              >
-                {showPassword ? "Masquer" : "Afficher"}
-              </button>
-            </div>
+            <label
+              htmlFor="password"
+              className="mb-2 block text-sm font-medium text-ink"
+            >
+              Mot de passe
+            </label>
+            <input
+              id="password"
+              type="password"
+              autoComplete="new-password"
+              placeholder="8 caractères minimum"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              disabled={loading}
+              className="w-full rounded-xl bg-surface px-4 py-3.5 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
+            />
           </div>
 
-          <label className="mb-8 flex cursor-pointer items-center gap-2.5 text-sm text-mute">
+          <div className="mb-8">
+            <label
+              htmlFor="confirm"
+              className="mb-2 block text-sm font-medium text-ink"
+            >
+              Confirmez le mot de passe
+            </label>
             <input
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
+              id="confirm"
+              type="password"
+              autoComplete="new-password"
+              placeholder="••••••••"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              required
               disabled={loading}
-              className="h-4 w-4 accent-brand"
+              className="w-full rounded-xl bg-surface px-4 py-3.5 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
             />
-            <span>Rester connecté</span>
-          </label>
+          </div>
 
           {message && (
             <p role="alert" className="mb-4 text-sm text-danger">
@@ -146,20 +139,20 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading || !email || !password}
+            disabled={loading || !email || !password || !confirm}
             className="w-full rounded-full bg-ink py-3.5 text-[15px] font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {loading ? "Connexion…" : "Se connecter"}
+            {loading ? "Création…" : "Créer mon compte"}
           </button>
         </form>
 
         <footer className="mt-10 text-center text-sm text-mute">
-          Pas encore de compte ?{" "}
+          Déjà un compte ?{" "}
           <a
-            href="/register"
+            href="/login"
             className="font-medium text-brand hover:text-brand-deep"
           >
-            Créer un compte
+            Se connecter
           </a>
         </footer>
       </section>
