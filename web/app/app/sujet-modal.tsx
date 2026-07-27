@@ -116,7 +116,7 @@ export default function SujetModal({
 
   return (
     <div
-      className="fixed inset-0 z-20 flex items-center justify-center bg-ink/40 px-4 py-8"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 px-4 py-8"
       onClick={(e) => e.target === e.currentTarget && onClose(false)}
     >
       <div

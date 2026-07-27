@@ -10,6 +10,7 @@ import {
   JALONS_TECH,
 } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
+import FicheSujet, { IconeCommentaire } from "./fiche-sujet";
 import Select from "./select";
 import SujetModal from "./sujet-modal";
 
@@ -70,6 +71,7 @@ export default function Dashboard({
   const [modal, setModal] = useState<
     { mode: "create" } | { mode: "edit"; sujet: SujetRow } | null
   >(null);
+  const [fiche, setFiche] = useState<SujetRow | null>(null);
 
   // « Nouveau sujet » de la navbar arrive avec ?sujet=nouveau.
   useEffect(() => {
@@ -285,10 +287,8 @@ export default function Dashboard({
               return (
                 <tr
                   key={s.id}
-                  onClick={() => s.can_edit && setModal({ mode: "edit", sujet: s })}
-                  className={`divide-x divide-hairline border-b border-hairline last:border-b-0 ${
-                    s.can_edit ? "cursor-pointer transition hover:bg-surface" : ""
-                  }`}
+                  onClick={() => setFiche(s)}
+                  className="divide-x divide-hairline border-b border-hairline last:border-b-0 cursor-pointer transition hover:bg-surface"
                 >
                   <td className="relative px-4 py-3.5">
                     <span
@@ -387,8 +387,18 @@ export default function Dashboard({
                       {ETATS[s.etat].label}
                     </Chip>
                   </td>
-                  <td className="max-w-56 px-4 py-3.5 text-mute">
-                    {s.commentaire}
+                  <td className="px-4 py-3.5 text-center">
+                    {s.commentaire && (
+                      <button
+                        type="button"
+                        onClick={() => setFiche(s)}
+                        aria-label={`Lire le commentaire de ${s.title}`}
+                        title="Lire le commentaire"
+                        className="rounded-md p-1.5 text-stone transition hover:bg-surface hover:text-ink"
+                      >
+                        <IconeCommentaire className="h-4.5 w-4.5" />
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
@@ -404,7 +414,7 @@ export default function Dashboard({
           {sujets.length > 1 ? "s" : ""}
         </span>
         <span className="text-stone">
-          Cliquez sur une ligne pour la mettre à jour
+          Cliquez sur une ligne pour ouvrir sa fiche
         </span>
         <span className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1.5">
           {Object.entries(ETATS).map(([k, e]) => (
@@ -421,6 +431,19 @@ export default function Dashboard({
           ))}
         </span>
       </section>
+
+      {fiche && (
+        <FicheSujet
+          sujet={fiche}
+          projet={projects.find((p) => p.id === fiche.project_id)}
+          today={today}
+          onClose={() => setFiche(null)}
+          onEdit={() => {
+            setModal({ mode: "edit", sujet: fiche });
+            setFiche(null);
+          }}
+        />
+      )}
 
       {modal && (
         <SujetModal
