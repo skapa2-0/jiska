@@ -243,19 +243,33 @@ export default function Dashboard({
           tout l'espace restant et scrolle en interne : la page, elle,
           tient dans le viewport. */}
       <section className="min-h-0 flex-1 overflow-auto rounded-lg bg-white shadow-card">
-        <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[1250px] table-fixed border-collapse text-left text-sm">
+          {/* Largeurs figées (table-fixed) : Projet/Sujet/Action se
+              partagent l'espace restant, le reste est en pixels. */}
+          <colgroup>
+            <col />
+            <col />
+            <col style={{ width: 130 }} />
+            <col />
+            <col style={{ width: 115 }} />
+            <col style={{ width: 130 }} />
+            <col style={{ width: 130 }} />
+            <col style={{ width: 90 }} />
+            <col style={{ width: 115 }} />
+            <col style={{ width: 110 }} />
+          </colgroup>
           <thead>
             <tr className="divide-x divide-hairline text-xs text-ink">
               <Th>Projet</Th>
               <Th>Sujet</Th>
               <Th>Équipe</Th>
               <Th>Action de la semaine</Th>
-              <Th>Échéance</Th>
-              <Th>Technique · 60 %</Th>
-              <Th>Business · 40 %</Th>
-              <Th>Global</Th>
-              <Th>Criticité</Th>
-              <Th>Commentaire</Th>
+              <Th centre>Échéance</Th>
+              <Th centre>Technique · 60 %</Th>
+              <Th centre>Business · 40 %</Th>
+              <Th centre>Global</Th>
+              <Th centre>Criticité</Th>
+              <Th centre>Commentaire</Th>
             </tr>
           </thead>
           <tbody>
@@ -336,7 +350,7 @@ export default function Dashboard({
                     <span className="line-clamp-2">{s.action}</span>
                   </td>
                   <td
-                    className={`whitespace-nowrap px-4 py-3.5 ${
+                    className={`whitespace-nowrap px-4 py-3.5 text-center align-middle ${
                       retard ? "font-medium text-danger" : "text-ink"
                     }`}
                   >
@@ -357,7 +371,7 @@ export default function Dashboard({
                     <Jauge valeur={s.jalon_business} />
                   </td>
                   <td
-                    className={`whitespace-nowrap px-4 py-3.5 font-semibold ${
+                    className={`whitespace-nowrap px-4 py-3.5 text-center align-middle font-semibold ${
                       global >= 75
                         ? "text-success"
                         : global >= 50
@@ -367,12 +381,12 @@ export default function Dashboard({
                   >
                     {global} %
                   </td>
-                  <td className="px-4 py-3.5">
+                  <td className="px-4 py-3.5 text-center align-middle">
                     <Chip classe={CRITICITES[s.criticite].chip}>
                       {CRITICITES[s.criticite].label}
                     </Chip>
                   </td>
-                  <td className="px-4 py-3.5 text-center">
+                  <td className="px-4 py-3.5 text-center align-middle">
                     {s.commentaire && (
                       <button
                         type="button"
@@ -515,9 +529,19 @@ function IconeCoche() {
   return <Icone d="M20 6 9 17l-5-5" />;
 }
 
-function Th({ children }: { children: React.ReactNode }) {
+function Th({
+  centre,
+  children,
+}: {
+  centre?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <th className="sticky top-0 z-10 whitespace-nowrap bg-surface px-4 py-2.5 font-semibold shadow-[inset_0_-1px_0_var(--color-hairline)]">
+    <th
+      className={`sticky top-0 z-10 whitespace-nowrap bg-surface px-4 py-2.5 font-semibold shadow-[inset_0_-1px_0_var(--color-hairline)] ${
+        centre ? "text-center" : ""
+      }`}
+    >
       {children}
     </th>
   );
