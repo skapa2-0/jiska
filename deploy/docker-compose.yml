@@ -1,0 +1,22 @@
+# Jiska — projet en démarrage.
+# Le contenu est monté depuis ../web (lecture seule).
+# Route publique : à ajouter dans le Caddy global quand le domaine sera choisi.
+
+name: jiska
+
+services:
+  jiska-front:
+    image: caddy:2-alpine
+    container_name: jiska-front
+    restart: unless-stopped
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../web:/srv:ro
+    mem_limit: 64m
+    pids_limit: 64
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
