@@ -1,22 +1,26 @@
 # Jiska
 
-Application web en démarrage. Stack décidée par Matthieu : **Next.js** en front, **PostgreSQL** en back. Le périmètre fonctionnel reste à définir — pour l'instant seul le portail de login existe.
+Outil de **pilotage hebdomadaire** des projets (PRD de Matthieu) : une seule page `/app` — bandeau d'indicateurs, filtres limités, tableau une-ligne-un-sujet, mise à jour en modale pendant la réunion. Stack : **Next.js** en front, **PostgreSQL** en back.
 
 ## Organisation
 
 - Tout le code vit dans `web/` (Next.js 16, App Router, TypeScript, Tailwind 4) — jamais à la racine.
-- `deploy/` : Dockerfile (build `output: "standalone"`) + docker-compose.yml — service `jiska-app` (`:80`, réseaux `web` + `back`) et `jiska-db` (PostgreSQL 17, réseau interne `back` uniquement, volume `jiska-db-data`).
-- Secrets dans `deploy/.env` (jamais commité, modèle dans `.env.example`).
-- Le HTTPS public passe par le Caddy global (`/home/projet/caddy`), pas par ce projet.
+- `deploy/` : Dockerfile (build `output: "standalone"`, `HOSTNAME=0.0.0.0` obligatoire) + docker-compose.yml — `jiska-app` (`:80`, réseaux `web` + `back`) et `jiska-db` (PostgreSQL 17, réseau `back` uniquement).
+- Secrets dans `deploy/.env` (jamais commité). HTTPS public via le Caddy global (`/home/projet/caddy`), domaine `jiska.duckdns.org`.
 - Le dossier appartient au groupe `devs` (matthieu + tao) : conserver le setgid et les droits d'écriture groupe.
 
-## État actuel / à faire
+## Règles UI
 
-- `/login` : portail de connexion (client component), POST vers `/api/auth/login`.
-- `/api/auth/login` : stub qui répond 501 — à brancher sur PostgreSQL (table `users`, hachage argon2/bcrypt, session cookie httpOnly). `DATABASE_URL` est déjà injectée par docker-compose.
-- Node sur le VPS : via nvm (utilisateur matthieu), Node 24 LTS — charger avec `. ~/.nvm/nvm.sh` dans les scripts non interactifs.
+- **Aucun contrôle au style natif du navigateur** : selects, menus, pickers… sont des composants maison stylés selon la DA (réf. : `web/app/app/select.tsx`, `user-menu.tsx`). Tout `<select>` natif restant est à remplacer au fil de l'eau.
+- DA inspirée de Revolut en thème clair : blanc pur, texte encre, ombres légères (`shadow-card`) plutôt que contours appuyés, angles peu arrondis (`rounded-lg`/`md`), bleu du logo (`brand`) en accent, couleurs sémantiques définies dans `globals.css`. Jetons centralisés dans `globals.css`, vocabulaire métier dans `web/lib/sujets.ts`.
+- Le dashboard `/app` doit tenir dans le viewport : seul le tableau scrolle (en interne).
+
+## Métier (PRD)
+
+- Rôles : `dirigeant` (voit tout, gère comptes et projets) / `collaborateur` ; un responsable par projet (crée des sujets de son projet, pas de projets).
+- Sujets : avancement par jalons uniquement (0/25/50/75/100), global = technique × 60 % + business × 40 %, jamais saisi à la main. Historique conservé en base (`sujet_history`), non affiché.
 
 ## Git
 
-- Identité : Matthieu <evolytics.services@gmail.com> (configurée par dépôt).
-- Git local seulement pour l'instant, pas de remote.
+- Identité : Matthieu <evolytics.services@gmail.com> (configurée par dépôt). Local seulement, pas de remote.
+- Committer systématiquement après chaque ensemble cohérent de changements (demande de Matthieu), messages en français.

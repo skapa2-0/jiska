@@ -10,6 +10,7 @@ import {
   JALONS_TECH,
 } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
+import Select from "./select";
 import SujetModal from "./sujet-modal";
 
 export type ProjectOption = {
@@ -208,32 +209,24 @@ export default function Dashboard({
             {f.label}
           </button>
         ))}
-        <select
-          aria-label="Filtrer par projet"
+        <Select
+          ariaLabel="Filtrer par projet"
+          placeholder="Par projet"
           value={projetId}
-          onChange={(e) => setProjetId(e.target.value)}
-          className="rounded-lg border border-hairline bg-white px-4 py-2 text-sm text-mute outline-none focus:ring-2 focus:ring-brand"
-        >
-          <option value="">Par projet</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.icon} {p.name}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Filtrer par responsable"
+          onChange={setProjetId}
+          options={projects.map((p) => ({
+            value: p.id,
+            label: p.name,
+            icon: p.icon,
+          }))}
+        />
+        <Select
+          ariaLabel="Filtrer par responsable"
+          placeholder="Par responsable"
           value={responsableId}
-          onChange={(e) => setResponsableId(e.target.value)}
-          className="rounded-lg border border-hairline bg-white px-4 py-2 text-sm text-mute outline-none focus:ring-2 focus:ring-brand"
-        >
-          <option value="">Par responsable</option>
-          {responsables.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.email}
-            </option>
-          ))}
-        </select>
+          onChange={setResponsableId}
+          options={responsables.map((r) => ({ value: r.id, label: r.email }))}
+        />
         <input
           type="search"
           placeholder="Rechercher un sujet, projet, responsable…"
