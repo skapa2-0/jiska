@@ -282,17 +282,21 @@ export default function Dashboard({
                   onClick={() => setFiche(s)}
                   className="divide-x divide-hairline border-b border-hairline last:border-b-0 cursor-pointer transition hover:bg-surface"
                 >
-                  <td className="relative px-4 py-3.5">
-                    <span
-                      aria-hidden="true"
-                      className="absolute inset-y-2 left-0 w-1 rounded-r"
-                      style={{ backgroundColor: s.project_color }}
-                    />
+                  <td className="px-4 py-3.5">
                     <span className="flex items-center gap-2.5">
-                      <span
-                        title={ETATS[s.etat].label}
-                        className={`h-3 w-3 shrink-0 rounded-full ${ETATS[s.etat].dot}`}
-                      />
+                      <span className="relative shrink-0">
+                        <span
+                          aria-hidden="true"
+                          className="grid h-8 w-8 place-items-center rounded-lg text-base"
+                          style={{ backgroundColor: `${s.project_color}1a` }}
+                        >
+                          {s.project_icon}
+                        </span>
+                        <span
+                          title={ETATS[s.etat].label}
+                          className={`absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white ${ETATS[s.etat].dot}`}
+                        />
+                      </span>
                       <span className="line-clamp-2 font-semibold text-ink">
                         {s.project_name}
                       </span>
