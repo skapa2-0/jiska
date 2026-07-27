@@ -49,10 +49,10 @@ export default function LoginPage() {
         <header className="mb-10 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG local, pas d'optimisation utile */}
           <img
-            src="/logo-mark.svg"
+            src="/logo.svg"
             alt=""
             aria-hidden="true"
-            className="mx-auto mb-8 h-9 w-auto"
+            className="mx-auto mb-8 h-10 w-auto"
           />
           <h1
             id="login-title"
