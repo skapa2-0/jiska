@@ -3,8 +3,8 @@
 /* Thème clair imposé sur toute l'app (pas de variante sombre pour l'instant). */
 :root {
   color-scheme: light;
-  --background: #fafafa;
-  --foreground: #171717;
+  --background: #f1f3f9;
+  --foreground: #1f2333;
 }
 
 @theme inline {
@@ -14,10 +14,24 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Style "soft UI" de l'app : surfaces claires, grands arrondis, ombres
+   diffuses sans bordures dures. Réutiliser ces jetons sur toute nouvelle
+   page (shadow-soft, shadow-soft-sm, shadow-brand, inset-soft…). */
 @theme {
   /* Bleu du logo (web/public/logo.svg). */
   --color-brand: #4b4ee9;
   --color-brand-hover: #3d40d8;
+  --color-brand-soft: #ecedfd;
+
+  /* Ombre principale des cartes : large, très diffuse, presque sans bord. */
+  --shadow-soft: 0 20px 40px -8px rgb(31 35 51 / 0.12),
+    0 4px 12px -4px rgb(31 35 51 / 0.06);
+  /* Petits éléments posés (badges, boutons secondaires). */
+  --shadow-soft-sm: 0 6px 16px -6px rgb(31 35 51 / 0.14);
+  /* Halo coloré sous les actions principales. */
+  --shadow-brand: 0 10px 24px -8px rgb(75 78 233 / 0.5);
+  /* Champs de saisie légèrement creusés. */
+  --shadow-inset-soft: inset 0 2px 6px rgb(31 35 51 / 0.06);
 }
 
 body {

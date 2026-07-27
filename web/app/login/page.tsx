@@ -47,7 +47,7 @@ export default function LoginPage() {
     <main className="flex flex-1 items-center justify-center bg-background px-6 py-12 [background-image:radial-gradient(600px_400px_at_20%_10%,rgba(75,78,233,0.08),transparent),radial-gradient(500px_350px_at_85%_90%,rgba(75,78,233,0.05),transparent)]">
       <section
         aria-labelledby="login-title"
-        className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 shadow-xl shadow-zinc-900/5"
+        className="w-full max-w-sm rounded-3xl bg-white p-8 shadow-soft"
       >
         <header className="mb-7 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG local, pas d'optimisation utile */}
@@ -82,7 +82,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/25 disabled:opacity-60"
+              className="w-full rounded-xl border border-zinc-200/80 bg-zinc-50 px-3.5 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 shadow-inset-soft outline-none transition focus:border-brand/50 focus:bg-white focus:ring-4 focus:ring-brand/10 disabled:opacity-60"
             />
           </div>
 
@@ -112,7 +112,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 pr-20 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/25 disabled:opacity-60"
+                className="w-full rounded-xl border border-zinc-200/80 bg-zinc-50 px-3.5 py-2.5 pr-20 text-sm text-zinc-900 placeholder-zinc-400 shadow-inset-soft outline-none transition focus:border-brand/50 focus:bg-white focus:ring-4 focus:ring-brand/10 disabled:opacity-60"
               />
               <button
                 type="button"
@@ -143,7 +143,7 @@ export default function LoginPage() {
           {message && (
             <p
               role="alert"
-              className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              className="mb-4 rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700 shadow-soft-sm"
             >
               {message}
             </p>
@@ -152,7 +152,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading || !email || !password}
-            className="w-full rounded-lg bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-xl bg-gradient-to-tl from-brand to-[#7477f2] py-2.5 text-sm font-semibold text-white shadow-brand transition hover:-translate-y-px hover:brightness-105 active:translate-y-0 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
           >
             {loading ? "Connexion…" : "Se connecter"}
           </button>
