@@ -32,6 +32,8 @@ function ensureSchema(): Promise<void> {
          created_by  bigint REFERENCES users(id) ON DELETE SET NULL,
          created_at  timestamptz NOT NULL DEFAULT now()
        );
+       ALTER TABLE projects ADD COLUMN IF NOT EXISTS color text NOT NULL DEFAULT '#4b4ee9';
+       ALTER TABLE projects ADD COLUMN IF NOT EXISTS icon  text NOT NULL DEFAULT '📁';
        CREATE TABLE IF NOT EXISTS project_members (
          project_id     bigint NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
          user_id        bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,

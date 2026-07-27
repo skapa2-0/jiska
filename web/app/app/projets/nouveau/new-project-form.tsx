@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { PROJECT_COLORS, PROJECT_ICONS } from "@/lib/sujets";
 
 type Person = { id: string; email: string; role: string };
 
 export default function NewProjectForm({ people }: { people: Person[] }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [color, setColor] = useState<string>(PROJECT_COLORS[0]);
+  const [icon, setIcon] = useState<string>(PROJECT_ICONS[0]);
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [responsableId, setResponsableId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,7 +34,14 @@ export default function NewProjectForm({ people }: { people: Person[] }) {
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description, memberIds, responsableId }),
+        body: JSON.stringify({
+          name,
+          description,
+          color,
+          icon,
+          memberIds,
+          responsableId,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -79,6 +89,48 @@ export default function NewProjectForm({ people }: { people: Person[] }) {
         disabled={loading}
         className="w-full resize-none rounded-xl bg-surface px-4 py-3.5 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
       />
+
+      <div className="mt-5 grid gap-5 sm:grid-cols-2">
+        <div>
+          <p className="mb-2 text-sm font-medium text-ink">Couleur</p>
+          <div className="flex flex-wrap gap-2">
+            {PROJECT_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-label={`Couleur ${c}`}
+                aria-pressed={color === c}
+                onClick={() => setColor(c)}
+                disabled={loading}
+                className={`h-8 w-8 rounded-full transition ${
+                  color === c ? "ring-2 ring-ink ring-offset-2" : ""
+                }`}
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="mb-2 text-sm font-medium text-ink">Logo</p>
+          <div className="flex flex-wrap gap-1.5">
+            {PROJECT_ICONS.map((i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={`Logo ${i}`}
+                aria-pressed={icon === i}
+                onClick={() => setIcon(i)}
+                disabled={loading}
+                className={`grid h-9 w-9 place-items-center rounded-lg text-lg transition hover:bg-surface ${
+                  icon === i ? "bg-surface ring-2 ring-ink" : ""
+                }`}
+              >
+                {i}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       <p className="mb-2 mt-5 text-sm font-medium text-ink">Membres</p>
       <ul className="divide-y divide-hairline rounded-2xl border border-hairline bg-white">

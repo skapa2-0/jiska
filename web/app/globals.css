@@ -28,9 +28,9 @@
 
   --color-ink: #191c1f;
   --color-surface: #f4f4f4;
-  --color-hairline: #e2e2e7;
-  --color-stone: #8d969e;
-  --color-mute: #505a63;
+  --color-hairline: #d6d6de;
+  --color-stone: #737d85;
+  --color-mute: #3f4750;
 
   /* Sémantique (états, criticités, indicateurs), palette Revolut. */
   --color-danger: #e23b4a;

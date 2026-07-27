@@ -15,9 +15,17 @@ import SujetModal from "./sujet-modal";
 export type ProjectOption = {
   id: string;
   name: string;
+  color: string;
+  icon: string;
   canManage: boolean;
   members: { id: string; email: string }[];
 };
+
+// Couleur d'avatar stable par utilisateur (photos de profil à venir).
+const AVATAR_COLORS = ["#4b4ee9", "#7c3aed", "#0ea5e9", "#00a87e", "#e61e49"];
+function avatarColor(id: string): string {
+  return AVATAR_COLORS[Number(id) % AVATAR_COLORS.length];
+}
 
 type Indicateurs = {
   projets: number;
@@ -40,12 +48,6 @@ type FiltreKey = (typeof FILTRES)[number]["key"];
 
 function isoDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function prenom(email: string | null): string {
-  if (!email) return "—";
-  const p = email.split("@")[0].split(/[._-]/)[0];
-  return p.charAt(0).toUpperCase() + p.slice(1);
 }
 
 export default function Dashboard({
@@ -195,7 +197,7 @@ export default function Dashboard({
           <option value="">Par projet</option>
           {projects.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {p.icon} {p.name}
             </option>
           ))}
         </select>
@@ -226,10 +228,10 @@ export default function Dashboard({
       <section className="mt-4 overflow-x-auto rounded-2xl border border-hairline bg-white">
         <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-hairline text-xs text-stone">
+            <tr className="border-b border-hairline text-xs text-mute">
               <Th>Projet</Th>
               <Th>Sujet</Th>
-              <Th>Responsable</Th>
+              <Th>Équipe</Th>
               <Th>Action de la semaine</Th>
               <Th>Échéance</Th>
               <Th>Technique · 60 %</Th>
@@ -251,6 +253,11 @@ export default function Dashboard({
               </tr>
             )}
             {visibles.map((s) => {
+              const projet = projects.find((p) => p.id === s.project_id);
+              // Responsable en tête, cerclé de doré.
+              const equipe = [...(projet?.members ?? [])].sort((a, b) =>
+                a.id === s.responsable_id ? -1 : b.id === s.responsable_id ? 1 : 0,
+              );
               const global = avancementGlobal(s.jalon_tech, s.jalon_business);
               const retard = s.due_date && s.due_date < today && s.etat !== "termine";
               const semaine =
@@ -268,21 +275,51 @@ export default function Dashboard({
                     s.can_edit ? "cursor-pointer transition hover:bg-surface/60" : ""
                   }`}
                 >
-                  <td className="px-4 py-3.5 font-medium text-ink">
-                    {s.project_name}
-                  </td>
-                  <td className="px-4 py-3.5 text-ink">{s.title}</td>
-                  <td className="px-4 py-3.5">
-                    <span className="flex items-center gap-2">
+                  <td className="relative px-4 py-3.5">
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-y-2 left-0 w-1 rounded-r"
+                      style={{ backgroundColor: s.project_color }}
+                    />
+                    <span className="flex items-center gap-2.5">
                       <span
                         aria-hidden="true"
-                        className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand text-[11px] font-semibold text-white"
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-base"
+                        style={{ backgroundColor: `${s.project_color}1a` }}
                       >
-                        {(s.responsable_email ?? "—")[0]?.toUpperCase()}
+                        {s.project_icon}
                       </span>
-                      <span className="text-mute">
-                        {prenom(s.responsable_email)}
+                      <span className="font-semibold text-ink">
+                        {s.project_name}
                       </span>
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5 font-medium text-ink">{s.title}</td>
+                  <td className="px-4 py-3.5">
+                    <span className="flex items-center -space-x-1.5">
+                      {equipe.slice(0, 4).map((m) => (
+                        <span
+                          key={m.id}
+                          title={
+                            m.id === s.responsable_id
+                              ? `${m.email} · responsable`
+                              : m.email
+                          }
+                          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-white text-[11px] font-semibold text-white ${
+                            m.id === s.responsable_id
+                              ? "ring-2 ring-amber-400"
+                              : ""
+                          }`}
+                          style={{ backgroundColor: avatarColor(m.id) }}
+                        >
+                          {m.email[0]?.toUpperCase()}
+                        </span>
+                      ))}
+                      {equipe.length > 4 && (
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-white bg-surface text-[11px] font-semibold text-mute">
+                          +{equipe.length - 4}
+                        </span>
+                      )}
                     </span>
                   </td>
                   <td className="max-w-52 px-4 py-3.5 text-mute">{s.action}</td>
@@ -418,7 +455,7 @@ function Indicateur({
       <p className={`font-display text-2xl font-medium ${ton ?? "text-ink"}`}>
         {valeur}
       </p>
-      <p className="mt-0.5 text-xs text-stone">{label}</p>
+      <p className="mt-0.5 text-xs font-medium text-mute">{label}</p>
     </div>
   );
 }
@@ -457,7 +494,7 @@ function Jauge({ valeur, label }: { valeur: number; label: string }) {
         </div>
         <span className="text-xs font-medium text-ink">{valeur} %</span>
       </div>
-      <p className="mt-1 text-xs text-stone">{label}</p>
+      <p className="mt-1 text-xs text-mute">{label}</p>
     </div>
   );
 }
