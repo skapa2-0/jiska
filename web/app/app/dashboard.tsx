@@ -250,7 +250,7 @@ export default function Dashboard({
       <section className="min-h-0 flex-1 overflow-auto rounded-lg bg-white shadow-card">
         <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
           <thead>
-            <tr className="text-xs text-ink">
+            <tr className="divide-x divide-hairline text-xs text-ink">
               <Th>Projet</Th>
               <Th>Sujet</Th>
               <Th>Équipe</Th>
@@ -293,7 +293,7 @@ export default function Dashboard({
                 <tr
                   key={s.id}
                   onClick={() => s.can_edit && setModal({ mode: "edit", sujet: s })}
-                  className={`border-b border-hairline last:border-b-0 ${
+                  className={`divide-x divide-hairline border-b border-hairline last:border-b-0 ${
                     s.can_edit ? "cursor-pointer transition hover:bg-surface" : ""
                   }`}
                 >
