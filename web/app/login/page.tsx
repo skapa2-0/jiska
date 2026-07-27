@@ -44,27 +44,32 @@ export default function LoginPage() {
   const loading = status === "loading";
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-background px-6 py-12">
-      <section aria-labelledby="login-title" className="w-full max-w-xs">
-        <header className="mb-10">
+    <main className="flex flex-1 items-center justify-center bg-background px-6 py-16">
+      <section aria-labelledby="login-title" className="w-full max-w-sm">
+        <header className="mb-10 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG local, pas d'optimisation utile */}
           <img
-            src="/logo.svg"
+            src="/logo-mark.svg"
             alt=""
             aria-hidden="true"
-            className="mb-6 h-8 w-auto"
+            className="mx-auto mb-8 h-9 w-auto"
           />
-          <h1 id="login-title" className="sr-only">
-            Jiska
+          <h1
+            id="login-title"
+            className="font-display text-[32px] font-medium leading-tight tracking-[-0.02em] text-ink"
+          >
+            Connexion à Jiska
           </h1>
-          <p className="text-sm text-zinc-500">Connectez-vous à votre espace</p>
+          <p className="mt-3 text-[15px] text-stone">
+            Retrouvez votre espace en quelques secondes
+          </p>
         </header>
 
         <form onSubmit={handleSubmit} noValidate>
-          <div className="mb-5">
+          <div className="mb-4">
             <label
               htmlFor="email"
-              className="mb-1.5 block text-sm text-zinc-700"
+              className="mb-2 block text-sm font-medium text-ink"
             >
               Adresse e-mail
             </label>
@@ -77,22 +82,22 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
-              className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition focus:border-brand disabled:opacity-60"
+              className="w-full rounded-xl bg-surface px-4 py-3.5 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
             />
           </div>
 
-          <div className="mb-5">
-            <div className="mb-1.5 flex items-baseline justify-between">
+          <div className="mb-4">
+            <div className="mb-2 flex items-baseline justify-between">
               <label
                 htmlFor="password"
-                className="block text-sm text-zinc-700"
+                className="block text-sm font-medium text-ink"
               >
                 Mot de passe
               </label>
               <a
                 href="#"
                 onClick={(e) => e.preventDefault()}
-                className="text-xs text-brand hover:underline"
+                className="text-sm font-medium text-brand hover:text-brand-deep"
               >
                 Mot de passe oublié ?
               </a>
@@ -107,7 +112,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 pr-20 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition focus:border-brand disabled:opacity-60"
+                className="w-full rounded-xl bg-surface px-4 py-3.5 pr-24 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
               />
               <button
                 type="button"
@@ -117,14 +122,14 @@ export default function LoginPage() {
                     ? "Masquer le mot de passe"
                     : "Afficher le mot de passe"
                 }
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-1 text-xs text-zinc-500 hover:text-zinc-800"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-2.5 py-1 text-xs font-medium text-mute hover:bg-hairline/60"
               >
                 {showPassword ? "Masquer" : "Afficher"}
               </button>
             </div>
           </div>
 
-          <label className="mb-5 flex cursor-pointer items-center gap-2 text-sm text-zinc-600">
+          <label className="mb-8 flex cursor-pointer items-center gap-2.5 text-sm text-mute">
             <input
               type="checkbox"
               checked={remember}
@@ -136,10 +141,7 @@ export default function LoginPage() {
           </label>
 
           {message && (
-            <p
-              role="alert"
-              className="mb-4 text-sm text-red-600"
-            >
+            <p role="alert" className="mb-4 text-sm text-danger">
               {message}
             </p>
           )}
@@ -147,18 +149,18 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading || !email || !password}
-            className="w-full rounded-md bg-brand py-2 text-sm font-medium text-white transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full rounded-full bg-ink py-3.5 text-[15px] font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {loading ? "Connexion…" : "Se connecter"}
           </button>
         </form>
 
-        <footer className="mt-8 text-sm text-zinc-500">
+        <footer className="mt-10 text-center text-sm text-mute">
           Pas encore de compte ?{" "}
           <a
             href="#"
             onClick={(e) => e.preventDefault()}
-            className="text-brand hover:underline"
+            className="font-medium text-brand hover:text-brand-deep"
           >
             Contactez-nous
           </a>

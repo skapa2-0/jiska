@@ -4,22 +4,34 @@
 :root {
   color-scheme: light;
   --background: #ffffff;
-  --foreground: #18181b;
+  --foreground: #1f2226;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-/* Style minimaliste de l'app : fond blanc, aucune ombre ni dégradé,
-   bordures fines (zinc-200), le bleu du logo comme seul accent. */
+/* DA inspirée de Revolut, en clair :
+   - blanc pur, texte encre #191c1f, surfaces gris #f4f4f4, filets #e2e2e7 ;
+   - ZÉRO ombre : la profondeur vient du contraste et des espaces blancs ;
+   - titres font-display medium à tracking négatif, corps en Inter ;
+   - boutons pilule (rounded-full) noirs, champs remplis gris rounded-xl ;
+   - cobalt (= bleu du logo) réservé aux liens et accents. */
 @theme {
-  /* Bleu du logo (web/public/logo.svg). */
+  /* Bleu du logo (web/public/logo.svg), ≈ cobalt Revolut #494fdf. */
   --color-brand: #4b4ee9;
-  --color-brand-hover: #3d40d8;
+  --color-brand-deep: #3a40c4;
+
+  --color-ink: #191c1f;
+  --color-surface: #f4f4f4;
+  --color-hairline: #e2e2e7;
+  --color-stone: #8d969e;
+  --color-mute: #505a63;
+  --color-danger: #e23b4a;
 }
 
 body {
