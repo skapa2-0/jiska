@@ -354,17 +354,17 @@ export default function Dashboard({
                       <span className="block text-xs">⚠ {joursRetard} j</span>
                     ) : null}
                   </td>
-                  <td className="px-4 py-3.5">
-                    <Jauge
-                      valeur={s.jalon_tech}
-                      label={JALONS_TECH[s.jalon_tech as 0]}
-                    />
+                  <td
+                    className="px-4 py-3.5"
+                    title={JALONS_TECH[s.jalon_tech as 0]}
+                  >
+                    <Jauge valeur={s.jalon_tech} />
                   </td>
-                  <td className="px-4 py-3.5">
-                    <Jauge
-                      valeur={s.jalon_business}
-                      label={JALONS_BUSINESS[s.jalon_business as 0]}
-                    />
+                  <td
+                    className="px-4 py-3.5"
+                    title={JALONS_BUSINESS[s.jalon_business as 0]}
+                  >
+                    <Jauge valeur={s.jalon_business} />
                   </td>
                   <td
                     className={`whitespace-nowrap px-4 py-3.5 font-semibold ${
@@ -531,19 +531,16 @@ function Chip({
   );
 }
 
-function Jauge({ valeur, label }: { valeur: number; label: string }) {
+function Jauge({ valeur }: { valeur: number }) {
   return (
-    <div className="min-w-32">
-      <div className="flex items-center gap-2">
-        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-surface">
-          <div
-            className={`h-full rounded-full ${valeur >= 75 ? "bg-success" : "bg-warn"}`}
-            style={{ width: `${valeur}%` }}
-          />
-        </div>
-        <span className="text-xs font-medium text-ink">{valeur} %</span>
+    <div className="flex min-w-28 items-center gap-2">
+      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-surface">
+        <div
+          className={`h-full rounded-full ${valeur >= 75 ? "bg-success" : "bg-warn"}`}
+          style={{ width: `${valeur}%` }}
+        />
       </div>
-      <p className="mt-1 text-xs text-mute">{label}</p>
+      <span className="text-xs font-medium text-ink">{valeur} %</span>
     </div>
   );
 }
