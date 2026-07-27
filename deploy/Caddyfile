@@ -1,6 +1,0 @@
-# Serveur statique interne : le TLS et les headers sont gérés par le Caddy global.
-:80 {
-	root * /srv
-	encode gzip zstd
-	file_server
-}

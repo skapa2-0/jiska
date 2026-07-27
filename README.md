@@ -1,20 +1,31 @@
 # Jiska
 
-Nouveau projet — contenu à définir.
+Application web — front Next.js, base PostgreSQL.
 
 ## Structure
 
-- `web/` — contenu / code du projet
-- `deploy/` — configuration de déploiement (Caddyfile + docker-compose.yml)
+- `web/` — app Next.js 16 (App Router, TypeScript, Tailwind 4)
+  - `app/login/` — portail de connexion
+  - `app/api/auth/login/` — endpoint d'authentification (stub, PostgreSQL à brancher)
+- `deploy/` — Dockerfile (build standalone) + docker-compose.yml (app + PostgreSQL 17)
 - `.claude/` — configuration Claude Code du projet
+
+## Développement
+
+```bash
+cd web
+npm install
+npm run dev   # http://localhost:3000 (redirige vers /login)
+```
 
 ## Déploiement
 
-Le conteneur écoute en `:80` sur le réseau Docker `web`. Le HTTPS public
-est géré par le Caddy global (`/home/projet/caddy`) — y ajouter le bloc
-du domaine quand il sera choisi.
+L'app écoute en `:80` sur le réseau Docker `web` ; le HTTPS public sera géré
+par le Caddy global (`/home/projet/caddy`) quand le domaine sera choisi.
+PostgreSQL reste sur le réseau interne `back`, jamais exposé.
 
 ```bash
 cd deploy
-docker compose up -d
+cp .env.example .env   # puis choisir un vrai mot de passe
+docker compose up -d --build
 ```

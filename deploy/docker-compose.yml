@@ -1,22 +1,53 @@
-# Jiska — projet en démarrage.
-# Le contenu est monté depuis ../web (lecture seule).
-# Route publique : à ajouter dans le Caddy global quand le domaine sera choisi.
+# Jiska — app Next.js + PostgreSQL.
+# L'app écoute en :80 sur le réseau Docker `web` (convention du VPS) ;
+# le HTTPS public sera géré par le Caddy global quand le domaine sera choisi.
+# La base n'est PAS exposée sur `web` : elle vit sur le réseau interne `back`.
+# Copier .env.example vers .env et choisir un mot de passe avant le premier lancement.
 
 name: jiska
 
 services:
-  jiska-front:
-    image: caddy:2-alpine
-    container_name: jiska-front
+  jiska-app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: jiska-app
     restart: unless-stopped
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ../web:/srv:ro
-    mem_limit: 64m
-    pids_limit: 64
+    environment:
+      DATABASE_URL: postgres://jiska:${POSTGRES_PASSWORD}@jiska-db:5432/jiska
+    depends_on:
+      jiska-db:
+        condition: service_healthy
+    mem_limit: 512m
+    pids_limit: 256
     networks:
       - web
+      - back
+
+  jiska-db:
+    image: postgres:17-alpine
+    container_name: jiska-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jiska
+      POSTGRES_USER: jiska
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - jiska-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jiska -d jiska"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    mem_limit: 512m
+    pids_limit: 256
+    networks:
+      - back
+
+volumes:
+  jiska-db-data:
 
 networks:
   web:
     external: true
+  back:
