@@ -7,7 +7,8 @@ const SESSION_COOKIE = "jiska_session";
 const SESSION_DAYS = 1;
 const SESSION_DAYS_REMEMBER = 30;
 
-export type SessionUser = { id: string; email: string };
+export type Role = "dirigeant" | "collaborateur";
+export type SessionUser = { id: string; email: string; role: Role };
 
 export function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
@@ -55,14 +56,24 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
-  const rows = await query<{ id: string; email: string }>(
-    `SELECT u.id, u.email
+  const rows = await query<{ id: string; email: string; role: Role }>(
+    `SELECT u.id, u.email, u.role
        FROM sessions s
        JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = $1 AND s.expires_at > now()`,
     [hashToken(token)],
   );
   return rows[0] ?? null;
+}
+
+// Vrai si l'utilisateur est responsable d'au moins un projet (les
+// responsables peuvent créer des sujets, pas des projets).
+export async function isResponsable(userId: string): Promise<boolean> {
+  const rows = await query(
+    "SELECT 1 FROM project_members WHERE user_id = $1 AND is_responsable LIMIT 1",
+    [userId],
+  );
+  return rows.length > 0;
 }
 
 export async function destroySession(): Promise<void> {

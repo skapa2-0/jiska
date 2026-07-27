@@ -1,42 +1,78 @@
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
-import UserMenu from "./user-menu";
+import { getSessionUser, isResponsable } from "@/lib/auth";
+import { query } from "@/lib/db";
+import Navbar from "./navbar";
 
-// L'espace connecté : volontairement vide pour l'instant, il se
-// construira petit à petit.
+type ProjectRow = {
+  id: string;
+  name: string;
+  description: string;
+  responsable: string | null;
+  members: string;
+};
+
+// L'espace connecté : les dirigeants voient tous les projets (vue
+// d'ensemble), les collaborateurs uniquement les leurs.
 export default async function AppPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
+  const dirigeant = user.role === "dirigeant";
+  const projects = await query<ProjectRow>(
+    `SELECT p.id, p.name, p.description,
+            (SELECT u.email FROM project_members m JOIN users u ON u.id = m.user_id
+              WHERE m.project_id = p.id AND m.is_responsable LIMIT 1) AS responsable,
+            (SELECT count(*) FROM project_members m WHERE m.project_id = p.id) AS members
+       FROM projects p
+      ${dirigeant ? "" : "WHERE EXISTS (SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id = $1)"}
+      ORDER BY p.created_at DESC`,
+    dirigeant ? [] : [user.id],
+  );
+
+  const canCreateSujet = dirigeant || (await isResponsable(user.id));
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="flex items-center justify-between border-b border-hairline px-6 py-3">
-        {/* eslint-disable-next-line @next/next/no-img-element -- SVG local, pas d'optimisation utile */}
-        <img src="/logo.svg" alt="Jiska" className="h-6 w-auto" />
-        <div className="flex items-center gap-3">
-          {/* Pas encore d'action : la création de projet viendra ensuite. */}
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 16 16"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-            >
-              <path d="M8 3v10M3 8h10" />
-            </svg>
-            Nouveau projet
-          </button>
-          <UserMenu email={user.email} />
-        </div>
-      </header>
+      <Navbar
+        email={user.email}
+        role={user.role}
+        canCreateSujet={canCreateSujet}
+      />
 
-      <main className="flex-1" />
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+        {projects.length === 0 ? (
+          <p className="mt-24 text-center text-[15px] text-stone">
+            {dirigeant
+              ? "Aucun projet pour l'instant. Créez le premier avec « Nouveau projet »."
+              : "Vous ne faites partie d'aucun projet pour l'instant."}
+          </p>
+        ) : (
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {projects.map((p) => (
+              <li
+                key={p.id}
+                className="rounded-2xl border border-hairline bg-white p-5"
+              >
+                <h2 className="font-display text-lg font-medium text-ink">
+                  {p.name}
+                </h2>
+                {p.description && (
+                  <p className="mt-1 line-clamp-2 text-sm text-mute">
+                    {p.description}
+                  </p>
+                )}
+                <p className="mt-4 text-xs text-stone">
+                  {p.responsable
+                    ? `Responsable : ${p.responsable}`
+                    : "Sans responsable"}
+                  {" · "}
+                  {p.members} membre{Number(p.members) > 1 ? "s" : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </main>
     </div>
   );
 }

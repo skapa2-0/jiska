@@ -4,7 +4,13 @@ import { useEffect, useRef, useState } from "react";
 
 // Menu profil de la navbar : pastille cliquable, fermeture au clic
 // extérieur et à Échap. Remplace l'ancien bouton de déconnexion nu.
-export default function UserMenu({ email }: { email: string }) {
+export default function UserMenu({
+  email,
+  role,
+}: {
+  email: string;
+  role: "dirigeant" | "collaborateur";
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -69,10 +75,21 @@ export default function UserMenu({ email }: { email: string }) {
           className="absolute right-0 z-10 mt-2 w-60 rounded-2xl border border-hairline bg-white py-2"
         >
           <div className="px-4 py-2">
-            <p className="text-xs text-stone">Connecté en tant que</p>
+            <p className="text-xs text-stone">
+              {role === "dirigeant" ? "Dirigeant" : "Collaborateur"}
+            </p>
             <p className="truncate text-sm font-medium text-ink">{email}</p>
           </div>
           <div className="my-1 border-t border-hairline" />
+          {role === "dirigeant" && (
+            <a
+              role="menuitem"
+              href="/app/equipe"
+              className="block px-4 py-2 text-sm font-medium text-ink transition hover:bg-surface"
+            >
+              Gérer l&apos;équipe
+            </a>
+          )}
           <button
             type="button"
             role="menuitem"

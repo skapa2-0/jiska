@@ -1,12 +1,22 @@
 import { NextResponse } from "next/server";
-import { createSession, hashPassword } from "@/lib/auth";
+import { getSessionUser, hashPassword } from "@/lib/auth";
 import { query } from "@/lib/db";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_MIN = 8;
 
+// Création de compte par un dirigeant (collaborateur ou autre dirigeant).
 export async function POST(request: Request) {
-  let body: { email?: string; password?: string };
+  const me = await getSessionUser();
+  if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
+  if (me.role !== "dirigeant") {
+    return NextResponse.json(
+      { error: "Réservé aux dirigeants." },
+      { status: 403 },
+    );
+  }
+
+  let body: { email?: string; password?: string; role?: string };
   try {
     body = await request.json();
   } catch {
@@ -15,6 +25,7 @@ export async function POST(request: Request) {
 
   const email = body.email?.trim().toLowerCase() ?? "";
   const password = body.password ?? "";
+  const role = body.role === "dirigeant" ? "dirigeant" : "collaborateur";
 
   if (!EMAIL_RE.test(email)) {
     return NextResponse.json(
@@ -29,22 +40,11 @@ export async function POST(request: Request) {
     );
   }
 
-  // L'inscription publique ne sert qu'à amorcer la plateforme : le tout
-  // premier compte est dirigeant, les suivants sont créés par un dirigeant.
-  const existing = await query<{ n: string }>("SELECT count(*) AS n FROM users");
-  if (Number(existing[0].n) > 0) {
-    return NextResponse.json(
-      { error: "Les comptes sont créés par un dirigeant de la plateforme." },
-      { status: 403 },
-    );
-  }
-
-  const passwordHash = await hashPassword(password);
   const rows = await query<{ id: string }>(
-    `INSERT INTO users (email, password_hash, role) VALUES ($1, $2, 'dirigeant')
+    `INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3)
      ON CONFLICT (email) DO NOTHING
      RETURNING id`,
-    [email, passwordHash],
+    [email, await hashPassword(password), role],
   );
 
   if (rows.length === 0) {
@@ -54,6 +54,5 @@ export async function POST(request: Request) {
     );
   }
 
-  await createSession(rows[0].id, false);
-  return NextResponse.json({ ok: true }, { status: 201 });
+  return NextResponse.json({ ok: true, id: rows[0].id }, { status: 201 });
 }
