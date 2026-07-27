@@ -42,7 +42,7 @@ export default function LoginPage() {
   const loading = status === "loading";
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-background px-6 py-16">
+    <main className="flex flex-1 flex-col items-center justify-center gap-10 bg-background px-6 py-16 lg:flex-row lg:items-center lg:gap-16">
       <section aria-labelledby="login-title" className="w-full max-w-sm">
         <header className="mb-10 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG local, pas d'optimisation utile */}
@@ -163,6 +163,38 @@ export default function LoginPage() {
           </a>
         </footer>
       </section>
+
+      {/* Comptes de démonstration : un par type de profil. */}
+      <aside
+        aria-label="Comptes de démonstration"
+        className="w-full max-w-sm rounded-2xl border border-hairline bg-white p-6 lg:w-72"
+      >
+        <h2 className="text-sm font-semibold text-ink">
+          Comptes de démonstration
+        </h2>
+        <dl className="mt-4 space-y-5">
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-stone">
+              Dirigeant
+            </dt>
+            <dd className="mt-1.5 space-y-0.5 text-sm text-ink">
+              <p className="font-mono text-[13px]">dirigeant@jiska.fr</p>
+              <p className="font-mono text-[13px] text-mute">demo-dirigeant</p>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-stone">
+              Collaborateur
+            </dt>
+            <dd className="mt-1.5 space-y-0.5 text-sm text-ink">
+              <p className="font-mono text-[13px]">collaborateur@jiska.fr</p>
+              <p className="font-mono text-[13px] text-mute">
+                demo-collaborateur
+              </p>
+            </dd>
+          </div>
+        </dl>
+      </aside>
     </main>
   );
 }
