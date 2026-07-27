@@ -304,12 +304,14 @@ export default function Dashboard({
                       >
                         {s.project_icon}
                       </span>
-                      <span className="font-semibold text-ink">
+                      <span className="line-clamp-2 font-semibold text-ink">
                         {s.project_name}
                       </span>
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 font-medium text-ink">{s.title}</td>
+                  <td className="max-w-56 px-4 py-3.5 font-medium text-ink">
+                    <span className="line-clamp-2">{s.title}</span>
+                  </td>
                   <td className="px-4 py-3.5">
                     <span className="flex items-center -space-x-1.5">
                       {equipe.slice(0, 4).map((m) => (
@@ -337,7 +339,9 @@ export default function Dashboard({
                       )}
                     </span>
                   </td>
-                  <td className="max-w-52 px-4 py-3.5 text-mute">{s.action}</td>
+                  <td className="max-w-52 px-4 py-3.5 text-mute">
+                    <span className="line-clamp-2">{s.action}</span>
+                  </td>
                   <td
                     className={`whitespace-nowrap px-4 py-3.5 ${
                       retard
