@@ -63,7 +63,7 @@ export default function UserMenu({ user }: { user: SessionUser }) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-10 mt-2 w-60 rounded-lg bg-white py-2 shadow-card"
+          className="absolute right-0 z-50 mt-2 w-60 rounded-lg bg-white py-2 shadow-card"
         >
           <div className="px-4 py-2">
             <p className="truncate text-sm font-semibold text-ink">
