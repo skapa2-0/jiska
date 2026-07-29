@@ -10,8 +10,15 @@ export default async function NouveauProjetPage() {
   if (!user) redirect("/login");
   if (user.role !== "dirigeant") redirect("/app");
 
-  const people = await query<{ id: string; email: string; role: string }>(
-    "SELECT id, email, role FROM users ORDER BY email",
+  const people = await query<{
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    avatar: string | null;
+    role: string;
+  }>(
+    "SELECT id, email, first_name, last_name, avatar, role FROM users ORDER BY last_name, first_name, email",
   );
 
   return (

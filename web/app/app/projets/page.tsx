@@ -3,14 +3,14 @@ import { getSessionUser, isResponsable } from "@/lib/auth";
 import { query } from "@/lib/db";
 import Avatar from "../avatar";
 import Navbar from "../navbar";
+import ProjetLogo from "../projet-logo";
 import Roue, { tonAvancement } from "../roue";
 
 type ProjetCarte = {
   id: string;
   name: string;
   description: string;
-  color: string;
-  icon: string;
+  logo: string | null;
   avancement: string | null;
   actifs: string;
   bloques: string;
@@ -30,7 +30,7 @@ export default async function ProjetsPage() {
 
   const [projets, membres] = await Promise.all([
     query<ProjetCarte>(
-      `SELECT p.id, p.name, p.description, p.color, p.icon,
+      `SELECT p.id, p.name, p.description, p.logo,
               (SELECT round(avg(jalon_tech * 0.6 + jalon_business * 0.4))
                  FROM sujets s WHERE s.project_id = p.id)          AS avancement,
               (SELECT count(*) FROM sujets s
@@ -85,13 +85,11 @@ export default async function ProjetsPage() {
                     className="block rounded-lg bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgb(25_28_31/0.08),0_8px_20px_rgb(25_28_31/0.10)]"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <span
-                        aria-hidden="true"
-                        className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-xl"
-                        style={{ backgroundColor: `${p.color}1a` }}
-                      >
-                        {p.icon}
-                      </span>
+                      <ProjetLogo
+                        name={p.name}
+                        logo={p.logo}
+                        taille="h-10 w-10 text-xl"
+                      />
                       <Roue
                         valeur={avancement}
                         ton={tonAvancement(avancement)}

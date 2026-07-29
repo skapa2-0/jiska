@@ -13,6 +13,7 @@ import type { SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "./avatar";
 import type { Personne } from "./avatar";
 import FicheSujet, { IconeCommentaire } from "./fiche-sujet";
+import ProjetLogo from "./projet-logo";
 import Roue, { tonAvancement } from "./roue";
 import Select from "./select";
 import SujetModal from "./sujet-modal";
@@ -20,8 +21,7 @@ import SujetModal from "./sujet-modal";
 export type ProjectOption = {
   id: string;
   name: string;
-  color: string;
-  icon: string;
+  logo: string | null;
   canManage: boolean;
   members: Personne[];
 };
@@ -216,11 +216,7 @@ export default function Dashboard({
           placeholder="Par projet"
           value={projetId}
           onChange={setProjetId}
-          options={projects.map((p) => ({
-            value: p.id,
-            label: p.name,
-            icon: p.icon,
-          }))}
+          options={projects.map((p) => ({ value: p.id, label: p.name }))}
         />
         <Select
           ariaLabel="Filtrer par responsable"
@@ -299,13 +295,11 @@ export default function Dashboard({
                   <td className="px-4 py-3.5">
                     <span className="flex items-center gap-2.5">
                       <span className="relative shrink-0">
-                        <span
-                          aria-hidden="true"
-                          className="grid h-8 w-8 place-items-center rounded-lg text-base"
-                          style={{ backgroundColor: `${s.project_color}1a` }}
-                        >
-                          {s.project_icon}
-                        </span>
+                        <ProjetLogo
+                          name={s.project_name}
+                          logo={s.project_logo}
+                          taille="h-8 w-8 text-base"
+                        />
                         <span
                           title={ETATS[s.etat].label}
                           className={`absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white ${ETATS[s.etat].dot}`}

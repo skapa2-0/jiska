@@ -19,8 +19,7 @@ export async function POST(request: Request) {
     description?: string;
     memberIds?: unknown;
     responsableId?: string;
-    color?: string;
-    icon?: string;
+    logo?: string | null;
   };
   try {
     body = await request.json();
@@ -54,18 +53,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const color = /^#[0-9a-f]{6}$/i.test(body.color ?? "")
-    ? body.color!.toLowerCase()
-    : "#4b4ee9";
-  const icon =
-    typeof body.icon === "string" && [...body.icon].length <= 2 && body.icon
-      ? body.icon
-      : "📁";
+  // Logo facultatif : data URL d'image réduite côté client.
+  const logo =
+    typeof body.logo === "string" &&
+    /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(body.logo) &&
+    body.logo.length <= 300_000
+      ? body.logo
+      : null;
 
   const project = await query<{ id: string }>(
-    `INSERT INTO projects (name, description, created_by, color, icon)
-     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-    [name, description, me.id, color, icon],
+    `INSERT INTO projects (name, description, created_by, logo)
+     VALUES ($1, $2, $3, $4) RETURNING id`,
+    [name, description, me.id, logo],
   );
   const projectId = project[0].id;
 

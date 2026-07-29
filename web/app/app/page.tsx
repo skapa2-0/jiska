@@ -50,7 +50,7 @@ export default async function AppPage() {
     ),
     query<SujetRow & { is_proj_resp: boolean }>(
       `SELECT s.id, s.project_id, p.name AS project_name,
-              p.color AS project_color, p.icon AS project_icon, s.title,
+              p.logo AS project_logo, s.title,
               s.responsable_id, u.email AS responsable_email, s.action,
               s.due_date::text AS due_date, s.jalon_tech, s.jalon_business,
               s.criticite, s.etat, s.commentaire,
@@ -68,11 +68,10 @@ export default async function AppPage() {
     query<{
       id: string;
       name: string;
-      color: string;
-      icon: string;
+      logo: string | null;
       is_resp: boolean;
     }>(
-      `SELECT p.id, p.name, p.color, p.icon,
+      `SELECT p.id, p.name, p.logo,
               EXISTS (SELECT 1 FROM project_members m
                        WHERE m.project_id = p.id
                          AND m.user_id = $${visParams.length + 1}
@@ -106,8 +105,7 @@ export default async function AppPage() {
   const projects = projectRows.map((p) => ({
     id: p.id,
     name: p.name,
-    color: p.color,
-    icon: p.icon,
+    logo: p.logo,
     canManage: dirigeant || p.is_resp,
     members: memberRows
       .filter((m) => m.project_id === p.id)

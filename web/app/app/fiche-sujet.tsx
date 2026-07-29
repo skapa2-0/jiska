@@ -11,6 +11,7 @@ import {
 import type { SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "./avatar";
 import type { ProjectOption } from "./dashboard";
+import ProjetLogo from "./projet-logo";
 
 // Fiche détaillée d'un sujet : panneau qui glisse depuis la droite,
 // par-dessus tout. C'est ici que vit le commentaire complet.
@@ -76,13 +77,11 @@ export default function FicheSujet({
         }`}
       >
         <header className="flex items-center gap-3 border-b border-hairline px-6 py-4">
-          <span
-            aria-hidden="true"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-lg"
-            style={{ backgroundColor: `${sujet.project_color}1a` }}
-          >
-            {sujet.project_icon}
-          </span>
+          <ProjetLogo
+            name={sujet.project_name}
+            logo={sujet.project_logo}
+            taille="h-9 w-9 text-lg"
+          />
           <span className="min-w-0 flex-1">
             <span className="block text-xs font-medium text-stone">
               {sujet.project_name}

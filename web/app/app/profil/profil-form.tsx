@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { FormEvent } from "react";
+import { FORMATS_IMAGE, reduireImage } from "@/lib/image";
 import Avatar from "../avatar";
 
 type User = {
@@ -11,28 +12,6 @@ type User = {
   last_name: string;
   avatar: string | null;
 };
-
-// Réduit la photo en carré 256 px (recadrage centré) -> data URL JPEG.
-async function reduirePhoto(file: File): Promise<string> {
-  const image = await createImageBitmap(file);
-  const cote = Math.min(image.width, image.height);
-  const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 256;
-  const ctx = canvas.getContext("2d")!;
-  ctx.drawImage(
-    image,
-    (image.width - cote) / 2,
-    (image.height - cote) / 2,
-    cote,
-    cote,
-    0,
-    0,
-    256,
-    256,
-  );
-  return canvas.toDataURL("image/jpeg", 0.85);
-}
 
 export default function ProfilForm({ user }: { user: User }) {
   const [prenom, setPrenom] = useState(user.first_name);
@@ -53,12 +32,12 @@ export default function ProfilForm({ user }: { user: User }) {
 
   async function choisirPhoto(file: File | undefined) {
     if (!file) return;
-    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+    if (!FORMATS_IMAGE.test(file.type)) {
       setInfoMsg({ ok: false, text: "Formats acceptés : JPEG, PNG ou WebP." });
       return;
     }
     try {
-      setAvatar(await reduirePhoto(file));
+      setAvatar(await reduireImage(file, "cover"));
       setInfoMsg(null);
     } catch {
       setInfoMsg({ ok: false, text: "Impossible de lire cette image." });

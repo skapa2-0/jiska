@@ -1,20 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { PROJECT_COLORS, PROJECT_ICONS } from "@/lib/sujets";
+import { FORMATS_IMAGE, reduireImage } from "@/lib/image";
+import Avatar, { displayName } from "../../avatar";
+import ProjetLogo from "../../projet-logo";
 
-type Person = { id: string; email: string; role: string };
+type Person = {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  avatar: string | null;
+  role: string;
+};
 
 export default function NewProjectForm({ people }: { people: Person[] }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [color, setColor] = useState<string>(PROJECT_COLORS[0]);
-  const [icon, setIcon] = useState<string>(PROJECT_ICONS[0]);
+  const [logo, setLogo] = useState<string | null>(null);
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [responsableId, setResponsableId] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
 
   function toggleMember(id: string) {
     setMemberIds((ids) => {
@@ -24,6 +33,20 @@ export default function NewProjectForm({ people }: { people: Person[] }) {
       if (!next.includes(responsableId)) setResponsableId("");
       return next;
     });
+  }
+
+  async function choisirLogo(file: File | undefined) {
+    if (!file) return;
+    if (!FORMATS_IMAGE.test(file.type)) {
+      setMessage("Formats acceptés pour le logo : JPEG, PNG ou WebP.");
+      return;
+    }
+    try {
+      setLogo(await reduireImage(file, "contain"));
+      setMessage("");
+    } catch {
+      setMessage("Impossible de lire cette image.");
+    }
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -37,8 +60,7 @@ export default function NewProjectForm({ people }: { people: Person[] }) {
         body: JSON.stringify({
           name,
           description,
-          color,
-          icon,
+          logo,
           memberIds,
           responsableId,
         }),
@@ -48,7 +70,7 @@ export default function NewProjectForm({ people }: { people: Person[] }) {
         setMessage(data.error ?? "Échec de la création du projet.");
         return;
       }
-      window.location.href = "/app";
+      window.location.href = "/app/projets";
     } catch {
       setMessage("Impossible de joindre le serveur.");
     } finally {
@@ -56,11 +78,54 @@ export default function NewProjectForm({ people }: { people: Person[] }) {
     }
   }
 
-  const selected = people.filter((p) => memberIds.includes(p.id));
-
   return (
     <form onSubmit={handleSubmit} className="mt-8" noValidate>
-      <label htmlFor="name" className="mb-2 block text-sm font-medium text-ink">
+      {/* Logo importé, sinon première lettre du nom. */}
+      <div className="flex items-center gap-5">
+        <ProjetLogo
+          name={name || "?"}
+          logo={logo}
+          taille="h-16 w-16 text-2xl"
+        />
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={loading}
+              className="rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface"
+            >
+              {logo ? "Changer le logo" : "Importer un logo"}
+            </button>
+            {logo && (
+              <button
+                type="button"
+                onClick={() => setLogo(null)}
+                disabled={loading}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-danger transition hover:bg-danger-soft"
+              >
+                Retirer
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-stone">
+            Facultatif — sans logo, la première lettre du nom du projet sera
+            affichée.
+          </p>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={(e) => choisirLogo(e.target.files?.[0])}
+        />
+      </div>
+
+      <label
+        htmlFor="name"
+        className="mb-2 mt-6 block text-sm font-medium text-ink"
+      >
         Nom du projet
       </label>
       <input
@@ -90,96 +155,63 @@ export default function NewProjectForm({ people }: { people: Person[] }) {
         className="w-full resize-none rounded-lg bg-surface px-4 py-3.5 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
       />
 
-      <div className="mt-5 grid gap-5 sm:grid-cols-2">
-        <div>
-          <p className="mb-2 text-sm font-medium text-ink">Couleur</p>
-          <div className="flex flex-wrap gap-2">
-            {PROJECT_COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                aria-label={`Couleur ${c}`}
-                aria-pressed={color === c}
-                onClick={() => setColor(c)}
-                disabled={loading}
-                className={`h-8 w-8 rounded-full transition ${
-                  color === c ? "ring-2 ring-ink ring-offset-2" : ""
-                }`}
-                style={{ backgroundColor: c }}
-              />
-            ))}
-          </div>
-        </div>
-        <div>
-          <p className="mb-2 text-sm font-medium text-ink">Logo</p>
-          <div className="flex flex-wrap gap-1.5">
-            {PROJECT_ICONS.map((i) => (
-              <button
-                key={i}
-                type="button"
-                aria-label={`Logo ${i}`}
-                aria-pressed={icon === i}
-                onClick={() => setIcon(i)}
-                disabled={loading}
-                className={`grid h-9 w-9 place-items-center rounded-lg text-lg transition hover:bg-surface ${
-                  icon === i ? "bg-surface ring-2 ring-ink" : ""
-                }`}
-              >
-                {i}
-              </button>
-            ))}
-          </div>
-        </div>
+      <div className="mb-2 mt-6 flex items-baseline justify-between">
+        <p className="text-sm font-medium text-ink">Membres du projet</p>
+        <p className="text-xs text-stone">
+          Cochez les membres, puis désignez le responsable
+        </p>
       </div>
-
-      <p className="mb-2 mt-5 text-sm font-medium text-ink">Membres</p>
       <ul className="divide-y divide-hairline rounded-lg bg-white shadow-card">
-        {people.map((p) => (
-          <li key={p.id}>
-            <label className="flex cursor-pointer items-center gap-3 px-5 py-3">
+        {people.map((p) => {
+          const coche = memberIds.includes(p.id);
+          return (
+            <li key={p.id} className="flex items-center gap-3 px-4 py-3">
               <input
                 type="checkbox"
-                checked={memberIds.includes(p.id)}
+                aria-label={`Membre : ${displayName(p)}`}
+                checked={coche}
                 onChange={() => toggleMember(p.id)}
                 disabled={loading}
                 className="h-4 w-4 accent-brand"
               />
-              <span className="min-w-0 flex-1 truncate text-sm text-ink">
-                {p.email}
+              <Avatar personne={p} taille="h-9 w-9 text-sm" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-ink">
+                  {displayName(p)}
+                  {p.role === "dirigeant" && (
+                    <span className="ml-2 text-xs font-normal text-stone">
+                      Dirigeant
+                    </span>
+                  )}
+                </span>
+                <span className="block truncate text-xs text-stone">
+                  {p.email}
+                </span>
               </span>
-              <span className="text-xs text-stone">
-                {p.role === "dirigeant" ? "Dirigeant" : "Collaborateur"}
-              </span>
-            </label>
-          </li>
-        ))}
+              {coche && (
+                <label
+                  className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                    responsableId === p.id
+                      ? "bg-brand text-white"
+                      : "border border-hairline text-mute hover:bg-surface"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="responsable"
+                    value={p.id}
+                    checked={responsableId === p.id}
+                    onChange={() => setResponsableId(p.id)}
+                    disabled={loading}
+                    className="sr-only"
+                  />
+                  Responsable
+                </label>
+              )}
+            </li>
+          );
+        })}
       </ul>
-
-      {selected.length > 0 && (
-        <>
-          <label
-            htmlFor="responsable"
-            className="mb-2 mt-5 block text-sm font-medium text-ink"
-          >
-            Responsable du projet
-          </label>
-          <select
-            id="responsable"
-            value={responsableId}
-            onChange={(e) => setResponsableId(e.target.value)}
-            required
-            disabled={loading}
-            className="w-full rounded-lg bg-surface px-4 py-3.5 text-[15px] text-ink outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
-          >
-            <option value="">Choisir parmi les membres…</option>
-            {selected.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.email}
-              </option>
-            ))}
-          </select>
-        </>
-      )}
 
       {message && (
         <p role="alert" className="mt-4 text-sm text-danger">

@@ -63,39 +63,11 @@ export function isJalon(v: unknown): v is Jalon {
   return typeof v === "number" && (JALONS as readonly number[]).includes(v);
 }
 
-// Palettes proposées pour les projets (couleur d'accent + logo emoji).
-export const PROJECT_COLORS = [
-  "#4b4ee9",
-  "#7c3aed",
-  "#0ea5e9",
-  "#00a87e",
-  "#ec7e00",
-  "#e61e49",
-  "#936d62",
-  "#191c1f",
-] as const;
-
-export const PROJECT_ICONS = [
-  "📁",
-  "🌐",
-  "🤖",
-  "📱",
-  "📊",
-  "📇",
-  "🛠️",
-  "🎨",
-  "🚀",
-  "🔒",
-  "💬",
-  "⚡",
-] as const;
-
 export type SujetRow = {
   id: string;
   project_id: string;
   project_name: string;
-  project_color: string;
-  project_icon: string;
+  project_logo: string | null;
   title: string;
   responsable_id: string | null;
   responsable_email: string | null;

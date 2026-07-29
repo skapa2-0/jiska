@@ -11,6 +11,7 @@ import {
 import type { Criticite, Etat } from "@/lib/sujets";
 import Avatar, { displayName } from "../../avatar";
 import Navbar from "../../navbar";
+import ProjetLogo from "../../projet-logo";
 import Roue, { tonAvancement } from "../../roue";
 
 const CHAMPS: Record<string, string> = {
@@ -63,11 +64,10 @@ export default async function ProjetPage({
       id: string;
       name: string;
       description: string;
-      color: string;
-      icon: string;
+      logo: string | null;
       created_at: string;
     }>(
-      "SELECT id, name, description, color, icon, created_at::date::text AS created_at FROM projects WHERE id = $1",
+      "SELECT id, name, description, logo, created_at::date::text AS created_at FROM projects WHERE id = $1",
       [id],
     ),
     query<{
@@ -157,13 +157,11 @@ export default async function ProjetPage({
 
         {/* En-tête du projet */}
         <div className="mt-4 flex flex-wrap items-start gap-5">
-          <span
-            aria-hidden="true"
-            className="grid h-14 w-14 shrink-0 place-items-center rounded-lg text-3xl"
-            style={{ backgroundColor: `${projet.color}1a` }}
-          >
-            {projet.icon}
-          </span>
+          <ProjetLogo
+            name={projet.name}
+            logo={projet.logo}
+            taille="h-14 w-14 text-3xl"
+          />
           <div className="min-w-0 flex-1">
             <h1 className="font-display text-2xl font-medium tracking-[-0.02em] text-ink">
               {projet.name}
