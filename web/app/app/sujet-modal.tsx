@@ -10,8 +10,12 @@ import {
   JALONS_BUSINESS,
   JALONS_TECH,
 } from "@/lib/sujets";
-import type { SujetRow } from "@/lib/sujets";
+import type { Jalon, SujetRow } from "@/lib/sujets";
+import Avatar, { displayName } from "./avatar";
 import type { ProjectOption } from "./dashboard";
+import ProjetLogo from "./projet-logo";
+import Roue, { tonAvancement } from "./roue";
+import Select from "./select";
 
 // Création / mise à jour d'un sujet, sans quitter la page (PRD : une
 // seule page, la réunion met à jour l'application en direct).
@@ -49,7 +53,9 @@ export default function SujetModal({
   const [message, setMessage] = useState("");
 
   const readOnly = mode === "edit" && !sujet?.can_edit;
-  const members = projects.find((p) => p.id === projectId)?.members ?? [];
+  const projet = projects.find((p) => p.id === projectId);
+  const members = projet?.members ?? [];
+  const global = avancementGlobal(jalonTech, jalonBusiness);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -111,8 +117,7 @@ export default function SujetModal({
   }
 
   const champ =
-    "w-full rounded-lg bg-surface px-3.5 py-2.5 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60";
-  const etiquette = "mb-1.5 block text-sm font-medium text-ink";
+    "w-full rounded-lg bg-surface px-4 py-3 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60";
 
   return (
     <div
@@ -123,87 +128,106 @@ export default function SujetModal({
         role="dialog"
         aria-modal="true"
         aria-label={mode === "create" ? "Nouveau sujet" : "Modifier le sujet"}
-        className="max-h-full w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-7 shadow-card"
+        className="max-h-full w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-card"
       >
-        <div className="mb-5 flex items-start justify-between">
-          <h2 className="font-display text-xl font-medium tracking-[-0.01em] text-ink">
-            {mode === "create" ? "Nouveau sujet" : "Modifier le sujet"}
-          </h2>
+        {/* En-tête */}
+        <div className="flex items-center gap-3 border-b border-hairline px-7 py-4">
+          {mode === "edit" && projet && (
+            <ProjetLogo
+              name={projet.name}
+              logo={projet.logo}
+              taille="h-9 w-9 text-base"
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <h2 className="font-display text-lg font-semibold tracking-[-0.01em] text-ink">
+              {mode === "create" ? "Nouveau sujet" : "Modifier le sujet"}
+            </h2>
+            {mode === "edit" && projet && (
+              <p className="truncate text-xs text-stone">{projet.name}</p>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => onClose(false)}
             aria-label="Fermer"
-            className="rounded-full px-2 py-0.5 text-lg text-mute transition hover:bg-surface"
+            className="rounded-lg px-2.5 py-1 text-lg text-mute transition hover:bg-surface"
           >
             ×
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="s-projet" className={etiquette}>
-                Projet
-              </label>
-              <select
-                id="s-projet"
-                value={projectId}
-                onChange={(e) => {
-                  setProjectId(e.target.value);
-                  setResponsableId("");
-                }}
-                disabled={loading || readOnly || mode === "edit"}
-                className={champ}
-              >
-                {(mode === "edit" ? projects : creatable).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="s-resp" className={etiquette}>
-                Responsable
-              </label>
-              <select
-                id="s-resp"
-                value={responsableId}
-                onChange={(e) => setResponsableId(e.target.value)}
+        <form onSubmit={handleSubmit} noValidate className="px-7 py-6">
+          <div className="grid gap-5 sm:grid-cols-2">
+            {mode === "create" && (
+              <div className={creatable.length > 1 ? "" : "hidden"}>
+                <Etiquette>Projet</Etiquette>
+                <Select
+                  ariaLabel="Projet du sujet"
+                  placeholder="Choisir un projet"
+                  variante="champ"
+                  value={projectId}
+                  disabled={loading}
+                  onChange={(v) => {
+                    setProjectId(v);
+                    setResponsableId("");
+                  }}
+                  options={creatable.map((p) => ({
+                    value: p.id,
+                    label: p.name,
+                  }))}
+                />
+              </div>
+            )}
+            <div className={mode === "create" && creatable.length > 1 ? "" : "sm:col-span-2"}>
+              <Etiquette libelle="s-titre">Sujet</Etiquette>
+              <input
+                id="s-titre"
+                type="text"
+                placeholder="Algorithme de scoring"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 required
                 disabled={loading || readOnly}
                 className={champ}
-              >
-                <option value="">Choisir…</option>
-                {members.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.email}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           </div>
 
-          <div className="mt-4">
-            <label htmlFor="s-titre" className={etiquette}>
-              Sujet
-            </label>
-            <input
-              id="s-titre"
-              type="text"
-              placeholder="Algorithme de scoring"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              disabled={loading || readOnly}
-              className={champ}
-            />
+          {/* Responsable : pastilles des membres du projet. */}
+          <div className="mt-5">
+            <Etiquette>Responsable du sujet</Etiquette>
+            <div className="flex flex-wrap gap-2">
+              {members.length === 0 && (
+                <p className="text-sm text-stone">
+                  Choisissez d&apos;abord un projet.
+                </p>
+              )}
+              {members.map((m) => {
+                const actif = responsableId === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => !readOnly && setResponsableId(m.id)}
+                    disabled={loading || readOnly}
+                    aria-pressed={actif}
+                    className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition disabled:opacity-60 ${
+                      actif
+                        ? "border-brand bg-brand/5 font-semibold text-ink ring-1 ring-brand"
+                        : "border-hairline text-mute hover:bg-surface"
+                    }`}
+                  >
+                    <Avatar personne={m} taille="h-6 w-6 text-[10px]" />
+                    {displayName(m)}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="mt-4">
-            <label htmlFor="s-action" className={etiquette}>
-              Action de la semaine
-            </label>
+          <div className="mt-5">
+            <Etiquette libelle="s-action">Action de la semaine</Etiquette>
             <input
               id="s-action"
               type="text"
@@ -215,11 +239,9 @@ export default function SujetModal({
             />
           </div>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
             <div>
-              <label htmlFor="s-date" className={etiquette}>
-                Échéance
-              </label>
+              <Etiquette libelle="s-date">Échéance</Etiquette>
               <input
                 id="s-date"
                 type="date"
@@ -230,97 +252,82 @@ export default function SujetModal({
               />
             </div>
             <div>
-              <label htmlFor="s-crit" className={etiquette}>
-                Criticité
-              </label>
-              <select
-                id="s-crit"
-                value={criticite}
-                onChange={(e) => setCriticite(e.target.value)}
-                disabled={loading || readOnly}
-                className={champ}
-              >
+              <Etiquette>Criticité</Etiquette>
+              <div className="flex flex-wrap gap-1.5">
                 {Object.entries(CRITICITES).map(([k, c]) => (
-                  <option key={k} value={k}>
+                  <Pastille
+                    key={k}
+                    actif={criticite === k}
+                    classe={c.chip}
+                    onClick={() => !readOnly && setCriticite(k)}
+                    disabled={loading || readOnly}
+                  >
                     {c.label}
-                  </option>
+                  </Pastille>
                 ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="s-etat" className={etiquette}>
-                État
-              </label>
-              <select
-                id="s-etat"
-                value={etat}
-                onChange={(e) => setEtat(e.target.value)}
-                disabled={loading || readOnly}
-                className={champ}
-              >
-                {Object.entries(ETATS).map(([k, e]) => (
-                  <option key={k} value={k}>
-                    {e.label}
-                  </option>
-                ))}
-              </select>
+              </div>
             </div>
           </div>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="s-tech" className={etiquette}>
-                Jalon technique
-              </label>
-              <select
-                id="s-tech"
-                value={jalonTech}
-                onChange={(e) => setJalonTech(Number(e.target.value))}
-                disabled={loading || readOnly}
-                className={champ}
-              >
-                {JALONS.map((j) => (
-                  <option key={j} value={j}>
-                    {JALONS_TECH[j]} ({j} %)
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="s-business" className={etiquette}>
-                Jalon business
-              </label>
-              <select
-                id="s-business"
-                value={jalonBusiness}
-                onChange={(e) => setJalonBusiness(Number(e.target.value))}
-                disabled={loading || readOnly}
-                className={champ}
-              >
-                {JALONS.map((j) => (
-                  <option key={j} value={j}>
-                    {JALONS_BUSINESS[j]} ({j} %)
-                  </option>
-                ))}
-              </select>
+          <div className="mt-5">
+            <Etiquette>État</Etiquette>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(ETATS).map(([k, e]) => (
+                <Pastille
+                  key={k}
+                  actif={etat === k}
+                  classe={e.chip}
+                  onClick={() => !readOnly && setEtat(k)}
+                  disabled={loading || readOnly}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`h-2 w-2 rounded-full ${e.dot}`}
+                  />
+                  {e.label}
+                </Pastille>
+              ))}
             </div>
           </div>
 
-          <p className="mt-3 text-sm text-mute">
-            Avancement global calculé :{" "}
-            <span className="font-semibold text-ink">
-              {avancementGlobal(jalonTech, jalonBusiness)} %
-            </span>{" "}
-            <span className="text-stone">(technique 60 % · business 40 %)</span>
-          </p>
+          {/* Jalons : steppers, jamais de % saisi à la main (PRD). */}
+          <div className="mt-6 rounded-lg border border-hairline p-4">
+            <div className="grid items-center gap-5 sm:grid-cols-[1fr_1fr_auto]">
+              <JalonPicker
+                titre="Jalon technique"
+                labels={JALONS_TECH}
+                valeur={jalonTech}
+                onChange={setJalonTech}
+                disabled={loading || readOnly}
+              />
+              <JalonPicker
+                titre="Jalon business"
+                labels={JALONS_BUSINESS}
+                valeur={jalonBusiness}
+                onChange={setJalonBusiness}
+                disabled={loading || readOnly}
+              />
+              <div className="text-center">
+                <Roue
+                  valeur={global}
+                  ton={tonAvancement(global)}
+                  taille="h-14 w-14"
+                  texte="text-[8px]"
+                />
+                <p className="mt-1 text-[11px] font-medium text-stone">
+                  Global (60/40)
+                </p>
+              </div>
+            </div>
+          </div>
 
-          <div className="mt-4">
-            <label htmlFor="s-comm" className={etiquette}>
+          <div className="mt-5">
+            <Etiquette libelle="s-comm">
               Commentaire{" "}
               <span className="font-normal text-stone">
                 (dernière information utile)
               </span>
-            </label>
+            </Etiquette>
             <textarea
               id="s-comm"
               rows={2}
@@ -364,6 +371,92 @@ export default function SujetModal({
           )}
         </form>
       </div>
+    </div>
+  );
+}
+
+function Etiquette({
+  libelle,
+  children,
+}: {
+  libelle?: string;
+  children: React.ReactNode;
+}) {
+  const classe = "mb-1.5 block text-sm font-medium text-ink";
+  if (libelle)
+    return (
+      <label htmlFor={libelle} className={classe}>
+        {children}
+      </label>
+    );
+  return <p className={classe}>{children}</p>;
+}
+
+function Pastille({
+  actif,
+  classe,
+  onClick,
+  disabled,
+  children,
+}: {
+  actif: boolean;
+  classe: string;
+  onClick: () => void;
+  disabled: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={actif}
+      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
+        actif
+          ? `${classe} ring-1 ring-current`
+          : "border border-hairline text-mute hover:bg-surface"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function JalonPicker({
+  titre,
+  labels,
+  valeur,
+  onChange,
+  disabled,
+}: {
+  titre: string;
+  labels: Record<Jalon, string>;
+  valeur: number;
+  onChange: (v: Jalon) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div>
+      <p className="mb-1.5 text-sm font-medium text-ink">{titre}</p>
+      <div className="flex gap-1">
+        {JALONS.map((j) => (
+          <button
+            key={j}
+            type="button"
+            onClick={() => onChange(j)}
+            disabled={disabled}
+            aria-pressed={valeur === j}
+            className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
+              valeur === j
+                ? "bg-ink text-white"
+                : "bg-surface text-mute hover:bg-hairline/60"
+            }`}
+          >
+            {j}
+          </button>
+        ))}
+      </div>
+      <p className="mt-1.5 text-xs text-stone">{labels[valeur as Jalon]}</p>
     </div>
   );
 }

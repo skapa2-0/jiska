@@ -14,12 +14,18 @@ export default function Select({
   options,
   placeholder,
   ariaLabel,
+  variante = "filtre",
+  disabled = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   options: SelectOption[];
   placeholder: string;
   ariaLabel: string;
+  // "filtre" : pilule compacte (barre de filtres) ; "champ" : pleine
+  // largeur sur fond surface (formulaires).
+  variante?: "filtre" | "champ";
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -54,13 +60,22 @@ export default function Select({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel}
+        disabled={disabled}
         onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-2 rounded-lg border border-hairline bg-white px-4 py-2 text-sm transition hover:bg-surface ${
-          current ? "font-medium text-ink" : "text-mute"
-        }`}
+        className={`flex items-center gap-2 rounded-lg text-sm transition disabled:opacity-60 ${
+          variante === "filtre"
+            ? "border border-hairline bg-white px-4 py-2 hover:bg-surface"
+            : "w-full justify-between bg-surface px-4 py-3 hover:bg-hairline/40 focus:outline-none focus:ring-2 focus:ring-brand"
+        } ${current ? "font-medium text-ink" : "text-mute"}`}
       >
         {current?.icon && <span aria-hidden="true">{current.icon}</span>}
-        <span className="max-w-48 truncate">{current?.label ?? placeholder}</span>
+        <span
+          className={
+            variante === "filtre" ? "max-w-48 truncate" : "min-w-0 flex-1 truncate text-left"
+          }
+        >
+          {current?.label ?? placeholder}
+        </span>
         <svg
           aria-hidden="true"
           viewBox="0 0 16 16"
