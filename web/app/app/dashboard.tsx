@@ -67,6 +67,15 @@ const CRITICITE_ORDRE: Record<string, number> = {
   faible: 3,
 };
 
+// La colonne Projet porte la pastille d'état : son tri est par statut.
+const ETAT_ORDRE: Record<string, number> = {
+  bloque: 0,
+  en_cours: 1,
+  en_validation: 2,
+  a_faire: 3,
+  termine: 4,
+};
+
 function isoDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -196,7 +205,7 @@ export default function Dashboard({
     const cle = (s: SujetRow): string | number | null => {
       switch (tri.col) {
         case "projet":
-          return s.project_name.toLowerCase();
+          return ETAT_ORDRE[s.etat];
         case "sujet":
           return s.title.toLowerCase();
         case "equipe":
@@ -226,7 +235,12 @@ export default function Dashboard({
         typeof va === "number" && typeof vb === "number"
           ? va - vb
           : String(va).localeCompare(String(vb), "fr");
-      return cmp * tri.sens;
+      if (cmp !== 0) return cmp * tri.sens;
+      // Départage stable : nom de projet puis titre du sujet.
+      return (
+        a.project_name.localeCompare(b.project_name, "fr") ||
+        a.title.localeCompare(b.title, "fr")
+      );
     });
   }
 
