@@ -132,7 +132,7 @@ export default async function AppPage() {
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-white">
-      <Navbar user={user} canCreateSujet={canCreateSujet} />
+      <Navbar user={user} canCreateSujet={canCreateSujet} onglet="sujets" />
       <Dashboard
         meId={user.id}
         sujets={sujets}

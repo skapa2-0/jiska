@@ -13,6 +13,7 @@ import type { SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "./avatar";
 import type { Personne } from "./avatar";
 import FicheSujet, { IconeCommentaire } from "./fiche-sujet";
+import Roue, { tonAvancement } from "./roue";
 import Select from "./select";
 import SujetModal from "./sujet-modal";
 
@@ -69,11 +70,14 @@ export default function Dashboard({
   >(null);
   const [fiche, setFiche] = useState<SujetRow | null>(null);
 
-  // « Nouveau sujet » de la navbar arrive avec ?sujet=nouveau.
+  // « Nouveau sujet » de la navbar arrive avec ?sujet=nouveau ;
+  // la vue projet renvoie vers le tableau filtré avec ?projet=<id>.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("sujet") === "nouveau") {
-      setModal({ mode: "create" });
+    if (params.get("sujet") === "nouveau") setModal({ mode: "create" });
+    const projet = params.get("projet");
+    if (projet) setProjetId(projet);
+    if (params.get("sujet") || projet) {
       window.history.replaceState(null, "", "/app");
     }
   }, []);
@@ -375,16 +379,7 @@ export default function Dashboard({
                     <Jauge valeur={s.jalon_business} />
                   </td>
                   <td className="px-4 py-2.5 text-center align-middle">
-                    <Roue
-                      valeur={global}
-                      ton={
-                        global >= 75
-                          ? "text-success"
-                          : global >= 50
-                            ? "text-warn"
-                            : "text-danger"
-                      }
-                    />
+                    <Roue valeur={global} ton={tonAvancement(global)} />
                   </td>
                   <td className="px-4 py-3.5 text-center align-middle">
                     <Chip classe={CRITICITES[s.criticite].chip}>
@@ -575,50 +570,6 @@ function Chip({
     >
       {children}
     </span>
-  );
-}
-
-// Anneau d'avancement global : l'arc se remplit avec le pourcentage,
-// la valeur est inscrite au centre.
-function Roue({ valeur, ton }: { valeur: number; ton: string }) {
-  const rayon = 15.5;
-  const perimetre = 2 * Math.PI * rayon;
-  return (
-    <svg
-      viewBox="0 0 36 36"
-      className={`mx-auto h-10 w-10 ${ton}`}
-      role="img"
-      aria-label={`Avancement global ${valeur} %`}
-    >
-      <circle
-        cx="18"
-        cy="18"
-        r={rayon}
-        fill="none"
-        stroke="var(--color-surface)"
-        strokeWidth="3.5"
-      />
-      <circle
-        cx="18"
-        cy="18"
-        r={rayon}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        strokeDasharray={`${(valeur / 100) * perimetre} ${perimetre}`}
-        transform="rotate(-90 18 18)"
-      />
-      <text
-        x="18"
-        y="18"
-        textAnchor="middle"
-        dominantBaseline="central"
-        className="fill-ink font-sans text-[7.5px] font-bold"
-      >
-        {valeur}%
-      </text>
-    </svg>
   );
 }
 

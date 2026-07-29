@@ -16,7 +16,7 @@ export default async function NouveauProjetPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      <Navbar user={user} canCreateSujet />
+      <Navbar user={user} canCreateSujet onglet="projets" />
       <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
         <h1 className="font-display text-2xl font-medium tracking-[-0.02em] text-ink">
           Nouveau projet
