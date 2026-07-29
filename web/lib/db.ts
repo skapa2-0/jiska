@@ -63,7 +63,6 @@ function ensureSchema(): Promise<void> {
          id             bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
          project_id     bigint NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
          title          text NOT NULL,
-         responsable_id bigint REFERENCES users(id) ON DELETE SET NULL,
          action         text NOT NULL DEFAULT '',
          due_date       date,
          jalon_tech     int NOT NULL DEFAULT 0
@@ -79,6 +78,8 @@ function ensureSchema(): Promise<void> {
          updated_at     timestamptz NOT NULL DEFAULT now()
        );
        CREATE INDEX IF NOT EXISTS sujets_project_idx ON sujets (project_id);
+       -- Le responsable est porté par le projet, pas par le sujet.
+       ALTER TABLE sujets DROP COLUMN IF EXISTS responsable_id;
        -- Historique conservé mais jamais affiché dans le tableau (PRD §11) ;
        -- sert aussi à l'indicateur « actions clôturées depuis la réunion ».
        CREATE TABLE IF NOT EXISTS sujet_history (

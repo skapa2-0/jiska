@@ -11,7 +11,6 @@ import {
   JALONS_TECH,
 } from "@/lib/sujets";
 import type { Jalon, SujetRow } from "@/lib/sujets";
-import Avatar, { displayName } from "./avatar";
 import type { ProjectOption } from "./dashboard";
 import ProjetLogo from "./projet-logo";
 import Roue, { tonAvancement } from "./roue";
@@ -35,9 +34,6 @@ export default function SujetModal({
     sujet?.project_id ?? creatable[0]?.id ?? "",
   );
   const [title, setTitle] = useState(sujet?.title ?? "");
-  const [responsableId, setResponsableId] = useState(
-    sujet?.responsable_id ?? "",
-  );
   const [action, setAction] = useState(sujet?.action ?? "");
   const [dueDate, setDueDate] = useState(sujet?.due_date ?? "");
   const [jalonTech, setJalonTech] = useState(sujet?.jalon_tech ?? 0);
@@ -54,7 +50,6 @@ export default function SujetModal({
 
   const readOnly = mode === "edit" && !sujet?.can_edit;
   const projet = projects.find((p) => p.id === projectId);
-  const members = projet?.members ?? [];
   const global = avancementGlobal(jalonTech, jalonBusiness);
 
   useEffect(() => {
@@ -72,7 +67,6 @@ export default function SujetModal({
     const payload = {
       projectId,
       title,
-      responsableId,
       action,
       dueDate: dueDate || null,
       jalonTech,
@@ -168,10 +162,7 @@ export default function SujetModal({
                   variante="champ"
                   value={projectId}
                   disabled={loading}
-                  onChange={(v) => {
-                    setProjectId(v);
-                    setResponsableId("");
-                  }}
+                  onChange={setProjectId}
                   options={creatable.map((p) => ({
                     value: p.id,
                     label: p.name,
@@ -194,37 +185,6 @@ export default function SujetModal({
             </div>
           </div>
 
-          {/* Responsable : pastilles des membres du projet. */}
-          <div className="mt-5">
-            <Etiquette>Responsable du sujet</Etiquette>
-            <div className="flex flex-wrap gap-2">
-              {members.length === 0 && (
-                <p className="text-sm text-stone">
-                  Choisissez d&apos;abord un projet.
-                </p>
-              )}
-              {members.map((m) => {
-                const actif = responsableId === m.id;
-                return (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => !readOnly && setResponsableId(m.id)}
-                    disabled={loading || readOnly}
-                    aria-pressed={actif}
-                    className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition disabled:opacity-60 ${
-                      actif
-                        ? "border-brand bg-brand/5 font-semibold text-ink ring-1 ring-brand"
-                        : "border-hairline text-mute hover:bg-surface"
-                    }`}
-                  >
-                    <Avatar personne={m} taille="h-6 w-6 text-[10px]" />
-                    {displayName(m)}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
           <div className="mt-5">
             <Etiquette libelle="s-action">Action de la semaine</Etiquette>
@@ -348,7 +308,7 @@ export default function SujetModal({
             <div className="mt-6 flex items-center gap-3">
               <button
                 type="submit"
-                disabled={loading || !title || !responsableId || !projectId}
+                disabled={loading || !title || !projectId}
                 className="flex-1 rounded-lg bg-ink py-3 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {loading

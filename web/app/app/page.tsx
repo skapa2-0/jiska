@@ -50,8 +50,7 @@ export default async function AppPage() {
     ),
     query<SujetRow & { is_proj_resp: boolean }>(
       `SELECT s.id, s.project_id, p.name AS project_name,
-              p.logo AS project_logo, s.title,
-              s.responsable_id, u.email AS responsable_email, s.action,
+              p.logo AS project_logo, s.title, s.action,
               s.due_date::text AS due_date, s.jalon_tech, s.jalon_business,
               s.criticite, s.etat, s.commentaire,
               EXISTS (SELECT 1 FROM project_members m
@@ -60,7 +59,6 @@ export default async function AppPage() {
                          AND m.is_responsable) AS is_proj_resp
          FROM sujets s
          JOIN projects p ON p.id = s.project_id
-         LEFT JOIN users u ON u.id = s.responsable_id
         WHERE s.project_id IN (${vis})
         ORDER BY s.due_date NULLS LAST, s.id`,
       [...visParams, user.id],
@@ -70,12 +68,15 @@ export default async function AppPage() {
       name: string;
       logo: string | null;
       is_resp: boolean;
+      responsable_id: string | null;
     }>(
       `SELECT p.id, p.name, p.logo,
               EXISTS (SELECT 1 FROM project_members m
                        WHERE m.project_id = p.id
                          AND m.user_id = $${visParams.length + 1}
-                         AND m.is_responsable) AS is_resp
+                         AND m.is_responsable) AS is_resp,
+              (SELECT m.user_id FROM project_members m
+                WHERE m.project_id = p.id AND m.is_responsable LIMIT 1) AS responsable_id
          FROM projects p
         WHERE p.id IN (${vis})
         ORDER BY p.name`,
@@ -106,6 +107,7 @@ export default async function AppPage() {
     id: p.id,
     name: p.name,
     logo: p.logo,
+    responsableId: p.responsable_id,
     canManage: dirigeant || p.is_resp,
     members: memberRows
       .filter((m) => m.project_id === p.id)
@@ -123,7 +125,7 @@ export default async function AppPage() {
     jalon_tech: Number(s.jalon_tech),
     jalon_business: Number(s.jalon_business),
     can_manage: dirigeant || s.is_proj_resp,
-    can_edit: dirigeant || s.is_proj_resp || s.responsable_id === user.id,
+    can_edit: dirigeant || s.is_proj_resp,
   }));
 
   const canCreateSujet = projects.some((p) => p.canManage);

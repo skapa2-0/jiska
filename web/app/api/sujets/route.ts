@@ -11,7 +11,6 @@ export async function POST(request: Request) {
   let body: {
     projectId?: string;
     title?: string;
-    responsableId?: string;
     action?: string;
     dueDate?: string;
     jalonTech?: number;
@@ -28,11 +27,10 @@ export async function POST(request: Request) {
 
   const projectId = String(body.projectId ?? "");
   const title = body.title?.trim() ?? "";
-  const responsableId = String(body.responsableId ?? "");
 
-  if (!/^\d+$/.test(projectId) || !title || !/^\d+$/.test(responsableId)) {
+  if (!/^\d+$/.test(projectId) || !title) {
     return NextResponse.json(
-      { error: "Projet, sujet et responsable sont requis." },
+      { error: "Projet et sujet sont requis." },
       { status: 400 },
     );
   }
@@ -40,18 +38,6 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Seuls les dirigeants et le responsable du projet peuvent créer un sujet." },
       { status: 403 },
-    );
-  }
-
-  // Le responsable d'un sujet doit être membre du projet.
-  const member = await query(
-    "SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2",
-    [projectId, responsableId],
-  );
-  if (member.length === 0) {
-    return NextResponse.json(
-      { error: "Le responsable du sujet doit être membre du projet." },
-      { status: 400 },
     );
   }
 
@@ -65,13 +51,12 @@ export async function POST(request: Request) {
     : null;
 
   const rows = await query<{ id: string }>(
-    `INSERT INTO sujets (project_id, title, responsable_id, action, due_date,
+    `INSERT INTO sujets (project_id, title, action, due_date,
                          jalon_tech, jalon_business, criticite, etat, commentaire)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
     [
       projectId,
       title,
-      responsableId,
       body.action?.trim() ?? "",
       dueDate,
       jalonTech,

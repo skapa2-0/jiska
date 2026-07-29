@@ -8,7 +8,6 @@ type SujetDb = {
   id: string;
   project_id: string;
   title: string;
-  responsable_id: string | null;
   action: string;
   due_date: string | null;
   jalon_tech: number;
@@ -21,7 +20,7 @@ type SujetDb = {
 async function loadSujet(id: string): Promise<SujetDb | null> {
   if (!/^\d+$/.test(id)) return null;
   const rows = await query<SujetDb>(
-    `SELECT id, project_id, title, responsable_id, action,
+    `SELECT id, project_id, title, action,
             due_date::text AS due_date, jalon_tech, jalon_business,
             criticite, etat, commentaire
        FROM sujets WHERE id = $1`,
@@ -30,10 +29,9 @@ async function loadSujet(id: string): Promise<SujetDb | null> {
   return rows[0] ?? null;
 }
 
-// Peut modifier : gestionnaire du projet, ou responsable du sujet lui-même
-// (il met à jour ses jalons, son action, son commentaire en réunion).
-async function canEdit(me: SessionUser, sujet: SujetDb): Promise<boolean> {
-  if (sujet.responsable_id === me.id) return true;
+// Peut modifier : dirigeant, ou responsable du projet (le responsable
+// et l'équipe sont portés par le projet, pas par le sujet).
+function canEdit(me: SessionUser, sujet: SujetDb): Promise<boolean> {
   return canManageSujets(me, sujet.project_id);
 }
 
@@ -85,23 +83,7 @@ export async function PATCH(
       typeof body.etat === "string" && body.etat in ETATS
         ? body.etat
         : undefined,
-    responsable_id: /^\d+$/.test(String(body.responsableId ?? ""))
-      ? String(body.responsableId)
-      : undefined,
   };
-
-  if (patch.responsable_id !== undefined) {
-    const member = await query(
-      "SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2",
-      [sujet.project_id, patch.responsable_id],
-    );
-    if (member.length === 0) {
-      return NextResponse.json(
-        { error: "Le responsable du sujet doit être membre du projet." },
-        { status: 400 },
-      );
-    }
-  }
 
   const changes = Object.entries(patch).filter(
     ([field, value]) =>

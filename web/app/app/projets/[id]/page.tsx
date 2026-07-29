@@ -92,10 +92,9 @@ export default async function ProjetPage({
       due_date: string | null;
       jalon_tech: number;
       jalon_business: number;
-      responsable_id: string | null;
     }>(
       `SELECT id, title, etat, criticite, due_date::text AS due_date,
-              jalon_tech, jalon_business, responsable_id
+              jalon_tech, jalon_business
          FROM sujets WHERE project_id = $1
         ORDER BY (etat = 'termine'), due_date NULLS LAST, id`,
       [id],
@@ -222,9 +221,6 @@ export default async function ProjetPage({
                       s.jalon_tech,
                       s.jalon_business,
                     );
-                    const responsable = equipe.find(
-                      (m) => m.id === s.responsable_id,
-                    );
                     return (
                       <li
                         key={s.id}
@@ -242,12 +238,6 @@ export default async function ProjetPage({
                         >
                           {CRITICITES[s.criticite].label}
                         </span>
-                        {responsable && (
-                          <Avatar
-                            personne={responsable}
-                            taille="h-6 w-6 text-[10px]"
-                          />
-                        )}
                         <span className="w-20 whitespace-nowrap text-right text-xs text-mute">
                           {s.due_date
                             ? s.due_date.split("-").reverse().join("/")

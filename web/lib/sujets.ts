@@ -69,8 +69,6 @@ export type SujetRow = {
   project_name: string;
   project_logo: string | null;
   title: string;
-  responsable_id: string | null;
-  responsable_email: string | null;
   action: string;
   due_date: string | null;
   jalon_tech: number;

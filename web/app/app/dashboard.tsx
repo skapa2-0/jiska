@@ -22,6 +22,7 @@ export type ProjectOption = {
   id: string;
   name: string;
   logo: string | null;
+  responsableId: string | null;
   canManage: boolean;
   members: Personne[];
 };
@@ -97,15 +98,32 @@ export default function Dashboard({
     };
   }, []);
 
+  // Responsables = les responsables de projet (le sujet n'en a pas).
   const responsables = useMemo(() => {
     const seen = new Map<string, string>();
-    for (const p of projects)
-      for (const m of p.members) seen.set(m.id, m.email);
-    return [...seen.entries()].map(([id, email]) => ({ id, email }));
+    for (const p of projects) {
+      const r = p.members.find((m) => m.id === p.responsableId);
+      if (r) seen.set(r.id, displayName(r));
+    }
+    return [...seen.entries()].map(([id, nom]) => ({ id, nom }));
   }, [projects]);
 
+  const projetDe = useMemo(
+    () => new Map(projects.map((p) => [p.id, p])),
+    [projects],
+  );
+  const mesProjets = useMemo(
+    () =>
+      new Set(
+        projects
+          .filter((p) => p.members.some((m) => m.id === meId))
+          .map((p) => p.id),
+      ),
+    [projects, meId],
+  );
+
   const visibles = sujets.filter((s) => {
-    if (filtre === "miens" && s.responsable_id !== meId) return false;
+    if (filtre === "miens" && !mesProjets.has(s.project_id)) return false;
     if (filtre === "bloques" && s.etat !== "bloque") return false;
     if (
       filtre === "semaine" &&
@@ -118,10 +136,17 @@ export default function Dashboard({
     )
       return false;
     if (projetId && s.project_id !== projetId) return false;
-    if (responsableId && s.responsable_id !== responsableId) return false;
+    if (
+      responsableId &&
+      projetDe.get(s.project_id)?.responsableId !== responsableId
+    )
+      return false;
     if (recherche) {
+      const responsable = projetDe.get(s.project_id)?.members.find(
+        (m) => m.id === projetDe.get(s.project_id)?.responsableId,
+      );
       const hay =
-        `${s.title} ${s.project_name} ${s.responsable_email ?? ""} ${s.action} ${s.commentaire}`.toLowerCase();
+        `${s.title} ${s.project_name} ${responsable ? displayName(responsable) : ""} ${s.action} ${s.commentaire}`.toLowerCase();
       if (!hay.includes(recherche.toLowerCase())) return false;
     }
     return true;
@@ -223,7 +248,7 @@ export default function Dashboard({
           placeholder="Par responsable"
           value={responsableId}
           onChange={setResponsableId}
-          options={responsables.map((r) => ({ value: r.id, label: r.email }))}
+          options={responsables.map((r) => ({ value: r.id, label: r.nom }))}
         />
         <input
           type="search"
@@ -279,10 +304,11 @@ export default function Dashboard({
               </tr>
             )}
             {visibles.map((s) => {
-              const projet = projects.find((p) => p.id === s.project_id);
-              // Responsable en tête, cerclé de doré.
+              const projet = projetDe.get(s.project_id);
+              const respId = projet?.responsableId ?? null;
+              // Responsable du projet en tête, cerclé de brand.
               const equipe = [...(projet?.members ?? [])].sort((a, b) =>
-                a.id === s.responsable_id ? -1 : b.id === s.responsable_id ? 1 : 0,
+                a.id === respId ? -1 : b.id === respId ? 1 : 0,
               );
               const global = avancementGlobal(s.jalon_tech, s.jalon_business);
               const retard = s.due_date && s.due_date < today && s.etat !== "termine";
@@ -320,16 +346,16 @@ export default function Dashboard({
                           <Avatar
                             personne={m}
                             taille="h-7 w-7 text-[11px]"
-                            dore={m.id === s.responsable_id}
+                            dore={m.id === respId}
                             classe={
-                              m.id === s.responsable_id
+                              m.id === respId
                                 ? ""
                                 : "border-2 border-white"
                             }
                           />
                           <Etiquette>
                             {displayName(m)}
-                            {m.id === s.responsable_id ? " · responsable" : ""}
+                            {m.id === respId ? " · responsable" : ""}
                           </Etiquette>
                         </span>
                       ))}

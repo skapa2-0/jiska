@@ -55,8 +55,9 @@ export default function FicheSujet({
   const joursRetard = retard
     ? Math.round((Date.parse(today) - Date.parse(sujet.due_date!)) / 86400000)
     : 0;
+  const respId = projet?.responsableId ?? null;
   const equipe = [...(projet?.members ?? [])].sort((a, b) =>
-    a.id === sujet.responsable_id ? -1 : b.id === sujet.responsable_id ? 1 : 0,
+    a.id === respId ? -1 : b.id === respId ? 1 : 0,
   );
 
   return (
@@ -173,12 +174,12 @@ export default function FicheSujet({
                   <Avatar
                     personne={m}
                     taille="h-7 w-7 text-[11px]"
-                    dore={m.id === sujet.responsable_id}
+                    dore={m.id === respId}
                   />
                   <span className="min-w-0 flex-1 truncate text-ink">
                     {displayName(m)}
                   </span>
-                  {m.id === sujet.responsable_id && (
+                  {m.id === respId && (
                     <span className="text-xs font-semibold text-brand">
                       Responsable
                     </span>
