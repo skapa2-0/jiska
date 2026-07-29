@@ -18,10 +18,9 @@ export function displayName(p: Personne): string {
   return p.name?.trim() || p.email;
 }
 
-// Anneau du responsable : dégradé aux nuances du bleu Jiska, collé au
-// contour de la photo (pas d'espace entre l'anneau et l'avatar).
-const ANNEAU_RESPONSABLE =
-  "conic-gradient(from 220deg, #2f32b8, #4b4ee9, #8b8df3, #4b4ee9, #23269b, #6a6df0, #2f32b8)";
+// Anneau du responsable : bleu Jiska uni, séparé de la photo par un
+// liseré blanc.
+const ANNEAU_RESPONSABLE = "var(--color-brand)";
 
 export default function Avatar({
   personne,
@@ -34,17 +33,18 @@ export default function Avatar({
   classe?: string;
   dore?: boolean;
 }) {
+  const bordure = dore ? "border-2 border-white" : classe;
   const noyau = personne.avatar ? (
     // eslint-disable-next-line @next/next/no-img-element -- data URL locale
     <img
       src={personne.avatar}
       alt=""
-      className={`${taille} shrink-0 rounded-full object-cover ${dore ? "" : classe}`}
+      className={`${taille} shrink-0 rounded-full object-cover ${bordure}`}
     />
   ) : (
     <span
       aria-hidden="true"
-      className={`${taille} grid shrink-0 place-items-center rounded-full font-semibold text-white ${dore ? "" : classe}`}
+      className={`${taille} grid shrink-0 place-items-center rounded-full font-semibold text-white ${bordure}`}
       style={{ backgroundColor: avatarColor(personne.id) }}
     >
       {displayName(personne)[0]?.toUpperCase()}
@@ -54,7 +54,7 @@ export default function Avatar({
   if (!dore) return noyau;
   return (
     <span
-      className={`grid shrink-0 place-items-center rounded-full p-[2.5px] ${classe}`}
+      className={`grid shrink-0 place-items-center rounded-full p-[2px] ${classe}`}
       style={{ background: ANNEAU_RESPONSABLE }}
     >
       {noyau}
