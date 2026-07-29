@@ -82,8 +82,14 @@ export default async function AppPage() {
         ORDER BY p.name`,
       [...visParams, user.id],
     ),
-    query<{ project_id: string; id: string; email: string }>(
-      `SELECT m.project_id, u.id, u.email
+    query<{
+      project_id: string;
+      id: string;
+      email: string;
+      name: string;
+      avatar: string | null;
+    }>(
+      `SELECT m.project_id, u.id, u.email, u.name, u.avatar
          FROM project_members m
          JOIN users u ON u.id = m.user_id
         WHERE m.project_id IN (${vis})
@@ -104,7 +110,12 @@ export default async function AppPage() {
     canManage: dirigeant || p.is_resp,
     members: memberRows
       .filter((m) => m.project_id === p.id)
-      .map((m) => ({ id: m.id, email: m.email })),
+      .map((m) => ({
+        id: m.id,
+        email: m.email,
+        name: m.name,
+        avatar: m.avatar,
+      })),
   }));
 
   const sujets = sujetRows.map((s) => ({
@@ -119,11 +130,7 @@ export default async function AppPage() {
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-white">
-      <Navbar
-        email={user.email}
-        role={user.role}
-        canCreateSujet={canCreateSujet}
-      />
+      <Navbar user={user} canCreateSujet={canCreateSujet} />
       <Dashboard
         meId={user.id}
         sujets={sujets}

@@ -18,6 +18,9 @@ function ensureSchema(): Promise<void> {
        );
        ALTER TABLE users ADD COLUMN IF NOT EXISTS role text NOT NULL
          DEFAULT 'collaborateur' CHECK (role IN ('dirigeant', 'collaborateur'));
+       ALTER TABLE users ADD COLUMN IF NOT EXISTS name text NOT NULL DEFAULT '';
+       -- Photo de profil : data URL (image réduite côté client), NULL sinon.
+       ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar text;
        CREATE TABLE IF NOT EXISTS sessions (
          token_hash text PRIMARY KEY,
          user_id    bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -2,8 +2,16 @@
 
 import { useState } from "react";
 import type { FormEvent } from "react";
+import Avatar, { displayName } from "../avatar";
 
-type Member = { id: string; email: string; role: string; created_at: string };
+type Member = {
+  id: string;
+  email: string;
+  name: string;
+  avatar: string | null;
+  role: string;
+  created_at: string;
+};
 
 export default function TeamManager({
   members,
@@ -61,17 +69,14 @@ export default function TeamManager({
       <ul className="mt-8 divide-y divide-hairline rounded-lg bg-white shadow-card">
         {members.map((m) => (
           <li key={m.id} className="flex items-center gap-3 px-5 py-3.5">
-            <span
-              aria-hidden="true"
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand text-sm font-semibold text-white"
-            >
-              {m.email[0]?.toUpperCase()}
-            </span>
+            <Avatar personne={m} taille="h-8 w-8 text-sm" />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-ink">{m.email}</p>
-              <p className="text-xs text-stone">
-                {m.role === "dirigeant" ? "Dirigeant" : "Collaborateur"} ·
-                depuis le {m.created_at}
+              <p className="truncate text-sm font-medium text-ink">
+                {displayName(m)}
+              </p>
+              <p className="truncate text-xs text-stone">
+                {m.role === "dirigeant" ? "Dirigeant" : "Collaborateur"} ·{" "}
+                {m.email} · depuis le {m.created_at}
               </p>
             </div>
             {m.id !== selfId && (

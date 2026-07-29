@@ -10,6 +10,8 @@ import {
   JALONS_TECH,
 } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
+import Avatar, { displayName } from "./avatar";
+import type { Personne } from "./avatar";
 import FicheSujet, { IconeCommentaire } from "./fiche-sujet";
 import Select from "./select";
 import SujetModal from "./sujet-modal";
@@ -20,14 +22,8 @@ export type ProjectOption = {
   color: string;
   icon: string;
   canManage: boolean;
-  members: { id: string; email: string }[];
+  members: Personne[];
 };
-
-// Couleur d'avatar stable par utilisateur (photos de profil à venir).
-const AVATAR_COLORS = ["#4b4ee9", "#7c3aed", "#0ea5e9", "#00a87e", "#e61e49"];
-function avatarColor(id: string): string {
-  return AVATAR_COLORS[Number(id) % AVATAR_COLORS.length];
-}
 
 type Indicateurs = {
   projets: number;
@@ -326,17 +322,19 @@ export default function Dashboard({
                           key={m.id}
                           title={
                             m.id === s.responsable_id
-                              ? `${m.email} · responsable`
-                              : m.email
+                              ? `${displayName(m)} · responsable`
+                              : displayName(m)
                           }
-                          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-white text-[11px] font-semibold text-white ${
-                            m.id === s.responsable_id
-                              ? "ring-2 ring-amber-400"
-                              : ""
-                          }`}
-                          style={{ backgroundColor: avatarColor(m.id) }}
                         >
-                          {m.email[0]?.toUpperCase()}
+                          <Avatar
+                            personne={m}
+                            taille="h-7 w-7 text-[11px]"
+                            classe={`border-2 border-white ${
+                              m.id === s.responsable_id
+                                ? "ring-2 ring-amber-400"
+                                : ""
+                            }`}
+                          />
                         </span>
                       ))}
                       {equipe.length > 4 && (

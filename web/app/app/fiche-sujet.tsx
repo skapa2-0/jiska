@@ -9,6 +9,7 @@ import {
   JALONS_TECH,
 } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
+import Avatar, { displayName } from "./avatar";
 import type { ProjectOption } from "./dashboard";
 
 // Fiche détaillée d'un sujet : panneau qui glisse depuis la droite,
@@ -170,19 +171,17 @@ export default function FicheSujet({
             <ul className="space-y-2">
               {equipe.map((m) => (
                 <li key={m.id} className="flex items-center gap-2.5 text-sm">
-                  <span
-                    aria-hidden="true"
-                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-semibold text-white ${
+                  <Avatar
+                    personne={m}
+                    taille="h-7 w-7 text-[11px]"
+                    classe={
                       m.id === sujet.responsable_id
                         ? "ring-2 ring-amber-400"
                         : ""
-                    }`}
-                    style={{ backgroundColor: avatarColor(m.id) }}
-                  >
-                    {m.email[0]?.toUpperCase()}
-                  </span>
+                    }
+                  />
                   <span className="min-w-0 flex-1 truncate text-ink">
-                    {m.email}
+                    {displayName(m)}
                   </span>
                   {m.id === sujet.responsable_id && (
                     <span className="text-xs font-semibold text-amber-500">
@@ -220,11 +219,6 @@ export default function FicheSujet({
       </aside>
     </div>
   );
-}
-
-const AVATAR_COLORS = ["#4b4ee9", "#7c3aed", "#0ea5e9", "#00a87e", "#e61e49"];
-function avatarColor(id: string): string {
-  return AVATAR_COLORS[Number(id) % AVATAR_COLORS.length];
 }
 
 function Bloc({

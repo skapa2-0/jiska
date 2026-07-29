@@ -8,7 +8,13 @@ const SESSION_DAYS = 1;
 const SESSION_DAYS_REMEMBER = 30;
 
 export type Role = "dirigeant" | "collaborateur";
-export type SessionUser = { id: string; email: string; role: Role };
+export type SessionUser = {
+  id: string;
+  email: string;
+  name: string;
+  avatar: string | null;
+  role: Role;
+};
 
 export function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
@@ -56,8 +62,8 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
-  const rows = await query<{ id: string; email: string; role: Role }>(
-    `SELECT u.id, u.email, u.role
+  const rows = await query<SessionUser>(
+    `SELECT u.id, u.email, u.name, u.avatar, u.role
        FROM sessions s
        JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = $1 AND s.expires_at > now()`,

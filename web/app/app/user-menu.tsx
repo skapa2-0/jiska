@@ -1,16 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Avatar, { displayName } from "./avatar";
+import type { SessionUser } from "@/lib/auth";
 
-// Menu profil de la navbar : pastille cliquable, fermeture au clic
-// extérieur et à Échap. Remplace l'ancien bouton de déconnexion nu.
-export default function UserMenu({
-  email,
-  role,
-}: {
-  email: string;
-  role: "dirigeant" | "collaborateur";
-}) {
+// Menu profil de la navbar : pastille cliquable (photo si renseignée),
+// fermeture au clic extérieur et à Échap.
+export default function UserMenu({ user }: { user: SessionUser }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -49,12 +45,7 @@ export default function UserMenu({
         aria-label="Menu du compte"
         className="flex items-center gap-1.5 rounded-lg p-1 transition hover:bg-surface"
       >
-        <span
-          aria-hidden="true"
-          className="grid h-8 w-8 place-items-center rounded-full bg-brand text-sm font-semibold text-white"
-        >
-          {email[0]?.toUpperCase()}
-        </span>
+        <Avatar personne={user} taille="h-8 w-8 text-sm" />
         <svg
           aria-hidden="true"
           viewBox="0 0 16 16"
@@ -75,13 +66,23 @@ export default function UserMenu({
           className="absolute right-0 z-10 mt-2 w-60 rounded-lg bg-white py-2 shadow-card"
         >
           <div className="px-4 py-2">
-            <p className="text-xs text-stone">
-              {role === "dirigeant" ? "Dirigeant" : "Collaborateur"}
+            <p className="truncate text-sm font-semibold text-ink">
+              {displayName(user)}
             </p>
-            <p className="truncate text-sm font-medium text-ink">{email}</p>
+            <p className="truncate text-xs text-stone">
+              {user.role === "dirigeant" ? "Dirigeant" : "Collaborateur"} ·{" "}
+              {user.email}
+            </p>
           </div>
           <div className="my-1 border-t border-hairline" />
-          {role === "dirigeant" && (
+          <a
+            role="menuitem"
+            href="/app/profil"
+            className="block px-4 py-2 text-sm font-medium text-ink transition hover:bg-surface"
+          >
+            Mon profil
+          </a>
+          {user.role === "dirigeant" && (
             <a
               role="menuitem"
               href="/app/equipe"

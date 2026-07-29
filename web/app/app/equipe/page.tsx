@@ -13,15 +13,17 @@ export default async function EquipePage() {
   const members = await query<{
     id: string;
     email: string;
+    name: string;
+    avatar: string | null;
     role: string;
     created_at: string;
   }>(
-    "SELECT id, email, role, created_at::date::text AS created_at FROM users ORDER BY created_at, id",
+    "SELECT id, email, name, avatar, role, created_at::date::text AS created_at FROM users ORDER BY created_at, id",
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <Navbar email={user.email} role={user.role} canCreateSujet />
+    <div className="flex min-h-screen flex-col bg-white">
+      <Navbar user={user} canCreateSujet />
       <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
         <h1 className="font-display text-2xl font-medium tracking-[-0.02em] text-ink">
           Équipe

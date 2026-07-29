@@ -1,16 +1,14 @@
 import UserMenu from "./user-menu";
-import type { Role } from "@/lib/auth";
+import type { SessionUser } from "@/lib/auth";
 
 // Barre du haut de l'espace : les actions dépendent des permissions.
 // « Nouveau projet » : dirigeants seuls. « Nouveau sujet » : dirigeants
-// et responsables de projet (fonctionnalité à venir).
+// et responsables de projet.
 export default function Navbar({
-  email,
-  role,
+  user,
   canCreateSujet,
 }: {
-  email: string;
-  role: Role;
+  user: SessionUser;
   canCreateSujet: boolean;
 }) {
   return (
@@ -29,7 +27,7 @@ export default function Navbar({
             Nouveau sujet
           </a>
         )}
-        {role === "dirigeant" && (
+        {user.role === "dirigeant" && (
           <a
             href="/app/projets/nouveau"
             className="flex items-center gap-1.5 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85"
@@ -38,7 +36,7 @@ export default function Navbar({
             Nouveau projet
           </a>
         )}
-        <UserMenu email={email} role={role} />
+        <UserMenu user={user} />
       </div>
     </header>
   );
