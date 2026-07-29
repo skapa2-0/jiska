@@ -329,11 +329,12 @@ export default function Dashboard({
                           <Avatar
                             personne={m}
                             taille="h-7 w-7 text-[11px]"
-                            classe={`border-2 border-white ${
+                            dore={m.id === s.responsable_id}
+                            classe={
                               m.id === s.responsable_id
-                                ? "ring-2 ring-amber-400"
-                                : ""
-                            }`}
+                                ? ""
+                                : "border-2 border-white"
+                            }
                           />
                         </span>
                       ))}

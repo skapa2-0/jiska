@@ -174,11 +174,7 @@ export default function FicheSujet({
                   <Avatar
                     personne={m}
                     taille="h-7 w-7 text-[11px]"
-                    classe={
-                      m.id === sujet.responsable_id
-                        ? "ring-2 ring-amber-400"
-                        : ""
-                    }
+                    dore={m.id === sujet.responsable_id}
                   />
                   <span className="min-w-0 flex-1 truncate text-ink">
                     {displayName(m)}
