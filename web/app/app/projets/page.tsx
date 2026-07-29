@@ -66,7 +66,7 @@ export default async function ProjetsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Navbar user={user} canCreateSujet={canCreateSujet} onglet="projets" />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+      <main className="w-full flex-1 px-6 py-8 lg:px-8">
         {projets.length === 0 ? (
           <p className="mt-24 text-center text-[15px] text-stone">
             {dirigeant
@@ -74,7 +74,7 @@ export default async function ProjetsPage() {
               : "Vous ne faites partie d'aucun projet pour l'instant."}
           </p>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {projets.map((p) => {
               const equipe = membres.filter((m) => m.project_id === p.id);
               const avancement = Number(p.avancement ?? 0);

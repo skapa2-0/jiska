@@ -147,7 +147,7 @@ export default async function ProjetPage({
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Navbar user={user} canCreateSujet={canCreateSujet} onglet="projets" />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
+      <main className="w-full flex-1 px-6 py-8 lg:px-8">
         <a
           href="/app/projets"
           className="text-sm font-medium text-mute transition hover:text-ink"
@@ -206,7 +206,7 @@ export default async function ProjetPage({
           <Stat valeur={termines} label="Terminés" ton="text-success" />
         </div>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
+        <div className="mt-8 grid gap-8 xl:grid-cols-[1fr_440px]">
           <div className="space-y-8">
             {/* Sujets du projet */}
             <section>
