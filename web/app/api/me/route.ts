@@ -12,7 +12,12 @@ export async function PATCH(request: Request) {
   const me = await getSessionUser();
   if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
 
-  let body: { name?: unknown; email?: unknown; avatar?: unknown };
+  let body: {
+    firstName?: unknown;
+    lastName?: unknown;
+    email?: unknown;
+    avatar?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -22,9 +27,13 @@ export async function PATCH(request: Request) {
   const sets: string[] = [];
   const params: (string | null)[] = [];
 
-  if (typeof body.name === "string") {
-    params.push(body.name.trim().slice(0, 80));
-    sets.push(`name = $${params.length}`);
+  if (typeof body.firstName === "string") {
+    params.push(body.firstName.trim().slice(0, 60));
+    sets.push(`first_name = $${params.length}`);
+  }
+  if (typeof body.lastName === "string") {
+    params.push(body.lastName.trim().slice(0, 60));
+    sets.push(`last_name = $${params.length}`);
   }
   if (typeof body.email === "string") {
     const email = body.email.trim().toLowerCase();

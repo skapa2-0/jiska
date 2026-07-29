@@ -18,7 +18,19 @@ function ensureSchema(): Promise<void> {
        );
        ALTER TABLE users ADD COLUMN IF NOT EXISTS role text NOT NULL
          DEFAULT 'collaborateur' CHECK (role IN ('dirigeant', 'collaborateur'));
-       ALTER TABLE users ADD COLUMN IF NOT EXISTS name text NOT NULL DEFAULT '';
+       ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name text NOT NULL DEFAULT '';
+       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name  text NOT NULL DEFAULT '';
+       -- Migration de l'ancien champ unique "name" (prénom + nom collés).
+       DO $$ BEGIN
+         IF EXISTS (SELECT 1 FROM information_schema.columns
+                     WHERE table_name = 'users' AND column_name = 'name') THEN
+           UPDATE users SET
+             first_name = split_part(name, ' ', 1),
+             last_name  = ltrim(substring(name FROM length(split_part(name, ' ', 1)) + 1))
+           WHERE name <> '' AND first_name = '' AND last_name = '';
+           ALTER TABLE users DROP COLUMN name;
+         END IF;
+       END $$;
        -- Photo de profil : data URL (image réduite côté client), NULL sinon.
        ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar text;
        CREATE TABLE IF NOT EXISTS sessions (

@@ -86,10 +86,11 @@ export default async function AppPage() {
       project_id: string;
       id: string;
       email: string;
-      name: string;
+      first_name: string;
+      last_name: string;
       avatar: string | null;
     }>(
-      `SELECT m.project_id, u.id, u.email, u.name, u.avatar
+      `SELECT m.project_id, u.id, u.email, u.first_name, u.last_name, u.avatar
          FROM project_members m
          JOIN users u ON u.id = m.user_id
         WHERE m.project_id IN (${vis})
@@ -113,7 +114,8 @@ export default async function AppPage() {
       .map((m) => ({
         id: m.id,
         email: m.email,
-        name: m.name,
+        first_name: m.first_name,
+        last_name: m.last_name,
         avatar: m.avatar,
       })),
   }));

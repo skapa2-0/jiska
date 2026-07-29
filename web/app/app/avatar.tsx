@@ -4,7 +4,8 @@
 export type Personne = {
   id: string;
   email: string;
-  name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
   avatar?: string | null;
 };
 
@@ -15,7 +16,8 @@ export function avatarColor(id: string): string {
 }
 
 export function displayName(p: Personne): string {
-  return p.name?.trim() || p.email;
+  const complet = `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim();
+  return complet || p.email;
 }
 
 // Anneau du responsable : bleu Jiska uni, séparé de la photo par un

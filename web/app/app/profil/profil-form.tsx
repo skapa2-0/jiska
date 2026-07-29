@@ -7,7 +7,8 @@ import Avatar from "../avatar";
 type User = {
   id: string;
   email: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   avatar: string | null;
 };
 
@@ -34,7 +35,8 @@ async function reduirePhoto(file: File): Promise<string> {
 }
 
 export default function ProfilForm({ user }: { user: User }) {
-  const [name, setName] = useState(user.name);
+  const [prenom, setPrenom] = useState(user.first_name);
+  const [nom, setNom] = useState(user.last_name);
   const [email, setEmail] = useState(user.email);
   const [avatar, setAvatar] = useState<string | null>(user.avatar);
   const [infoMsg, setInfoMsg] = useState<{ ok: boolean; text: string } | null>(
@@ -71,7 +73,7 @@ export default function ProfilForm({ user }: { user: User }) {
       const res = await fetch("/api/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, avatar }),
+        body: JSON.stringify({ firstName: prenom, lastName: nom, email, avatar }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -130,7 +132,13 @@ export default function ProfilForm({ user }: { user: User }) {
       >
         <div className="flex items-center gap-5">
           <Avatar
-            personne={{ id: user.id, email, name, avatar }}
+            personne={{
+              id: user.id,
+              email,
+              first_name: prenom,
+              last_name: nom,
+              avatar,
+            }}
             taille="h-20 w-20 text-2xl"
           />
           <div className="space-y-2">
@@ -167,17 +175,33 @@ export default function ProfilForm({ user }: { user: User }) {
           />
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="p-prenom" className={etiquette}>
+              Prénom
+            </label>
+            <input
+              id="p-prenom"
+              type="text"
+              autoComplete="given-name"
+              placeholder="Camille"
+              value={prenom}
+              onChange={(e) => setPrenom(e.target.value)}
+              disabled={loading}
+              className={champ}
+            />
+          </div>
           <div>
             <label htmlFor="p-nom" className={etiquette}>
-              Nom affiché
+              Nom
             </label>
             <input
               id="p-nom"
               type="text"
-              placeholder="Prénom Nom"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              autoComplete="family-name"
+              placeholder="Durand"
+              value={nom}
+              onChange={(e) => setNom(e.target.value)}
               disabled={loading}
               className={champ}
             />

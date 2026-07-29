@@ -7,7 +7,8 @@ import Avatar, { displayName } from "../avatar";
 type Member = {
   id: string;
   email: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   avatar: string | null;
   role: string;
   created_at: string;

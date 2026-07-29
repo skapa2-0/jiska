@@ -11,7 +11,8 @@ export type Role = "dirigeant" | "collaborateur";
 export type SessionUser = {
   id: string;
   email: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   avatar: string | null;
   role: Role;
 };
@@ -63,7 +64,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   if (!token) return null;
 
   const rows = await query<SessionUser>(
-    `SELECT u.id, u.email, u.name, u.avatar, u.role
+    `SELECT u.id, u.email, u.first_name, u.last_name, u.avatar, u.role
        FROM sessions s
        JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = $1 AND s.expires_at > now()`,
