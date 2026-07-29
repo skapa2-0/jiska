@@ -18,10 +18,10 @@ export function displayName(p: Personne): string {
   return p.name?.trim() || p.email;
 }
 
-// Anneau doré du responsable : dégradé aux nuances d'or, collé au
+// Anneau du responsable : dégradé aux nuances du bleu Jiska, collé au
 // contour de la photo (pas d'espace entre l'anneau et l'avatar).
-const OR =
-  "conic-gradient(from 220deg, #a97b16, #e7c14f, #f7e79b, #caa02e, #8f6a12, #dcb63f, #a97b16)";
+const ANNEAU_RESPONSABLE =
+  "conic-gradient(from 220deg, #2f32b8, #4b4ee9, #8b8df3, #4b4ee9, #23269b, #6a6df0, #2f32b8)";
 
 export default function Avatar({
   personne,
@@ -55,7 +55,7 @@ export default function Avatar({
   return (
     <span
       className={`grid shrink-0 place-items-center rounded-full p-[2.5px] ${classe}`}
-      style={{ background: OR }}
+      style={{ background: ANNEAU_RESPONSABLE }}
     >
       {noyau}
     </span>

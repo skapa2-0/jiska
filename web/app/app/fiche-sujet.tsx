@@ -180,7 +180,7 @@ export default function FicheSujet({
                     {displayName(m)}
                   </span>
                   {m.id === sujet.responsable_id && (
-                    <span className="text-xs font-semibold text-amber-500">
+                    <span className="text-xs font-semibold text-brand">
                       Responsable
                     </span>
                   )}
