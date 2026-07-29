@@ -109,7 +109,7 @@ export default function NewProjectForm({ people }: { people: Person[] }) {
             )}
           </div>
           <p className="text-xs text-stone">
-            Facultatif — sans logo, la première lettre du nom du projet sera
+            Facultatif : sans logo, la première lettre du nom du projet sera
             affichée.
           </p>
         </div>

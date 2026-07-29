@@ -358,7 +358,7 @@ export default function Dashboard({
                   >
                     {s.due_date
                       ? s.due_date.split("-").reverse().join("/")
-                      : "—"}
+                      : "-"}
                   </td>
                   <td
                     className="px-4 py-3.5 text-center align-middle"

@@ -281,7 +281,7 @@ export default function SujetModal({
               >
                 {JALONS.map((j) => (
                   <option key={j} value={j}>
-                    {JALONS_TECH[j]} — {j} %
+                    {JALONS_TECH[j]} ({j} %)
                   </option>
                 ))}
               </select>
@@ -299,7 +299,7 @@ export default function SujetModal({
               >
                 {JALONS.map((j) => (
                   <option key={j} value={j}>
-                    {JALONS_BUSINESS[j]} — {j} %
+                    {JALONS_BUSINESS[j]} ({j} %)
                   </option>
                 ))}
               </select>

@@ -12,6 +12,7 @@ Outil de **pilotage hebdomadaire** des projets (PRD de Matthieu) : une seule pag
 ## Règles UI
 
 - **Aucun contrôle au style natif du navigateur** : selects, menus, pickers… sont des composants maison stylés selon la DA (réf. : `web/app/app/select.tsx`, `user-menu.tsx`). Tout `<select>` natif restant est à remplacer au fil de l'eau.
+- **Tiret cadratin (—) strictement interdit sur la plateforme** : zéro occurrence, dans les textes UI comme dans le code de `web/`. Utiliser « : », « · », des parenthèses, ou « - » comme valeur vide.
 - DA inspirée de Revolut en thème clair : blanc pur, texte encre, ombres légères (`shadow-card`) plutôt que contours appuyés, angles peu arrondis (`rounded-lg`/`md`), bleu du logo (`brand`) en accent, couleurs sémantiques définies dans `globals.css`. Jetons centralisés dans `globals.css`, vocabulaire métier dans `web/lib/sujets.ts`.
 - Le dashboard `/app` doit tenir dans le viewport : seul le tableau scrolle (en interne).
 

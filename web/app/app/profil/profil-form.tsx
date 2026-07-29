@@ -142,7 +142,7 @@ export default function ProfilForm({ user }: { user: User }) {
               )}
             </div>
             <p className="text-xs text-stone">
-              JPEG, PNG ou WebP — recadrée en carré et réduite automatiquement.
+              JPEG, PNG ou WebP : recadrée en carré et réduite automatiquement.
             </p>
           </div>
           <input

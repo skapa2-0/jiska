@@ -27,7 +27,7 @@ const CHAMPS: Record<string, string> = {
 };
 
 function valeurLisible(field: string, v: string | null): string {
-  if (!v) return "—";
+  if (!v) return "-";
   if (field === "etat") return ETATS[v as Etat]?.label ?? v;
   if (field === "criticite") return CRITICITES[v as Criticite]?.label ?? v;
   if (field === "jalon_tech")
@@ -251,7 +251,7 @@ export default async function ProjetPage({
                         <span className="w-20 whitespace-nowrap text-right text-xs text-mute">
                           {s.due_date
                             ? s.due_date.split("-").reverse().join("/")
-                            : "—"}
+                            : "-"}
                         </span>
                         <Roue
                           valeur={global}
@@ -322,13 +322,13 @@ export default async function ProjetPage({
                         : ""}
                     </p>
                     <p className="mt-0.5 text-sm text-mute">
-                      <span className="font-medium text-ink">{h.titre}</span> —{" "}
+                      <span className="font-medium text-ink">{h.titre}</span> ·{" "}
                       {CHAMPS[h.field] ?? h.field} :{" "}
                       {h.field === "responsable_id" ? (
                         <>
-                          {nomDe.get(h.old_value ?? "") ?? "—"} →{" "}
+                          {nomDe.get(h.old_value ?? "") ?? "-"} →{" "}
                           <span className="font-medium text-ink">
-                            {nomDe.get(h.new_value ?? "") ?? "—"}
+                            {nomDe.get(h.new_value ?? "") ?? "-"}
                           </span>
                         </>
                       ) : (
