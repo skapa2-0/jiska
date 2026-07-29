@@ -318,14 +318,7 @@ export default function Dashboard({
                   <td className="px-4 py-3.5">
                     <span className="flex items-center -space-x-1.5">
                       {equipe.slice(0, 4).map((m) => (
-                        <span
-                          key={m.id}
-                          title={
-                            m.id === s.responsable_id
-                              ? `${displayName(m)} · responsable`
-                              : displayName(m)
-                          }
-                        >
+                        <span key={m.id} className="group relative">
                           <Avatar
                             personne={m}
                             taille="h-7 w-7 text-[11px]"
@@ -336,11 +329,23 @@ export default function Dashboard({
                                 : "border-2 border-white"
                             }
                           />
+                          <Etiquette>
+                            {displayName(m)}
+                            {m.id === s.responsable_id ? " · responsable" : ""}
+                          </Etiquette>
                         </span>
                       ))}
                       {equipe.length > 4 && (
-                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-white bg-surface text-[11px] font-semibold text-mute">
-                          +{equipe.length - 4}
+                        <span className="group relative">
+                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-white bg-surface text-[11px] font-semibold text-mute">
+                            +{equipe.length - 4}
+                          </span>
+                          <Etiquette>
+                            {equipe
+                              .slice(4)
+                              .map((m) => displayName(m))
+                              .join(", ")}
+                          </Etiquette>
                         </span>
                       )}
                     </span>
@@ -544,6 +549,16 @@ function Th({
     >
       {children}
     </th>
+  );
+}
+
+// Étiquette maison affichée instantanément au survol (règle UI : pas
+// d'infobulle native). S'affiche sous l'élément survolé.
+function Etiquette({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-ink px-2.5 py-1 text-xs font-medium text-white group-hover:block">
+      {children}
+    </span>
   );
 }
 
