@@ -46,6 +46,27 @@ const FILTRES = [
 ] as const;
 type FiltreKey = (typeof FILTRES)[number]["key"];
 
+// Tri par clic sur les en-têtes de colonnes.
+type TriCol =
+  | "projet"
+  | "sujet"
+  | "equipe"
+  | "action"
+  | "echeance"
+  | "tech"
+  | "business"
+  | "global"
+  | "criticite"
+  | "commentaire";
+type Tri = { col: TriCol; sens: 1 | -1 };
+
+const CRITICITE_ORDRE: Record<string, number> = {
+  critique: 0,
+  haute: 1,
+  normale: 2,
+  faible: 3,
+};
+
 function isoDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -70,6 +91,17 @@ export default function Dashboard({
     { mode: "create" } | { mode: "edit"; sujet: SujetRow } | null
   >(null);
   const [fiche, setFiche] = useState<SujetRow | null>(null);
+  const [tri, setTri] = useState<Tri | null>(null);
+
+  function basculerTri(col: TriCol) {
+    setTri((t) =>
+      t?.col === col
+        ? t.sens === 1
+          ? { col, sens: -1 }
+          : null
+        : { col, sens: 1 },
+    );
+  }
 
   // « Nouveau sujet » de la navbar arrive avec ?sujet=nouveau ;
   // la vue projet renvoie vers le tableau filtré avec ?projet=<id>.
@@ -151,6 +183,52 @@ export default function Dashboard({
     }
     return true;
   });
+
+  function nomResponsable(s: SujetRow): string {
+    const p = projetDe.get(s.project_id);
+    const r = p?.members.find((m) => m.id === p?.responsableId);
+    return r ? displayName(r) : "";
+  }
+
+  // Tri actif appliqué après filtrage ; les valeurs vides vont en fin.
+  let lignes = visibles;
+  if (tri) {
+    const cle = (s: SujetRow): string | number | null => {
+      switch (tri.col) {
+        case "projet":
+          return s.project_name.toLowerCase();
+        case "sujet":
+          return s.title.toLowerCase();
+        case "equipe":
+          return nomResponsable(s).toLowerCase() || null;
+        case "action":
+          return s.action.toLowerCase() || null;
+        case "echeance":
+          return s.due_date;
+        case "tech":
+          return s.jalon_tech;
+        case "business":
+          return s.jalon_business;
+        case "global":
+          return avancementGlobal(s.jalon_tech, s.jalon_business);
+        case "criticite":
+          return CRITICITE_ORDRE[s.criticite];
+        case "commentaire":
+          return s.commentaire.toLowerCase() || null;
+      }
+    };
+    lignes = [...visibles].sort((a, b) => {
+      const va = cle(a);
+      const vb = cle(b);
+      if (va === null || va === "") return 1;
+      if (vb === null || vb === "") return -1;
+      const cmp =
+        typeof va === "number" && typeof vb === "number"
+          ? va - vb
+          : String(va).localeCompare(String(vb), "fr");
+      return cmp * tri.sens;
+    });
+  }
 
   function closeModal(refresh: boolean) {
     setModal(null);
@@ -281,16 +359,36 @@ export default function Dashboard({
           </colgroup>
           <thead>
             <tr className="divide-x divide-hairline text-xs text-ink">
-              <Th>Projet</Th>
-              <Th>Sujet</Th>
-              <Th>Équipe</Th>
-              <Th>Action de la semaine</Th>
-              <Th centre>Échéance</Th>
-              <Th centre>Technique · 60 %</Th>
-              <Th centre>Business · 40 %</Th>
-              <Th centre>Global</Th>
-              <Th centre>Criticité</Th>
-              <Th centre>Commentaire</Th>
+              <Th col="projet" tri={tri} onTri={basculerTri}>
+                Projet
+              </Th>
+              <Th col="sujet" tri={tri} onTri={basculerTri}>
+                Sujet
+              </Th>
+              <Th col="equipe" tri={tri} onTri={basculerTri}>
+                Équipe
+              </Th>
+              <Th col="action" tri={tri} onTri={basculerTri}>
+                Action de la semaine
+              </Th>
+              <Th centre col="echeance" tri={tri} onTri={basculerTri}>
+                Échéance
+              </Th>
+              <Th centre col="tech" tri={tri} onTri={basculerTri}>
+                Technique · 60 %
+              </Th>
+              <Th centre col="business" tri={tri} onTri={basculerTri}>
+                Business · 40 %
+              </Th>
+              <Th centre col="global" tri={tri} onTri={basculerTri}>
+                Global
+              </Th>
+              <Th centre col="criticite" tri={tri} onTri={basculerTri}>
+                Criticité
+              </Th>
+              <Th centre col="commentaire" tri={tri} onTri={basculerTri}>
+                Commentaire
+              </Th>
             </tr>
           </thead>
           <tbody>
@@ -303,7 +401,7 @@ export default function Dashboard({
                 </td>
               </tr>
             )}
-            {visibles.map((s) => {
+            {lignes.map((s) => {
               const projet = projetDe.get(s.project_id);
               const respId = projet?.responsableId ?? null;
               // Responsable du projet en tête, cerclé de brand.
@@ -551,18 +649,55 @@ function IconeCoche() {
 
 function Th({
   centre,
+  col,
+  tri,
+  onTri,
   children,
 }: {
   centre?: boolean;
+  col: TriCol;
+  tri: Tri | null;
+  onTri: (col: TriCol) => void;
   children: React.ReactNode;
 }) {
+  const actif = tri?.col === col;
   return (
     <th
+      aria-sort={
+        actif ? (tri.sens === 1 ? "ascending" : "descending") : undefined
+      }
       className={`sticky top-0 z-10 whitespace-nowrap bg-surface px-4 py-2.5 font-semibold shadow-[inset_0_-1px_0_var(--color-hairline)] ${
         centre ? "text-center" : ""
       }`}
     >
-      {children}
+      <button
+        type="button"
+        onClick={() => onTri(col)}
+        title="Trier"
+        className={`group inline-flex items-center gap-1 transition hover:text-brand ${
+          actif ? "text-brand" : ""
+        } ${centre ? "justify-center" : ""}`}
+      >
+        {children}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 16 16"
+          className={`h-3 w-3 shrink-0 transition ${
+            actif
+              ? tri.sens === -1
+                ? "rotate-180 text-brand"
+                : "text-brand"
+              : "text-transparent group-hover:text-stone"
+          }`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M8 13V3m0 0L4.5 6.5M8 3l3.5 3.5" />
+        </svg>
+      </button>
     </th>
   );
 }
