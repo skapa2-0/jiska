@@ -12,6 +12,7 @@ import type { Criticite, Etat } from "@/lib/sujets";
 import Avatar, { displayName } from "../../avatar";
 import Navbar from "../../navbar";
 import ProjetLogo from "../../projet-logo";
+import JalonsProjet from "./jalons-projet";
 import Roue, { tonAvancement } from "../../roue";
 
 const CHAMPS: Record<string, string> = {
@@ -65,9 +66,11 @@ export default async function ProjetPage({
       name: string;
       description: string;
       logo: string | null;
+      jalon_tech: number;
+      jalon_business: number;
       created_at: string;
     }>(
-      "SELECT id, name, description, logo, created_at::date::text AS created_at FROM projects WHERE id = $1",
+      "SELECT id, name, description, logo, jalon_tech, jalon_business, created_at::date::text AS created_at FROM projects WHERE id = $1",
       [id],
     ),
     query<{
@@ -90,11 +93,8 @@ export default async function ProjetPage({
       etat: Etat;
       criticite: Criticite;
       due_date: string | null;
-      jalon_tech: number;
-      jalon_business: number;
     }>(
-      `SELECT id, title, etat, criticite, due_date::text AS due_date,
-              jalon_tech, jalon_business
+      `SELECT id, title, etat, criticite, due_date::text AS due_date
          FROM sujets WHERE project_id = $1
         ORDER BY (etat = 'termine'), due_date NULLS LAST, id`,
       [id],
@@ -132,15 +132,13 @@ export default async function ProjetPage({
   const actifs = sujets.filter((s) => s.etat !== "termine");
   const termines = sujets.length - actifs.length;
   const bloques = actifs.filter((s) => s.etat === "bloque").length;
-  const avancement =
-    sujets.length > 0
-      ? Math.round(
-          sujets.reduce(
-            (acc, s) => acc + avancementGlobal(s.jalon_tech, s.jalon_business),
-            0,
-          ) / sujets.length,
-        )
-      : 0;
+  const avancement = avancementGlobal(
+    Number(projet.jalon_tech),
+    Number(projet.jalon_business),
+  );
+  const estResponsable = equipe.some(
+    (m) => m.id === user.id && m.is_responsable,
+  );
   const canCreateSujet = dirigeant || (await isResponsable(user.id));
 
   return (
@@ -211,6 +209,16 @@ export default async function ProjetPage({
             ton={bloques > 0 ? "text-danger" : "text-success"}
           />
           <Stat valeur={termines} label="Terminés" ton="text-success" />
+        </div>
+
+        {/* Jalons d'avancement du projet (technique 60 / business 40). */}
+        <div className="mt-3">
+          <JalonsProjet
+            projetId={projet.id}
+            jalonTech={Number(projet.jalon_tech)}
+            jalonBusiness={Number(projet.jalon_business)}
+            editable={dirigeant || estResponsable}
+          />
         </div>
 
         <div className="mt-8 grid gap-8 xl:grid-cols-[1fr_440px]">

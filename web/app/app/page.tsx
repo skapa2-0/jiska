@@ -32,9 +32,8 @@ export default async function AppPage() {
        SELECT
          (SELECT count(*) FROM (${vis}) v)                            AS projets,
          (SELECT count(*) FROM s WHERE etat <> 'termine')             AS ouverts,
-         COALESCE((SELECT round(avg(pavg)) FROM (
-            SELECT avg(jalon_tech * 0.6 + jalon_business * 0.4) AS pavg
-              FROM s GROUP BY project_id) t), 0)                      AS avancement,
+         COALESCE((SELECT round(avg(p.jalon_tech * 0.6 + p.jalon_business * 0.4))
+              FROM projects p WHERE p.id IN (${vis})), 0)             AS avancement,
          (SELECT count(*) FROM s WHERE etat = 'bloque')               AS bloques,
          (SELECT count(*) FROM s WHERE etat <> 'termine'
             AND due_date >= date_trunc('week', current_date)::date
@@ -51,7 +50,7 @@ export default async function AppPage() {
     query<SujetRow & { is_proj_resp: boolean }>(
       `SELECT s.id, s.project_id, p.name AS project_name,
               p.logo AS project_logo, s.title, s.action,
-              s.due_date::text AS due_date, s.jalon_tech, s.jalon_business,
+              s.due_date::text AS due_date,
               s.criticite, s.etat, s.commentaire,
               EXISTS (SELECT 1 FROM project_members m
                        WHERE m.project_id = s.project_id
@@ -122,8 +121,6 @@ export default async function AppPage() {
 
   const sujets = sujetRows.map((s) => ({
     ...s,
-    jalon_tech: Number(s.jalon_tech),
-    jalon_business: Number(s.jalon_business),
     can_manage: dirigeant || s.is_proj_resp,
     can_edit: dirigeant || s.is_proj_resp,
   }));

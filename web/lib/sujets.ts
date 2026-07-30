@@ -71,8 +71,6 @@ export type SujetRow = {
   title: string;
   action: string;
   due_date: string | null;
-  jalon_tech: number;
-  jalon_business: number;
   criticite: Criticite;
   etat: Etat;
   commentaire: string;

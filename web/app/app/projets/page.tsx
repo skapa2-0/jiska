@@ -31,8 +31,7 @@ export default async function ProjetsPage() {
   const [projets, membres] = await Promise.all([
     query<ProjetCarte>(
       `SELECT p.id, p.name, p.description, p.logo,
-              (SELECT round(avg(jalon_tech * 0.6 + jalon_business * 0.4))
-                 FROM sujets s WHERE s.project_id = p.id)          AS avancement,
+              round(p.jalon_tech * 0.6 + p.jalon_business * 0.4)   AS avancement,
               (SELECT count(*) FROM sujets s
                 WHERE s.project_id = p.id AND s.etat <> 'termine') AS actifs,
               (SELECT count(*) FROM sujets s

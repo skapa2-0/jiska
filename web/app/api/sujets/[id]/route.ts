@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { canManageSujets, getSessionUser } from "@/lib/auth";
 import type { SessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { CRITICITES, ETATS, isJalon } from "@/lib/sujets";
+import { CRITICITES, ETATS } from "@/lib/sujets";
 
 type SujetDb = {
   id: string;
@@ -10,8 +10,6 @@ type SujetDb = {
   title: string;
   action: string;
   due_date: string | null;
-  jalon_tech: number;
-  jalon_business: number;
   criticite: string;
   etat: string;
   commentaire: string;
@@ -21,7 +19,7 @@ async function loadSujet(id: string): Promise<SujetDb | null> {
   if (!/^\d+$/.test(id)) return null;
   const rows = await query<SujetDb>(
     `SELECT id, project_id, title, action,
-            due_date::text AS due_date, jalon_tech, jalon_business,
+            due_date::text AS due_date,
             criticite, etat, commentaire
        FROM sujets WHERE id = $1`,
     [id],
@@ -73,8 +71,6 @@ export async function PATCH(
         : /^\d{4}-\d{2}-\d{2}$/.test(String(body.dueDate ?? ""))
           ? String(body.dueDate)
           : undefined,
-    jalon_tech: isJalon(body.jalonTech) ? body.jalonTech : undefined,
-    jalon_business: isJalon(body.jalonBusiness) ? body.jalonBusiness : undefined,
     criticite:
       typeof body.criticite === "string" && body.criticite in CRITICITES
         ? body.criticite

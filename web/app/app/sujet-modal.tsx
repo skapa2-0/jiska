@@ -2,14 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import {
-  CRITICITES,
-  ETATS,
-  JALONS,
-  JALONS_BUSINESS,
-  JALONS_TECH,
-} from "@/lib/sujets";
-import type { Jalon, SujetRow } from "@/lib/sujets";
+import { CRITICITES, ETATS } from "@/lib/sujets";
+import type { SujetRow } from "@/lib/sujets";
 import type { ProjectOption } from "./dashboard";
 import ProjetLogo from "./projet-logo";
 import Select from "./select";
@@ -34,10 +28,6 @@ export default function SujetModal({
   const [title, setTitle] = useState(sujet?.title ?? "");
   const [action, setAction] = useState(sujet?.action ?? "");
   const [dueDate, setDueDate] = useState(sujet?.due_date ?? "");
-  const [jalonTech, setJalonTech] = useState(sujet?.jalon_tech ?? 0);
-  const [jalonBusiness, setJalonBusiness] = useState(
-    sujet?.jalon_business ?? 0,
-  );
   const [criticite, setCriticite] = useState<string>(
     sujet?.criticite ?? "normale",
   );
@@ -66,8 +56,6 @@ export default function SujetModal({
       title,
       action,
       dueDate: dueDate || null,
-      jalonTech,
-      jalonBusiness,
       criticite,
       etat,
       commentaire,
@@ -247,25 +235,6 @@ export default function SujetModal({
             </div>
           </div>
 
-          {/* Jalons : steppers, jamais de % saisi à la main (PRD). */}
-          <div className="mt-6 rounded-lg border border-hairline p-4">
-            <div className="grid items-center gap-5 sm:grid-cols-2">
-              <JalonPicker
-                titre="Jalon technique"
-                labels={JALONS_TECH}
-                valeur={jalonTech}
-                onChange={setJalonTech}
-                disabled={loading || readOnly}
-              />
-              <JalonPicker
-                titre="Jalon business"
-                labels={JALONS_BUSINESS}
-                valeur={jalonBusiness}
-                onChange={setJalonBusiness}
-                disabled={loading || readOnly}
-              />
-            </div>
-          </div>
 
           <div className="mt-5">
             <Etiquette libelle="s-comm">
@@ -368,41 +337,3 @@ function Pastille({
   );
 }
 
-function JalonPicker({
-  titre,
-  labels,
-  valeur,
-  onChange,
-  disabled,
-}: {
-  titre: string;
-  labels: Record<Jalon, string>;
-  valeur: number;
-  onChange: (v: Jalon) => void;
-  disabled: boolean;
-}) {
-  return (
-    <div>
-      <p className="mb-1.5 text-sm font-medium text-ink">{titre}</p>
-      <div className="flex gap-1">
-        {JALONS.map((j) => (
-          <button
-            key={j}
-            type="button"
-            onClick={() => onChange(j)}
-            disabled={disabled}
-            aria-pressed={valeur === j}
-            className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
-              valeur === j
-                ? "bg-ink text-white"
-                : "bg-surface text-mute hover:bg-hairline/60"
-            }`}
-          >
-            {j}
-          </button>
-        ))}
-      </div>
-      <p className="mt-1.5 text-xs text-stone">{labels[valeur as Jalon]}</p>
-    </div>
-  );
-}

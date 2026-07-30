@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { canManageSujets, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { CRITICITES, ETATS, isJalon } from "@/lib/sujets";
+import { CRITICITES, ETATS } from "@/lib/sujets";
 
 // Création d'un sujet : dirigeant, ou responsable du projet concerné.
 export async function POST(request: Request) {
@@ -13,8 +13,6 @@ export async function POST(request: Request) {
     title?: string;
     action?: string;
     dueDate?: string;
-    jalonTech?: number;
-    jalonBusiness?: number;
     criticite?: string;
     etat?: string;
     commentaire?: string;
@@ -41,8 +39,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const jalonTech = isJalon(body.jalonTech) ? body.jalonTech : 0;
-  const jalonBusiness = isJalon(body.jalonBusiness) ? body.jalonBusiness : 0;
   const criticite =
     body.criticite && body.criticite in CRITICITES ? body.criticite : "normale";
   const etat = body.etat && body.etat in ETATS ? body.etat : "a_faire";
@@ -52,15 +48,13 @@ export async function POST(request: Request) {
 
   const rows = await query<{ id: string }>(
     `INSERT INTO sujets (project_id, title, action, due_date,
-                         jalon_tech, jalon_business, criticite, etat, commentaire)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+                         criticite, etat, commentaire)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
     [
       projectId,
       title,
       body.action?.trim() ?? "",
       dueDate,
-      jalonTech,
-      jalonBusiness,
       criticite,
       etat,
       body.commentaire?.trim() ?? "",

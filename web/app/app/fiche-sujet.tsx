@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  CRITICITES,
-  ETATS,
-  JALONS_BUSINESS,
-  JALONS_TECH,
-} from "@/lib/sujets";
+import { CRITICITES, ETATS } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "./avatar";
 import type { ProjectOption } from "./dashboard";
@@ -133,20 +128,6 @@ export default function FicheSujet({
             </p>
           </Bloc>
 
-          <Bloc titre="Avancement">
-            <div className="space-y-3">
-              <Avancement
-                nom="Technique"
-                valeur={sujet.jalon_tech}
-                jalon={JALONS_TECH[sujet.jalon_tech as 0]}
-              />
-              <Avancement
-                nom="Business"
-                valeur={sujet.jalon_business}
-                jalon={JALONS_BUSINESS[sujet.jalon_business as 0]}
-              />
-            </div>
-          </Bloc>
 
           <Bloc titre="Équipe">
             <ul className="space-y-2">
@@ -231,32 +212,6 @@ function Chip({
   );
 }
 
-function Avancement({
-  nom,
-  valeur,
-  jalon,
-}: {
-  nom: string;
-  valeur: number;
-  jalon: string;
-}) {
-  return (
-    <div>
-      <div className="flex items-baseline justify-between text-sm">
-        <span className="font-medium text-ink">{nom}</span>
-        <span className="text-xs text-mute">
-          {jalon} · <span className="font-semibold text-ink">{valeur} %</span>
-        </span>
-      </div>
-      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface">
-        <div
-          className={`h-full rounded-full ${valeur >= 75 ? "bg-success" : "bg-warn"}`}
-          style={{ width: `${valeur}%` }}
-        />
-      </div>
-    </div>
-  );
-}
 
 export function IconeCommentaire({ className }: { className?: string }) {
   return (

@@ -2,12 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  CRITICITES,
-  ETATS,
-  JALONS_BUSINESS,
-  JALONS_TECH,
-} from "@/lib/sujets";
+import { CRITICITES, ETATS } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "./avatar";
 import type { Personne } from "./avatar";
@@ -51,8 +46,6 @@ type TriCol =
   | "equipe"
   | "action"
   | "echeance"
-  | "tech"
-  | "business"
   | "criticite"
   | "commentaire";
 type Tri = { col: TriCol; sens: 1 | -1 };
@@ -211,10 +204,6 @@ export default function Dashboard({
           return s.action.toLowerCase() || null;
         case "echeance":
           return s.due_date;
-        case "tech":
-          return s.jalon_tech;
-        case "business":
-          return s.jalon_business;
         case "criticite":
           return CRITICITE_ORDRE[s.criticite];
         case "commentaire":
@@ -360,8 +349,6 @@ export default function Dashboard({
             <col style={{ width: 130 }} />
             <col />
             <col style={{ width: 115 }} />
-            <col style={{ width: 130 }} />
-            <col style={{ width: 130 }} />
             <col style={{ width: 115 }} />
             <col style={{ width: 110 }} />
           </colgroup>
@@ -382,12 +369,6 @@ export default function Dashboard({
               <Th centre col="echeance" tri={tri} onTri={basculerTri}>
                 Échéance
               </Th>
-              <Th centre col="tech" tri={tri} onTri={basculerTri}>
-                Technique · 60 %
-              </Th>
-              <Th centre col="business" tri={tri} onTri={basculerTri}>
-                Business · 40 %
-              </Th>
               <Th centre col="criticite" tri={tri} onTri={basculerTri}>
                 Criticité
               </Th>
@@ -399,7 +380,7 @@ export default function Dashboard({
           <tbody>
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-16 text-center text-stone">
+                <td colSpan={7} className="px-4 py-16 text-center text-stone">
                   {sujets.length === 0
                     ? "Aucun sujet pour l'instant. Créez le premier avec « Nouveau sujet »."
                     : "Aucun sujet ne correspond aux filtres."}
@@ -487,18 +468,6 @@ export default function Dashboard({
                     {s.due_date
                       ? s.due_date.split("-").reverse().join("/")
                       : "-"}
-                  </td>
-                  <td
-                    className="px-4 py-3.5 text-center align-middle"
-                    title={JALONS_TECH[s.jalon_tech as 0]}
-                  >
-                    <Jauge valeur={s.jalon_tech} />
-                  </td>
-                  <td
-                    className="px-4 py-3.5 text-center align-middle"
-                    title={JALONS_BUSINESS[s.jalon_business as 0]}
-                  >
-                    <Jauge valeur={s.jalon_business} />
                   </td>
                   <td className="px-4 py-3.5 text-center align-middle">
                     <Chip classe={CRITICITES[s.criticite].chip}>
@@ -729,20 +698,3 @@ function Chip({
   );
 }
 
-function Jauge({ valeur }: { valeur: number }) {
-  return (
-    <div className="relative mx-auto h-4.5 w-24 overflow-hidden rounded-full bg-surface">
-      <div
-        className={`h-full ${valeur >= 75 ? "bg-success" : "bg-warn"}`}
-        style={{ width: `${valeur}%` }}
-      />
-      <span
-        className={`absolute inset-0 grid place-items-center text-[10px] font-bold ${
-          valeur >= 50 ? "text-white" : "text-ink"
-        }`}
-      >
-        {valeur} %
-      </span>
-    </div>
-  );
-}

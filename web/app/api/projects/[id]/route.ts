@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
+import { canManageSujets, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { isJalon } from "@/lib/sujets";
 
 const LOGO_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
 const LOGO_MAX = 300_000;
@@ -29,14 +30,24 @@ async function dirigeantEtProjet(id: string) {
   return { me };
 }
 
-// Modification d'un projet : nom, description, logo, membres, responsable.
+// Modification d'un projet. Nom, description, logo, membres et
+// responsable : dirigeants seuls. Jalons d'avancement : dirigeants et
+// responsable du projet (mise à jour en réunion).
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const acces = await dirigeantEtProjet(id);
-  if ("erreur" in acces) return acces.erreur;
+
+  const me = await getSessionUser();
+  if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
+  if (!/^\d+$/.test(id)) {
+    return NextResponse.json({ error: "Identifiant invalide." }, { status: 400 });
+  }
+  const existe = await query("SELECT 1 FROM projects WHERE id = $1", [id]);
+  if (existe.length === 0) {
+    return NextResponse.json({ error: "Projet introuvable." }, { status: 404 });
+  }
 
   let body: {
     name?: string;
@@ -44,6 +55,8 @@ export async function PATCH(
     logo?: string | null;
     memberIds?: unknown;
     responsableId?: string;
+    jalonTech?: number;
+    jalonBusiness?: number;
   };
   try {
     body = await request.json();
@@ -51,8 +64,38 @@ export async function PATCH(
     return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
   }
 
+  const changeAdmin =
+    body.name !== undefined ||
+    body.description !== undefined ||
+    body.logo !== undefined ||
+    body.memberIds !== undefined;
+  const changeJalons =
+    body.jalonTech !== undefined || body.jalonBusiness !== undefined;
+
+  if (changeAdmin && me.role !== "dirigeant") {
+    return NextResponse.json(
+      { error: "Seuls les dirigeants peuvent gérer un projet." },
+      { status: 403 },
+    );
+  }
+  if (changeJalons && !(await canManageSujets(me, id))) {
+    return NextResponse.json(
+      { error: "Seuls les dirigeants et le responsable du projet peuvent mettre à jour l'avancement." },
+      { status: 403 },
+    );
+  }
+
   const sets: string[] = [];
-  const paramsSql: (string | null)[] = [];
+  const paramsSql: (string | number | null)[] = [];
+
+  if (isJalon(body.jalonTech)) {
+    paramsSql.push(body.jalonTech);
+    sets.push(`jalon_tech = $${paramsSql.length}`);
+  }
+  if (isJalon(body.jalonBusiness)) {
+    paramsSql.push(body.jalonBusiness);
+    sets.push(`jalon_business = $${paramsSql.length}`);
+  }
 
   if (typeof body.name === "string") {
     const name = body.name.trim();
