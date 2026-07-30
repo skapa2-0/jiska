@@ -42,6 +42,7 @@ type FiltreKey = (typeof FILTRES)[number]["key"];
 // Tri par clic sur les en-têtes de colonnes.
 type TriCol =
   | "projet"
+  | "etat"
   | "sujet"
   | "equipe"
   | "action"
@@ -57,7 +58,6 @@ const CRITICITE_ORDRE: Record<string, number> = {
   faible: 3,
 };
 
-// La colonne Projet porte la pastille d'état : son tri est par statut.
 const ETAT_ORDRE: Record<string, number> = {
   bloque: 0,
   en_cours: 1,
@@ -195,6 +195,8 @@ export default function Dashboard({
     const cle = (s: SujetRow): string | number | null => {
       switch (tri.col) {
         case "projet":
+          return s.project_name.toLowerCase();
+        case "etat":
           return ETAT_ORDRE[s.etat];
         case "sujet":
           return s.title.toLowerCase();
@@ -345,6 +347,7 @@ export default function Dashboard({
               partagent l'espace restant, le reste est en pixels. */}
           <colgroup>
             <col />
+            <col style={{ width: 110 }} />
             <col />
             <col style={{ width: 130 }} />
             <col />
@@ -356,6 +359,9 @@ export default function Dashboard({
             <tr className="divide-x divide-hairline text-xs text-ink">
               <Th col="projet" tri={tri} onTri={basculerTri}>
                 Projet
+              </Th>
+              <Th centre col="etat" tri={tri} onTri={basculerTri}>
+                État
               </Th>
               <Th col="sujet" tri={tri} onTri={basculerTri}>
                 Sujet
@@ -380,7 +386,7 @@ export default function Dashboard({
           <tbody>
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-16 text-center text-stone">
+                <td colSpan={8} className="px-4 py-16 text-center text-stone">
                   {sujets.length === 0
                     ? "Aucun sujet pour l'instant. Créez le premier avec « Nouveau sujet »."
                     : "Aucun sujet ne correspond aux filtres."}
@@ -403,21 +409,20 @@ export default function Dashboard({
                 >
                   <td className="px-4 py-3.5">
                     <span className="flex items-center gap-2.5">
-                      <span className="relative shrink-0">
-                        <ProjetLogo
-                          name={s.project_name}
-                          logo={s.project_logo}
-                          taille="h-8 w-8 text-base"
-                        />
-                        <span
-                          title={ETATS[s.etat].label}
-                          className={`absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white ${ETATS[s.etat].dot}`}
-                        />
-                      </span>
+                      <ProjetLogo
+                        name={s.project_name}
+                        logo={s.project_logo}
+                        taille="h-8 w-8 text-base"
+                      />
                       <span className="line-clamp-2 font-semibold text-ink">
                         {s.project_name}
                       </span>
                     </span>
+                  </td>
+                  <td className="px-4 py-3.5 text-center align-middle">
+                    <Chip classe={ETATS[s.etat].chip}>
+                      {ETATS[s.etat].label}
+                    </Chip>
                   </td>
                   <td className="max-w-56 px-4 py-3.5 font-medium text-ink">
                     <span className="line-clamp-2">{s.title}</span>
