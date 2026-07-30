@@ -556,10 +556,6 @@ export default function Dashboard({
           projet={projects.find((p) => p.id === fiche.project_id)}
           today={today}
           onClose={() => setFiche(null)}
-          onEdit={() => {
-            setModal({ mode: "edit", sujet: fiche });
-            setFiche(null);
-          }}
         />
       )}
 

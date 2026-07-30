@@ -116,10 +116,6 @@ export default function SujetsProjet({
           projet={projet}
           today={today}
           onClose={() => setFiche(null)}
-          onEdit={() => {
-            setModal({ mode: "edit", sujet: fiche });
-            setFiche(null);
-          }}
         />
       )}
 
