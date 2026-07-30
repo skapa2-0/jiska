@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CRITICITES, ETATS } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
@@ -91,6 +91,23 @@ export default function Dashboard({
   >(null);
   const [fiche, setFiche] = useState<SujetRow | null>(null);
   const [tri, setTri] = useState<Tri | null>(null);
+  const zoneRef = useRef<HTMLElement>(null);
+  // 11 lignes remplissent exactement la zone visible ; au-delà, on scrolle.
+  const [hauteurLigne, setHauteurLigne] = useState(60);
+
+  useEffect(() => {
+    const zone = zoneRef.current;
+    if (!zone) return;
+    function calc() {
+      if (!zone) return;
+      const entete = zone.querySelector("thead")?.getBoundingClientRect().height ?? 38;
+      setHauteurLigne(Math.max(44, (zone.clientHeight - entete) / 11));
+    }
+    calc();
+    const ro = new ResizeObserver(calc);
+    ro.observe(zone);
+    return () => ro.disconnect();
+  }, []);
 
   function basculerTri(col: TriCol) {
     setTri((t) =>
@@ -341,7 +358,7 @@ export default function Dashboard({
       {/* Tableau principal : une ligne = un sujet (PRD §4B). Il occupe
           tout l'espace restant et scrolle en interne : la page, elle,
           tient dans le viewport. */}
-      <section className="min-h-0 flex-1 overflow-auto rounded-lg bg-white shadow-card">
+      <section ref={zoneRef} className="min-h-0 flex-1 overflow-auto rounded-lg bg-white shadow-card">
         <table className="w-full min-w-[1250px] table-fixed border-collapse text-left text-sm">
           {/* Largeurs figées (table-fixed) : Projet/Sujet/Action se
               partagent l'espace restant, le reste est en pixels. */}
@@ -405,7 +422,8 @@ export default function Dashboard({
                 <tr
                   key={s.id}
                   onClick={() => setFiche(s)}
-                  className="h-[60px] divide-x divide-hairline border-b border-hairline last:border-b-0 cursor-pointer transition hover:bg-surface"
+                  style={{ height: hauteurLigne }}
+                  className="divide-x divide-hairline border-b border-hairline last:border-b-0 cursor-pointer transition hover:bg-surface"
                 >
                   <td className="px-4 py-2">
                     <span className="flex items-center gap-2.5">
