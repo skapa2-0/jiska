@@ -437,10 +437,12 @@ export default function Dashboard({
                       </span>
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-center align-middle">
-                    <Chip classe={ETATS[s.etat].chip}>
-                      {ETATS[s.etat].label}
-                    </Chip>
+                  <td className="px-2 py-2 align-middle">
+                    <span className="flex items-center justify-center">
+                      <Chip classe={ETATS[s.etat].chip}>
+                        {ETATS[s.etat].label}
+                      </Chip>
+                    </span>
                   </td>
                   <td className="max-w-56 px-4 py-2 font-medium text-ink">
                     <span className="line-clamp-2">{s.title}</span>
@@ -484,18 +486,22 @@ export default function Dashboard({
                     <span className="line-clamp-2">{s.action}</span>
                   </td>
                   <td
-                    className={`whitespace-nowrap px-4 py-2 text-center align-middle ${
+                    className={`whitespace-nowrap px-2 py-2 align-middle ${
                       retard ? "font-medium text-danger" : "text-ink"
                     }`}
                   >
-                    {s.due_date
-                      ? s.due_date.split("-").reverse().join("/")
-                      : "-"}
+                    <span className="flex items-center justify-center">
+                      {s.due_date
+                        ? s.due_date.split("-").reverse().join("/")
+                        : "-"}
+                    </span>
                   </td>
-                  <td className="px-4 py-2 text-center align-middle">
-                    <Chip classe={CRITICITES[s.criticite].chip}>
-                      {CRITICITES[s.criticite].label}
-                    </Chip>
+                  <td className="px-2 py-2 align-middle">
+                    <span className="flex items-center justify-center">
+                      <Chip classe={CRITICITES[s.criticite].chip}>
+                        {CRITICITES[s.criticite].label}
+                      </Chip>
+                    </span>
                   </td>
                   <td className="px-4 py-2 text-center align-middle">
                     {s.commentaire && (
