@@ -425,7 +425,7 @@ export default function Dashboard({
                   style={{ height: hauteurLigne }}
                   className="divide-x divide-hairline border-b border-hairline last:border-b-0 cursor-pointer transition hover:bg-surface"
                 >
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 align-middle">
                     <span className="flex items-center gap-2.5">
                       <ProjetLogo
                         name={s.project_name}
@@ -444,10 +444,10 @@ export default function Dashboard({
                       </Chip>
                     </span>
                   </td>
-                  <td className="max-w-56 px-4 py-2 font-medium text-ink">
+                  <td className="max-w-56 px-4 py-2 align-middle font-medium text-ink">
                     <span className="line-clamp-2">{s.title}</span>
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 align-middle">
                     <span className="flex items-center -space-x-1.5">
                       {equipe.slice(0, 4).map((m) => (
                         <span key={m.id} className="group relative">
@@ -482,7 +482,7 @@ export default function Dashboard({
                       )}
                     </span>
                   </td>
-                  <td className="max-w-52 px-4 py-2 text-mute">
+                  <td className="max-w-52 px-4 py-2 align-middle text-mute">
                     <span className="line-clamp-2">{s.action}</span>
                   </td>
                   <td
@@ -503,7 +503,8 @@ export default function Dashboard({
                       </Chip>
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-center align-middle">
+                  <td className="px-2 py-2 align-middle">
+                    <span className="flex items-center justify-center">
                     {s.commentaire && (
                       <button
                         type="button"
@@ -515,6 +516,7 @@ export default function Dashboard({
                         <IconeCommentaire className="h-4.5 w-4.5" />
                       </button>
                     )}
+                    </span>
                   </td>
                 </tr>
               );
