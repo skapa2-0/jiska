@@ -8,12 +8,15 @@ import {
   JALONS_BUSINESS,
   JALONS_TECH,
 } from "@/lib/sujets";
-import type { Criticite, Etat } from "@/lib/sujets";
+import type { Criticite, Etat, SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "../../avatar";
 import Navbar from "../../navbar";
 import ProjetLogo from "../../projet-logo";
-import JalonsProjet from "./jalons-projet";
 import Roue, { tonAvancement } from "../../roue";
+import HistoriqueProjet from "./historique-projet";
+import type { EntreeHistorique } from "./historique-projet";
+import JalonsProjet from "./jalons-projet";
+import SujetsProjet from "./sujets-projet";
 
 const CHAMPS: Record<string, string> = {
   title: "le sujet",
@@ -39,7 +42,7 @@ function valeurLisible(field: string, v: string | null): string {
   return v.length > 60 ? `${v.slice(0, 60)}…` : v;
 }
 
-// Détail d'un projet : avancement, équipe, sujets actifs, historique.
+// Détail d'un projet : avancement, sujets, équipe, historique.
 export default async function ProjetPage({
   params,
 }: {
@@ -60,7 +63,7 @@ export default async function ProjetPage({
     if (membre.length === 0) redirect("/app/projets");
   }
 
-  const [projets, equipe, sujets, historique, personnes] = await Promise.all([
+  const [projets, equipe, sujetRows, histRows, personnes] = await Promise.all([
     query<{
       id: string;
       name: string;
@@ -90,16 +93,20 @@ export default async function ProjetPage({
     query<{
       id: string;
       title: string;
+      action: string;
+      commentaire: string;
       etat: Etat;
       criticite: Criticite;
       due_date: string | null;
     }>(
-      `SELECT id, title, etat, criticite, due_date::text AS due_date
+      `SELECT id, title, action, commentaire, etat, criticite,
+              due_date::text AS due_date
          FROM sujets WHERE project_id = $1
         ORDER BY (etat = 'termine'), due_date NULLS LAST, id`,
       [id],
     ),
     query<{
+      sujet_id: string;
       field: string;
       old_value: string | null;
       new_value: string | null;
@@ -107,14 +114,14 @@ export default async function ProjetPage({
       titre: string;
       auteur_id: string | null;
     }>(
-      `SELECT h.field, h.old_value, h.new_value,
+      `SELECT h.sujet_id, h.field, h.old_value, h.new_value,
               to_char(h.changed_at, 'DD/MM à HH24:MI') AS quand,
               s.title AS titre, h.changed_by AS auteur_id
          FROM sujet_history h
          JOIN sujets s ON s.id = h.sujet_id
         WHERE s.project_id = $1
         ORDER BY h.changed_at DESC, h.id DESC
-        LIMIT 25`,
+        LIMIT 200`,
       [id],
     ),
     query<{
@@ -129,6 +136,55 @@ export default async function ProjetPage({
   if (!projet) redirect("/app/projets");
 
   const nomDe = new Map(personnes.map((p) => [p.id, displayName(p)]));
+  const canManage = dirigeant || equipe.some((m) => m.id === user.id && m.is_responsable);
+
+  const projetOption = {
+    id: projet.id,
+    name: projet.name,
+    logo: projet.logo,
+    responsableId: equipe.find((m) => m.is_responsable)?.id ?? null,
+    canManage,
+    members: equipe.map((m) => ({
+      id: m.id,
+      email: m.email,
+      first_name: m.first_name,
+      last_name: m.last_name,
+      avatar: m.avatar,
+    })),
+  };
+
+  const sujets: SujetRow[] = sujetRows.map((s) => ({
+    id: s.id,
+    project_id: projet.id,
+    project_name: projet.name,
+    project_logo: projet.logo,
+    title: s.title,
+    action: s.action,
+    due_date: s.due_date,
+    criticite: s.criticite,
+    etat: s.etat,
+    commentaire: s.commentaire,
+    can_edit: canManage,
+    can_manage: canManage,
+  }));
+
+  const entrees: EntreeHistorique[] = histRows.map((h) => ({
+    quand: h.quand,
+    auteur: (h.auteur_id && nomDe.get(h.auteur_id)) || "",
+    sujetId: h.sujet_id,
+    titre: h.titre,
+    champ: CHAMPS[h.field] ?? h.field,
+    ancien:
+      h.field === "responsable_id"
+        ? (nomDe.get(h.old_value ?? "") ?? "-")
+        : valeurLisible(h.field, h.old_value),
+    nouveau:
+      h.field === "responsable_id"
+        ? (nomDe.get(h.new_value ?? "") ?? "-")
+        : valeurLisible(h.field, h.new_value),
+    creation: h.field === "creation",
+  }));
+
   const actifs = sujets.filter((s) => s.etat !== "termine");
   const termines = sujets.length - actifs.length;
   const bloques = actifs.filter((s) => s.etat === "bloque").length;
@@ -136,10 +192,8 @@ export default async function ProjetPage({
     Number(projet.jalon_tech),
     Number(projet.jalon_business),
   );
-  const estResponsable = equipe.some(
-    (m) => m.id === user.id && m.is_responsable,
-  );
   const canCreateSujet = dirigeant || (await isResponsable(user.id));
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -217,52 +271,17 @@ export default async function ProjetPage({
             projetId={projet.id}
             jalonTech={Number(projet.jalon_tech)}
             jalonBusiness={Number(projet.jalon_business)}
-            editable={dirigeant || estResponsable}
+            editable={canManage}
           />
         </div>
 
         <div className="mt-8 grid gap-8 xl:grid-cols-[1fr_440px]">
           <div className="space-y-8">
-            {/* Sujets du projet */}
-            <section>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-stone">
-                Sujets actifs
-              </h2>
-              {actifs.length === 0 ? (
-                <p className="text-sm text-stone">
-                  Aucun sujet actif sur ce projet.
-                </p>
-              ) : (
-                <ul className="divide-y divide-hairline rounded-lg bg-white shadow-card">
-                  {actifs.map((s) => {
-                    return (
-                      <li
-                        key={s.id}
-                        className="flex items-center gap-3 px-4 py-3"
-                      >
-                        <span
-                          title={ETATS[s.etat].label}
-                          className={`h-2.5 w-2.5 shrink-0 rounded-full ${ETATS[s.etat].dot}`}
-                        />
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
-                          {s.title}
-                        </span>
-                        <span
-                          className={`hidden rounded-md px-2 py-0.5 text-xs font-semibold sm:inline ${CRITICITES[s.criticite].chip}`}
-                        >
-                          {CRITICITES[s.criticite].label}
-                        </span>
-                        <span className="w-20 whitespace-nowrap text-right text-xs text-mute">
-                          {s.due_date
-                            ? s.due_date.split("-").reverse().join("/")
-                            : "-"}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
+            <SujetsProjet
+              sujets={sujets}
+              projet={projetOption}
+              today={today}
+            />
 
             {/* Équipe */}
             <section>
@@ -297,52 +316,7 @@ export default async function ProjetPage({
           </div>
 
           {/* Historique (PRD : conservé, hors tableau principal) */}
-          <section>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-stone">
-              Historique
-            </h2>
-            {historique.length === 0 ? (
-              <p className="text-sm text-stone">
-                Aucune modification enregistrée pour l&apos;instant.
-              </p>
-            ) : (
-              <ul className="space-y-3 border-l-2 border-hairline pl-4">
-                {historique.map((h, i) => (
-                  <li key={i} className="relative text-xs">
-                    <span
-                      aria-hidden="true"
-                      className="absolute -left-[21.5px] top-1 h-2 w-2 rounded-full bg-hairline"
-                    />
-                    <p className="text-stone">
-                      {h.quand}
-                      {h.auteur_id && nomDe.get(h.auteur_id)
-                        ? ` · ${nomDe.get(h.auteur_id)}`
-                        : ""}
-                    </p>
-                    <p className="mt-0.5 text-sm text-mute">
-                      <span className="font-medium text-ink">{h.titre}</span> ·{" "}
-                      {CHAMPS[h.field] ?? h.field} :{" "}
-                      {h.field === "responsable_id" ? (
-                        <>
-                          {nomDe.get(h.old_value ?? "") ?? "-"} →{" "}
-                          <span className="font-medium text-ink">
-                            {nomDe.get(h.new_value ?? "") ?? "-"}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          {valeurLisible(h.field, h.old_value)} →{" "}
-                          <span className="font-medium text-ink">
-                            {valeurLisible(h.field, h.new_value)}
-                          </span>
-                        </>
-                      )}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          <HistoriqueProjet entrees={entrees} />
         </div>
       </main>
     </div>

@@ -61,5 +61,12 @@ export async function POST(request: Request) {
     ],
   );
 
+  // Trace de création dans l'historique du projet.
+  await query(
+    `INSERT INTO sujet_history (sujet_id, changed_by, field, new_value)
+     VALUES ($1, $2, 'creation', $3)`,
+    [rows[0].id, me.id, title],
+  );
+
   return NextResponse.json({ ok: true, id: rows[0].id }, { status: 201 });
 }

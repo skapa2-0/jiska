@@ -1,21 +1,9 @@
 import { redirect } from "next/navigation";
 import { getSessionUser, isResponsable } from "@/lib/auth";
 import { query } from "@/lib/db";
-import Avatar from "../avatar";
 import Navbar from "../navbar";
-import ProjetLogo from "../projet-logo";
-import Roue, { tonAvancement } from "../roue";
-
-type ProjetCarte = {
-  id: string;
-  name: string;
-  description: string;
-  logo: string | null;
-  avancement: string | null;
-  actifs: string;
-  bloques: string;
-  responsable_id: string | null;
-};
+import ListeProjets from "./liste-projets";
+import type { CarteProjet } from "./liste-projets";
 
 // Vue par projet : une carte par projet, clic pour entrer dans le détail.
 export default async function ProjetsPage() {
@@ -28,8 +16,17 @@ export default async function ProjetsPage() {
     : "SELECT project_id FROM project_members WHERE user_id = $1";
   const visParams = dirigeant ? [] : [user.id];
 
-  const [projets, membres] = await Promise.all([
-    query<ProjetCarte>(
+  const [projetRows, membres] = await Promise.all([
+    query<{
+      id: string;
+      name: string;
+      description: string;
+      logo: string | null;
+      avancement: string | null;
+      actifs: string;
+      bloques: string;
+      responsable_id: string | null;
+    }>(
       `SELECT p.id, p.name, p.description, p.logo,
               round(p.jalon_tech * 0.6 + p.jalon_business * 0.4)   AS avancement,
               (SELECT count(*) FROM sujets s
@@ -60,6 +57,26 @@ export default async function ProjetsPage() {
     ),
   ]);
 
+  const projets: CarteProjet[] = projetRows.map((p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    logo: p.logo,
+    avancement: Number(p.avancement ?? 0),
+    actifs: Number(p.actifs),
+    bloques: Number(p.bloques),
+    responsableId: p.responsable_id,
+    equipe: membres
+      .filter((m) => m.project_id === p.id)
+      .map((m) => ({
+        id: m.id,
+        email: m.email,
+        first_name: m.first_name,
+        last_name: m.last_name,
+        avatar: m.avatar,
+      })),
+  }));
+
   const canCreateSujet = dirigeant || (await isResponsable(user.id));
 
   return (
@@ -73,71 +90,7 @@ export default async function ProjetsPage() {
               : "Vous ne faites partie d'aucun projet pour l'instant."}
           </p>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {projets.map((p) => {
-              const equipe = membres.filter((m) => m.project_id === p.id);
-              const avancement = Number(p.avancement ?? 0);
-              return (
-                <li key={p.id}>
-                  <a
-                    href={`/app/projets/${p.id}`}
-                    className="block rounded-lg bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgb(25_28_31/0.08),0_8px_20px_rgb(25_28_31/0.10)]"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <ProjetLogo
-                        name={p.name}
-                        logo={p.logo}
-                        taille="h-10 w-10 text-xl"
-                      />
-                      <Roue
-                        valeur={avancement}
-                        ton={tonAvancement(avancement)}
-                        taille="h-11 w-11"
-                      />
-                    </div>
-                    <h2 className="mt-3 line-clamp-1 font-display text-lg font-semibold text-ink">
-                      {p.name}
-                    </h2>
-                    <p className="mt-1 line-clamp-2 min-h-10 text-sm text-mute">
-                      {p.description || "Aucune description."}
-                    </p>
-                    <div className="mt-4 flex items-center justify-between">
-                      <span className="flex items-center -space-x-1.5">
-                        {equipe.slice(0, 4).map((m) => (
-                          <Avatar
-                            key={m.id}
-                            personne={m}
-                            taille="h-7 w-7 text-[11px]"
-                            dore={m.id === p.responsable_id}
-                            classe={
-                              m.id === p.responsable_id
-                                ? ""
-                                : "border-2 border-white"
-                            }
-                          />
-                        ))}
-                        {equipe.length > 4 && (
-                          <span className="grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-surface text-[11px] font-semibold text-mute">
-                            +{equipe.length - 4}
-                          </span>
-                        )}
-                      </span>
-                      <span className="flex items-center gap-2 text-xs font-medium">
-                        <span className="text-mute">
-                          {p.actifs} actif{Number(p.actifs) > 1 ? "s" : ""}
-                        </span>
-                        {Number(p.bloques) > 0 && (
-                          <span className="rounded-md bg-danger-soft px-2 py-0.5 font-semibold text-danger">
-                            {p.bloques} bloqué{Number(p.bloques) > 1 ? "s" : ""}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
+          <ListeProjets projets={projets} />
         )}
       </main>
     </div>
