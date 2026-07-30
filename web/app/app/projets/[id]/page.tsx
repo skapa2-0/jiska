@@ -201,7 +201,7 @@ export default async function ProjetPage({
             <span className="text-xs font-medium text-mute">
               Avancement
               <br />
-              global
+              moyen
             </span>
           </div>
           <Stat valeur={actifs.length} label="Sujets actifs" />
@@ -227,10 +227,6 @@ export default async function ProjetPage({
               ) : (
                 <ul className="divide-y divide-hairline rounded-lg bg-white shadow-card">
                   {actifs.map((s) => {
-                    const global = avancementGlobal(
-                      s.jalon_tech,
-                      s.jalon_business,
-                    );
                     return (
                       <li
                         key={s.id}
@@ -253,12 +249,6 @@ export default async function ProjetPage({
                             ? s.due_date.split("-").reverse().join("/")
                             : "-"}
                         </span>
-                        <Roue
-                          valeur={global}
-                          ton={tonAvancement(global)}
-                          taille="h-8 w-8"
-                          texte="text-[8px]"
-                        />
                       </li>
                     );
                   })}

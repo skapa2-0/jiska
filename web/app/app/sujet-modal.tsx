@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import {
-  avancementGlobal,
   CRITICITES,
   ETATS,
   JALONS,
@@ -13,7 +12,6 @@ import {
 import type { Jalon, SujetRow } from "@/lib/sujets";
 import type { ProjectOption } from "./dashboard";
 import ProjetLogo from "./projet-logo";
-import Roue, { tonAvancement } from "./roue";
 import Select from "./select";
 
 // Création / mise à jour d'un sujet, sans quitter la page (PRD : une
@@ -50,7 +48,6 @@ export default function SujetModal({
 
   const readOnly = mode === "edit" && !sujet?.can_edit;
   const projet = projects.find((p) => p.id === projectId);
-  const global = avancementGlobal(jalonTech, jalonBusiness);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -252,7 +249,7 @@ export default function SujetModal({
 
           {/* Jalons : steppers, jamais de % saisi à la main (PRD). */}
           <div className="mt-6 rounded-lg border border-hairline p-4">
-            <div className="grid items-center gap-5 sm:grid-cols-[1fr_1fr_auto]">
+            <div className="grid items-center gap-5 sm:grid-cols-2">
               <JalonPicker
                 titre="Jalon technique"
                 labels={JALONS_TECH}
@@ -267,17 +264,6 @@ export default function SujetModal({
                 onChange={setJalonBusiness}
                 disabled={loading || readOnly}
               />
-              <div className="text-center">
-                <Roue
-                  valeur={global}
-                  ton={tonAvancement(global)}
-                  taille="h-14 w-14"
-                  texte="text-[8px]"
-                />
-                <p className="mt-1 text-[11px] font-medium text-stone">
-                  Global (60/40)
-                </p>
-              </div>
             </div>
           </div>
 

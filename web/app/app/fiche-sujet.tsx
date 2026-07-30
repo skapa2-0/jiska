@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import {
-  avancementGlobal,
   CRITICITES,
   ETATS,
   JALONS_BUSINESS,
@@ -49,7 +48,6 @@ export default function FicheSujet({
     window.setTimeout(onClose, 250);
   }
 
-  const global = avancementGlobal(sujet.jalon_tech, sujet.jalon_business);
   const retard =
     sujet.due_date && sujet.due_date < today && sujet.etat !== "termine";
   const joursRetard = retard
@@ -147,23 +145,6 @@ export default function FicheSujet({
                 valeur={sujet.jalon_business}
                 jalon={JALONS_BUSINESS[sujet.jalon_business as 0]}
               />
-              <p className="border-t border-hairline pt-3 text-sm text-mute">
-                Global{" "}
-                <span
-                  className={`font-display text-lg font-semibold ${
-                    global >= 75
-                      ? "text-success"
-                      : global >= 50
-                        ? "text-warn"
-                        : "text-danger"
-                  }`}
-                >
-                  {global} %
-                </span>{" "}
-                <span className="text-xs text-stone">
-                  (technique 60 % · business 40 %)
-                </span>
-              </p>
             </div>
           </Bloc>
 

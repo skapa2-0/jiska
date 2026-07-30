@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  avancementGlobal,
   CRITICITES,
   ETATS,
   JALONS_BUSINESS,
@@ -14,7 +13,6 @@ import Avatar, { displayName } from "./avatar";
 import type { Personne } from "./avatar";
 import FicheSujet, { IconeCommentaire } from "./fiche-sujet";
 import ProjetLogo from "./projet-logo";
-import Roue, { tonAvancement } from "./roue";
 import Select from "./select";
 import SujetModal from "./sujet-modal";
 
@@ -55,7 +53,6 @@ type TriCol =
   | "echeance"
   | "tech"
   | "business"
-  | "global"
   | "criticite"
   | "commentaire";
 type Tri = { col: TriCol; sens: 1 | -1 };
@@ -218,8 +215,6 @@ export default function Dashboard({
           return s.jalon_tech;
         case "business":
           return s.jalon_business;
-        case "global":
-          return avancementGlobal(s.jalon_tech, s.jalon_business);
         case "criticite":
           return CRITICITE_ORDRE[s.criticite];
         case "commentaire":
@@ -367,7 +362,6 @@ export default function Dashboard({
             <col style={{ width: 115 }} />
             <col style={{ width: 130 }} />
             <col style={{ width: 130 }} />
-            <col style={{ width: 90 }} />
             <col style={{ width: 115 }} />
             <col style={{ width: 110 }} />
           </colgroup>
@@ -394,9 +388,6 @@ export default function Dashboard({
               <Th centre col="business" tri={tri} onTri={basculerTri}>
                 Business · 40 %
               </Th>
-              <Th centre col="global" tri={tri} onTri={basculerTri}>
-                Global
-              </Th>
               <Th centre col="criticite" tri={tri} onTri={basculerTri}>
                 Criticité
               </Th>
@@ -408,7 +399,7 @@ export default function Dashboard({
           <tbody>
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-4 py-16 text-center text-stone">
+                <td colSpan={9} className="px-4 py-16 text-center text-stone">
                   {sujets.length === 0
                     ? "Aucun sujet pour l'instant. Créez le premier avec « Nouveau sujet »."
                     : "Aucun sujet ne correspond aux filtres."}
@@ -422,7 +413,6 @@ export default function Dashboard({
               const equipe = [...(projet?.members ?? [])].sort((a, b) =>
                 a.id === respId ? -1 : b.id === respId ? 1 : 0,
               );
-              const global = avancementGlobal(s.jalon_tech, s.jalon_business);
               const retard = s.due_date && s.due_date < today && s.etat !== "termine";
               return (
                 <tr
@@ -509,9 +499,6 @@ export default function Dashboard({
                     title={JALONS_BUSINESS[s.jalon_business as 0]}
                   >
                     <Jauge valeur={s.jalon_business} />
-                  </td>
-                  <td className="px-4 py-2.5 text-center align-middle">
-                    <Roue valeur={global} ton={tonAvancement(global)} />
                   </td>
                   <td className="px-4 py-3.5 text-center align-middle">
                     <Chip classe={CRITICITES[s.criticite].chip}>
