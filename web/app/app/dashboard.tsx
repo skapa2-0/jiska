@@ -405,9 +405,9 @@ export default function Dashboard({
                 <tr
                   key={s.id}
                   onClick={() => setFiche(s)}
-                  className="divide-x divide-hairline border-b border-hairline last:border-b-0 cursor-pointer transition hover:bg-surface"
+                  className="h-[60px] divide-x divide-hairline border-b border-hairline last:border-b-0 cursor-pointer transition hover:bg-surface"
                 >
-                  <td className="px-4 py-3.5">
+                  <td className="px-4 py-2">
                     <span className="flex items-center gap-2.5">
                       <ProjetLogo
                         name={s.project_name}
@@ -419,15 +419,15 @@ export default function Dashboard({
                       </span>
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 text-center align-middle">
+                  <td className="px-4 py-2 text-center align-middle">
                     <Chip classe={ETATS[s.etat].chip}>
                       {ETATS[s.etat].label}
                     </Chip>
                   </td>
-                  <td className="max-w-56 px-4 py-3.5 font-medium text-ink">
+                  <td className="max-w-56 px-4 py-2 font-medium text-ink">
                     <span className="line-clamp-2">{s.title}</span>
                   </td>
-                  <td className="px-4 py-3.5">
+                  <td className="px-4 py-2">
                     <span className="flex items-center -space-x-1.5">
                       {equipe.slice(0, 4).map((m) => (
                         <span key={m.id} className="group relative">
@@ -462,11 +462,11 @@ export default function Dashboard({
                       )}
                     </span>
                   </td>
-                  <td className="max-w-52 px-4 py-3.5 text-mute">
+                  <td className="max-w-52 px-4 py-2 text-mute">
                     <span className="line-clamp-2">{s.action}</span>
                   </td>
                   <td
-                    className={`whitespace-nowrap px-4 py-3.5 text-center align-middle ${
+                    className={`whitespace-nowrap px-4 py-2 text-center align-middle ${
                       retard ? "font-medium text-danger" : "text-ink"
                     }`}
                   >
@@ -474,12 +474,12 @@ export default function Dashboard({
                       ? s.due_date.split("-").reverse().join("/")
                       : "-"}
                   </td>
-                  <td className="px-4 py-3.5 text-center align-middle">
+                  <td className="px-4 py-2 text-center align-middle">
                     <Chip classe={CRITICITES[s.criticite].chip}>
                       {CRITICITES[s.criticite].label}
                     </Chip>
                   </td>
-                  <td className="px-4 py-3.5 text-center align-middle">
+                  <td className="px-4 py-2 text-center align-middle">
                     {s.commentaire && (
                       <button
                         type="button"
