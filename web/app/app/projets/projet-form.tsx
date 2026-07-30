@@ -3,8 +3,8 @@
 import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { FORMATS_IMAGE, reduireImage } from "@/lib/image";
-import Avatar, { displayName } from "../../avatar";
-import ProjetLogo from "../../projet-logo";
+import Avatar, { displayName } from "../avatar";
+import ProjetLogo from "../projet-logo";
 
 type Person = {
   id: string;
@@ -15,12 +15,33 @@ type Person = {
   role: string;
 };
 
-export default function NewProjectForm({ people }: { people: Person[] }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [logo, setLogo] = useState<string | null>(null);
-  const [memberIds, setMemberIds] = useState<string[]>([]);
-  const [responsableId, setResponsableId] = useState("");
+type ProjetInitial = {
+  id: string;
+  name: string;
+  description: string;
+  logo: string | null;
+  memberIds: string[];
+  responsableId: string;
+};
+
+// Formulaire de projet, partagé entre création et édition (dirigeants).
+export default function ProjetForm({
+  people,
+  initial,
+}: {
+  people: Person[];
+  initial?: ProjetInitial;
+}) {
+  const edition = initial !== undefined;
+  const [name, setName] = useState(initial?.name ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [logo, setLogo] = useState<string | null>(initial?.logo ?? null);
+  const [memberIds, setMemberIds] = useState<string[]>(
+    initial?.memberIds ?? [],
+  );
+  const [responsableId, setResponsableId] = useState(
+    initial?.responsableId ?? "",
+  );
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -54,27 +75,52 @@ export default function NewProjectForm({ people }: { people: Person[] }) {
     setLoading(true);
     setMessage("");
     try {
-      const res = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          description,
-          logo,
-          memberIds,
-          responsableId,
-        }),
-      });
+      const res = await fetch(
+        edition ? `/api/projects/${initial!.id}` : "/api/projects",
+        {
+          method: edition ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            description,
+            logo,
+            memberIds,
+            responsableId,
+          }),
+        },
+      );
       const data = await res.json();
       if (!res.ok) {
-        setMessage(data.error ?? "Échec de la création du projet.");
+        setMessage(data.error ?? "Échec de l'enregistrement.");
         return;
       }
-      window.location.href = "/app/projets";
+      window.location.href = edition
+        ? `/app/projets/${initial!.id}`
+        : "/app/projets";
     } catch {
       setMessage("Impossible de joindre le serveur.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (
+      !initial ||
+      !window.confirm(
+        `Supprimer le projet « ${initial.name} » ? Tous ses sujets et leur historique seront supprimés.`,
+      )
+    )
+      return;
+    setLoading(true);
+    const res = await fetch(`/api/projects/${initial.id}`, {
+      method: "DELETE",
+    });
+    setLoading(false);
+    if (res.ok) window.location.href = "/app/projets";
+    else {
+      const data = await res.json().catch(() => null);
+      setMessage(data?.error ?? "Échec de la suppression.");
     }
   }
 
@@ -219,13 +265,31 @@ export default function NewProjectForm({ people }: { people: Person[] }) {
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={loading || !name || memberIds.length === 0 || !responsableId}
-        className="mt-6 w-full rounded-lg bg-ink py-3.5 text-[15px] font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {loading ? "Création…" : "Créer le projet"}
-      </button>
+      <div className="mt-6 flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={
+            loading || !name || memberIds.length === 0 || !responsableId
+          }
+          className="flex-1 rounded-lg bg-ink py-3.5 text-[15px] font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {loading
+            ? "Enregistrement…"
+            : edition
+              ? "Enregistrer les modifications"
+              : "Créer le projet"}
+        </button>
+        {edition && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={loading}
+            className="rounded-lg px-4 py-3.5 text-sm font-medium text-danger transition hover:bg-danger-soft"
+          >
+            Supprimer le projet
+          </button>
+        )}
+      </div>
     </form>
   );
 }

@@ -172,12 +172,22 @@ export default async function ProjetPage({
               Créé le {projet.created_at.split("-").reverse().join("/")}
             </p>
           </div>
-          <a
-            href={`/app?projet=${projet.id}`}
-            className="rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface"
-          >
-            Voir dans le tableau
-          </a>
+          <div className="flex flex-wrap gap-2">
+            {dirigeant && (
+              <a
+                href={`/app/projets/${projet.id}/modifier`}
+                className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85"
+              >
+                Modifier
+              </a>
+            )}
+            <a
+              href={`/app?projet=${projet.id}`}
+              className="rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface"
+            >
+              Voir dans le tableau
+            </a>
+          </div>
         </div>
 
         {/* Indicateurs du projet */}

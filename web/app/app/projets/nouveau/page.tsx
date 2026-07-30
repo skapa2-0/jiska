@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import Navbar from "../../navbar";
-import NewProjectForm from "./new-project-form";
+import ProjetForm from "../projet-form";
 
 // Création de projet : réservée aux dirigeants.
 export default async function NouveauProjetPage() {
@@ -32,7 +32,7 @@ export default async function NouveauProjetPage() {
           Choisissez les membres du projet et désignez son responsable : il
           pourra créer des sujets dans le projet.
         </p>
-        <NewProjectForm people={people} />
+        <ProjetForm people={people} />
       </main>
     </div>
   );
