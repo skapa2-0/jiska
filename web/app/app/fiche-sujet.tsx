@@ -7,6 +7,7 @@ import type { SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "./avatar";
 import type { ProjectOption } from "./dashboard";
 import ProjetLogo from "./projet-logo";
+import Select from "./select";
 import Roue, { tonAvancement } from "./roue";
 
 // Fiche détaillée d'un sujet : panneau qui glisse depuis la droite.
@@ -124,6 +125,7 @@ export default function FicheSujet({
   }
 
   function changerChip(cle: "etat" | "criticite" | "type", v: string) {
+    if (!v) return;
     const avant = cle === "etat" ? etat : cle === "criticite" ? criticite : type;
     const poser =
       cle === "etat" ? setEtat : cle === "criticite" ? setCriticite : setType;
@@ -234,50 +236,55 @@ export default function FicheSujet({
                 {title}
               </h2>
             )}
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              {editable ? (
-                Object.entries(ETATS).map(([k, e]) => (
-                  <Pastille
-                    key={k}
-                    actif={etat === k}
-                    classe={e.chip}
-                    onClick={() => changerChip("etat", k)}
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone">
+                  État
+                </p>
+                {editable ? (
+                  <Select
+                    ariaLabel="État du sujet"
+                    placeholder="État"
+                    variante="champ"
+                    value={etat}
+                    onChange={(v) => changerChip("etat", v)}
+                    options={Object.entries(ETATS).map(([k, e]) => ({
+                      value: k,
+                      label: e.label,
+                    }))}
+                  />
+                ) : (
+                  <Chip classe={ETATS[etat as keyof typeof ETATS].chip}>
+                    {ETATS[etat as keyof typeof ETATS].label}
+                  </Chip>
+                )}
+              </div>
+              <div>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone">
+                  Criticité
+                </p>
+                {editable ? (
+                  <Select
+                    ariaLabel="Criticité du sujet"
+                    placeholder="Criticité"
+                    variante="champ"
+                    value={criticite}
+                    onChange={(v) => changerChip("criticite", v)}
+                    options={Object.entries(CRITICITES).map(([k, c]) => ({
+                      value: k,
+                      label: c.label,
+                    }))}
+                  />
+                ) : (
+                  <Chip
+                    classe={
+                      CRITICITES[criticite as keyof typeof CRITICITES].chip
+                    }
                   >
-                    <span
-                      aria-hidden="true"
-                      className={`h-2 w-2 rounded-full ${e.dot}`}
-                    />
-                    {e.label}
-                  </Pastille>
-                ))
-              ) : (
-                <Chip classe={ETATS[etat as keyof typeof ETATS].chip}>
-                  {ETATS[etat as keyof typeof ETATS].label}
-                </Chip>
-              )}
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {editable ? (
-                Object.entries(CRITICITES).map(([k, c]) => (
-                  <Pastille
-                    key={k}
-                    actif={criticite === k}
-                    classe={c.chip}
-                    onClick={() => changerChip("criticite", k)}
-                  >
-                    {c.label}
-                  </Pastille>
-                ))
-              ) : (
-                <Chip
-                  classe={CRITICITES[criticite as keyof typeof CRITICITES].chip}
-                >
-                  Criticité{" "}
-                  {CRITICITES[
-                    criticite as keyof typeof CRITICITES
-                  ].label.toLowerCase()}
-                </Chip>
-              )}
+                    {CRITICITES[criticite as keyof typeof CRITICITES].label}
+                  </Chip>
+                )}
+              </div>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {editable ? (
