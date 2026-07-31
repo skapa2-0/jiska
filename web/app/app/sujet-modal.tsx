@@ -34,7 +34,7 @@ export default function SujetModal({
   const [etat, setEtat] = useState<string>(sujet?.etat ?? "a_faire");
   const [commentaire, setCommentaire] = useState(sujet?.commentaire ?? "");
   const [type, setType] = useState<string>(sujet?.type ?? "technique");
-  const [poids, setPoids] = useState(String(sujet?.poids ?? 10));
+  const [poids, setPoids] = useState(String(sujet?.poids ?? 5));
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
