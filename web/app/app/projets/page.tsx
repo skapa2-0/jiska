@@ -23,12 +23,19 @@ export default async function ProjetsPage() {
       description: string;
       logo: string | null;
       avancement: string | null;
+      jalon_tech: number;
+      jalon_business: number;
       actifs: string;
       bloques: string;
+      echeance: string | null;
       responsable_id: string | null;
     }>(
       `SELECT p.id, p.name, p.description, p.logo,
               round(p.jalon_tech * 0.6 + p.jalon_business * 0.4)   AS avancement,
+              p.jalon_tech, p.jalon_business,
+              (SELECT min(s.due_date)::text FROM sujets s
+                WHERE s.project_id = p.id AND s.etat <> 'termine'
+                  AND s.due_date IS NOT NULL)                      AS echeance,
               (SELECT count(*) FROM sujets s
                 WHERE s.project_id = p.id AND s.etat <> 'termine') AS actifs,
               (SELECT count(*) FROM sujets s
@@ -63,6 +70,9 @@ export default async function ProjetsPage() {
     description: p.description,
     logo: p.logo,
     avancement: Number(p.avancement ?? 0),
+    jalonTech: Number(p.jalon_tech),
+    jalonBusiness: Number(p.jalon_business),
+    echeance: p.echeance,
     actifs: Number(p.actifs),
     bloques: Number(p.bloques),
     responsableId: p.responsable_id,
@@ -79,6 +89,8 @@ export default async function ProjetsPage() {
 
   const canCreateSujet = dirigeant || (await isResponsable(user.id));
 
+  const today = new Date().toISOString().slice(0, 10);
+
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Navbar user={user} canCreateSujet={canCreateSujet} onglet="projets" />
@@ -90,7 +102,7 @@ export default async function ProjetsPage() {
               : "Vous ne faites partie d'aucun projet pour l'instant."}
           </p>
         ) : (
-          <ListeProjets projets={projets} />
+          <ListeProjets projets={projets} today={today} />
         )}
       </main>
     </div>
