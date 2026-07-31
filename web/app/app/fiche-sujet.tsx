@@ -7,6 +7,7 @@ import type { SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "./avatar";
 import type { ProjectOption } from "./dashboard";
 import ProjetLogo from "./projet-logo";
+import Roue, { tonAvancement } from "./roue";
 
 // Fiche détaillée d'un sujet : panneau qui glisse depuis la droite.
 // Édition directe sur la fiche (selon permissions) : les chips
@@ -184,8 +185,8 @@ export default function FicheSujet({
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
-          <div>
+        <div className="min-h-0 flex-1 divide-y divide-hairline overflow-y-auto">
+          <div className="px-6 py-5">
             {editable ? (
               <input
                 type="text"
@@ -247,6 +248,7 @@ export default function FicheSujet({
             </div>
           </div>
 
+          <div className="space-y-5 px-6 py-5">
           <Bloc titre="Action de la semaine">
             {editable ? (
               <input
@@ -297,28 +299,6 @@ export default function FicheSujet({
             )}
           </Bloc>
 
-          <Bloc titre="Équipe">
-            <ul className="space-y-2">
-              {equipe.map((m) => (
-                <li key={m.id} className="flex items-center gap-2.5 text-sm">
-                  <Avatar
-                    personne={m}
-                    taille="h-7 w-7 text-[11px]"
-                    dore={m.id === respId}
-                  />
-                  <span className="min-w-0 flex-1 truncate text-ink">
-                    {displayName(m)}
-                  </span>
-                  {m.id === respId && (
-                    <span className="text-xs font-semibold text-brand">
-                      Responsable
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </Bloc>
-
           {(editable || commentaire) && (
             <Bloc titre="Commentaire">
               {editable ? (
@@ -342,6 +322,65 @@ export default function FicheSujet({
                 </div>
               )}
             </Bloc>
+          )}
+          </div>
+
+          {/* Le projet du sujet, en léger : logo, avancement, équipe. */}
+          {projet && (
+            <a
+              href={`/app/projets/${projet.id}`}
+              className="block bg-surface/60 px-6 py-4 transition hover:bg-surface"
+            >
+              <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-stone">
+                Projet
+              </p>
+              <span className="flex items-center gap-3">
+                <ProjetLogo
+                  name={projet.name}
+                  logo={projet.logo}
+                  taille="h-9 w-9 text-base"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-ink">
+                    {projet.name}
+                  </span>
+                  <span className="mt-1 flex items-center -space-x-1">
+                    {equipe.slice(0, 5).map((m) => (
+                      <Avatar
+                        key={m.id}
+                        personne={m}
+                        taille="h-5 w-5 text-[9px]"
+                        dore={m.id === respId}
+                        classe={m.id === respId ? "" : "border border-white"}
+                      />
+                    ))}
+                    {equipe.length > 5 && (
+                      <span className="pl-2 text-[11px] font-medium text-stone">
+                        +{equipe.length - 5}
+                      </span>
+                    )}
+                  </span>
+                </span>
+                <Roue
+                  valeur={projet.avancement}
+                  ton={tonAvancement(projet.avancement)}
+                  taille="h-9 w-9"
+                  texte="text-[8px]"
+                />
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 16 16"
+                  className="h-4 w-4 shrink-0 text-stone"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M6 3.5 10.5 8 6 12.5" />
+                </svg>
+              </span>
+            </a>
           )}
         </div>
 

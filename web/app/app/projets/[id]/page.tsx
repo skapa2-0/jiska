@@ -143,6 +143,10 @@ export default async function ProjetPage({
     name: projet.name,
     logo: projet.logo,
     responsableId: equipe.find((m) => m.is_responsable)?.id ?? null,
+    avancement: avancementGlobal(
+      Number(projet.jalon_tech),
+      Number(projet.jalon_business),
+    ),
     canManage,
     members: equipe.map((m) => ({
       id: m.id,

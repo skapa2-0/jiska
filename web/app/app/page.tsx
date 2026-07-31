@@ -66,10 +66,12 @@ export default async function AppPage() {
       id: string;
       name: string;
       logo: string | null;
+      avancement: string | null;
       is_resp: boolean;
       responsable_id: string | null;
     }>(
       `SELECT p.id, p.name, p.logo,
+              round(p.jalon_tech * 0.6 + p.jalon_business * 0.4) AS avancement,
               EXISTS (SELECT 1 FROM project_members m
                        WHERE m.project_id = p.id
                          AND m.user_id = $${visParams.length + 1}
@@ -107,6 +109,7 @@ export default async function AppPage() {
     name: p.name,
     logo: p.logo,
     responsableId: p.responsable_id,
+    avancement: Number(p.avancement ?? 0),
     canManage: dirigeant || p.is_resp,
     members: memberRows
       .filter((m) => m.project_id === p.id)

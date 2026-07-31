@@ -16,6 +16,7 @@ export type ProjectOption = {
   name: string;
   logo: string | null;
   responsableId: string | null;
+  avancement: number;
   canManage: boolean;
   members: Personne[];
 };
