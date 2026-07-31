@@ -59,6 +59,17 @@ export function avancementGlobal(tech: number, business: number): number {
   return Math.round(tech * 0.6 + business * 0.4);
 }
 
+// Crédit d'un sujet sur son axe selon l'état : terminé = 100 % du
+// poids, en validation = 50 %, le reste = 0. Le pendant SQL vit dans
+// les requêtes (CASE etat...).
+export const CREDIT_ETAT: Record<string, number> = {
+  termine: 1,
+  en_validation: 0.5,
+};
+export function creditSujet(etat: string, poids: number): number {
+  return poids * (CREDIT_ETAT[etat] ?? 0);
+}
+
 export function isJalon(v: unknown): v is Jalon {
   return typeof v === "number" && (JALONS as readonly number[]).includes(v);
 }
@@ -88,6 +99,8 @@ export type SujetRow = {
   due_date: string | null;
   type: TypeSujet;
   poids: number;
+  porteur_id: string | null;
+  updated_at: string;
   criticite: Criticite;
   etat: Etat;
   commentaire: string;

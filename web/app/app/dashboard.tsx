@@ -17,6 +17,8 @@ export type ProjectOption = {
   logo: string | null;
   responsableId: string | null;
   avancement: number;
+  poidsTech: number;
+  poidsBusiness: number;
   canManage: boolean;
   members: Personne[];
 };
@@ -27,7 +29,7 @@ type Indicateurs = {
   avancement: number;
   bloques: number;
   echeances: number;
-  charge: number;
+  retard: number;
   clotures: number;
 };
 
@@ -37,6 +39,7 @@ const FILTRES = [
   { key: "bloques", label: "Bloqués" },
   { key: "semaine", label: "Cette semaine" },
   { key: "retard", label: "En retard" },
+  { key: "neuf", label: "Du neuf (7 j)" },
 ] as const;
 type FiltreKey = (typeof FILTRES)[number]["key"];
 
@@ -134,17 +137,20 @@ export default function Dashboard({
   }, []);
 
   // Bornes temporelles calculées une fois par rendu.
-  const { today, weekStart, weekEnd } = useMemo(() => {
+  const { today, weekStart, weekEnd, depuis7j } = useMemo(() => {
     const now = new Date();
     const day = (now.getDay() + 6) % 7; // lundi = 0
     const start = new Date(now);
     start.setDate(now.getDate() - day);
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
+    const ilYA7j = new Date(now);
+    ilYA7j.setDate(now.getDate() - 7);
     return {
       today: isoDate(now),
       weekStart: isoDate(start),
       weekEnd: isoDate(end),
+      depuis7j: isoDate(ilYA7j),
     };
   }, []);
 
@@ -162,18 +168,10 @@ export default function Dashboard({
     () => new Map(projects.map((p) => [p.id, p])),
     [projects],
   );
-  const mesProjets = useMemo(
-    () =>
-      new Set(
-        projects
-          .filter((p) => p.members.some((m) => m.id === meId))
-          .map((p) => p.id),
-      ),
-    [projects, meId],
-  );
 
   const visibles = sujets.filter((s) => {
-    if (filtre === "miens" && !mesProjets.has(s.project_id)) return false;
+    if (filtre === "miens" && s.porteur_id !== meId) return false;
+    if (filtre === "neuf" && s.updated_at < depuis7j) return false;
     if (filtre === "bloques" && s.etat !== "bloque") return false;
     if (
       filtre === "semaine" &&
@@ -202,14 +200,32 @@ export default function Dashboard({
     return true;
   });
 
-  function nomResponsable(s: SujetRow): string {
-    const p = projetDe.get(s.project_id);
-    const r = p?.members.find((m) => m.id === p?.responsableId);
-    return r ? displayName(r) : "";
+  function porteurDe(s: SujetRow): Personne | undefined {
+    return projetDe
+      .get(s.project_id)
+      ?.members.find((m) => m.id === s.porteur_id);
   }
 
   // Tri actif appliqué après filtrage ; les valeurs vides vont en fin.
+  // Sans tri choisi : ordre réunion (terminés en bas, retards en tête,
+  // puis échéance croissante).
   let lignes = visibles;
+  if (!tri) {
+    lignes = [...visibles].sort((a, b) => {
+      const ta = a.etat === "termine";
+      const tb = b.etat === "termine";
+      if (ta !== tb) return ta ? 1 : -1;
+      const ra = !ta && !!a.due_date && a.due_date < today;
+      const rb = !tb && !!b.due_date && b.due_date < today;
+      if (ra !== rb) return ra ? -1 : 1;
+      if (a.due_date !== b.due_date) {
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return a.due_date.localeCompare(b.due_date);
+      }
+      return a.project_name.localeCompare(b.project_name, "fr");
+    });
+  }
   if (tri) {
     const cle = (s: SujetRow): string | number | null => {
       switch (tri.col) {
@@ -221,8 +237,10 @@ export default function Dashboard({
           return s.title.toLowerCase();
         case "type":
           return (s.type === "technique" ? 0 : 1000) + (100 - s.poids);
-        case "equipe":
-          return nomResponsable(s).toLowerCase() || null;
+        case "equipe": {
+          const p = porteurDe(s);
+          return p ? displayName(p).toLowerCase() : null;
+        }
         case "action":
           return s.action.toLowerCase() || null;
         case "echeance":
@@ -274,6 +292,7 @@ export default function Dashboard({
           label="Sujets ouverts"
           tint="bg-purple-50 text-purple-600"
           icone={<IconeListe />}
+          onClick={() => setFiltre("tous")}
         />
         <Indicateur
           valeur={`${indicateurs.avancement} %`}
@@ -294,18 +313,22 @@ export default function Dashboard({
           tint="bg-danger-soft text-danger"
           icone={<IconeAlerte />}
           ton={indicateurs.bloques > 0 ? "text-danger" : "text-success"}
+          onClick={() => setFiltre("bloques")}
         />
         <Indicateur
           valeur={indicateurs.echeances}
           label="Échéances semaine"
           tint="bg-warn-soft text-warn"
           icone={<IconeCalendrier />}
+          onClick={() => setFiltre("semaine")}
         />
         <Indicateur
-          valeur={indicateurs.charge}
-          label="Sujets / collaborateur"
-          tint="bg-info-soft text-info"
-          icone={<IconeEquipe />}
+          valeur={indicateurs.retard}
+          label="En retard"
+          tint="bg-danger-soft text-danger"
+          icone={<IconeHorloge />}
+          ton={indicateurs.retard > 0 ? "text-danger" : "text-success"}
+          onClick={() => setFiltre("retard")}
         />
         <Indicateur
           valeur={indicateurs.clotures}
@@ -313,6 +336,7 @@ export default function Dashboard({
           tint="bg-success-soft text-success"
           icone={<IconeCoche />}
           ton={indicateurs.clotures > 0 ? "text-success" : undefined}
+          onClick={() => setFiltre("neuf")}
         />
       </section>
 
@@ -392,7 +416,7 @@ export default function Dashboard({
                 Type · Poids
               </Th>
               <Th col="equipe" tri={tri} onTri={basculerTri}>
-                Équipe
+                Porteur
               </Th>
               <Th col="action" tri={tri} onTri={basculerTri}>
                 Action de la semaine
@@ -419,12 +443,6 @@ export default function Dashboard({
               </tr>
             )}
             {lignes.map((s) => {
-              const projet = projetDe.get(s.project_id);
-              const respId = projet?.responsableId ?? null;
-              // Responsable du projet en tête, cerclé de brand.
-              const equipe = [...(projet?.members ?? [])].sort((a, b) =>
-                a.id === respId ? -1 : b.id === respId ? 1 : 0,
-              );
               const retard = s.due_date && s.due_date < today && s.etat !== "termine";
               return (
                 <tr
@@ -463,39 +481,22 @@ export default function Dashboard({
                     </span>
                   </td>
                   <td className="px-4 py-2 align-middle">
-                    <span className="flex items-center -space-x-1.5">
-                      {equipe.slice(0, 4).map((m) => (
-                        <span key={m.id} className="group relative">
+                    {(() => {
+                      const porteur = porteurDe(s);
+                      if (!porteur)
+                        return <span className="text-stone">-</span>;
+                      return (
+                        <span className="flex items-center gap-2">
                           <Avatar
-                            personne={m}
+                            personne={porteur}
                             taille="h-7 w-7 text-[11px]"
-                            dore={m.id === respId}
-                            classe={
-                              m.id === respId
-                                ? ""
-                                : "border-2 border-white"
-                            }
                           />
-                          <Etiquette>
-                            {displayName(m)}
-                            {m.id === respId ? " · responsable" : ""}
-                          </Etiquette>
-                        </span>
-                      ))}
-                      {equipe.length > 4 && (
-                        <span className="group relative">
-                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-white bg-surface text-[11px] font-semibold text-mute">
-                            +{equipe.length - 4}
+                          <span className="min-w-0 truncate text-mute">
+                            {displayName(porteur)}
                           </span>
-                          <Etiquette>
-                            {equipe
-                              .slice(4)
-                              .map((m) => displayName(m))
-                              .join(", ")}
-                          </Etiquette>
                         </span>
-                      )}
-                    </span>
+                      );
+                    })()}
                   </td>
                   <td className="max-w-52 px-4 py-2 align-middle text-mute">
                     <span className="line-clamp-2">{s.action}</span>
@@ -592,15 +593,24 @@ function Indicateur({
   ton,
   tint,
   icone,
+  onClick,
 }: {
   valeur: number | string;
   label: string;
   ton?: string;
   tint: string;
   icone: React.ReactNode;
+  onClick?: () => void;
 }) {
+  const Balise = onClick ? "button" : "div";
   return (
-    <div className="flex items-center gap-2.5 rounded-lg bg-white px-3 py-2.5 shadow-card">
+    <Balise
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={`flex items-center gap-2.5 rounded-lg bg-white px-3 py-2.5 text-left shadow-card ${
+        onClick ? "transition hover:-translate-y-0.5 cursor-pointer" : ""
+      }`}
+    >
       <span
         aria-hidden="true"
         className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${tint}`}
@@ -617,7 +627,7 @@ function Indicateur({
           {label}
         </span>
       </span>
-    </div>
+    </Balise>
   );
 }
 
@@ -652,8 +662,8 @@ function IconeAlerte() {
 function IconeCalendrier() {
   return <Icone d="M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm3-3v4m8-4v4M4 11h16" />;
 }
-function IconeEquipe() {
-  return <Icone d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3.5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8 4.5a3.5 3.5 0 0 1 0 7m5 6v-2a4 4 0 0 0-2.5-3.7" />;
+function IconeHorloge() {
+  return <Icone d="M12 7v5l3.5 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />;
 }
 function IconeCoche() {
   return <Icone d="M20 6 9 17l-5-5" />;

@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import type { ProjectOption } from "./dashboard";
+import Avatar, { displayName } from "./avatar";
 import ProjetLogo from "./projet-logo";
 import Select from "./select";
 
@@ -35,6 +36,9 @@ export default function SujetModal({
   const [commentaire, setCommentaire] = useState(sujet?.commentaire ?? "");
   const [type, setType] = useState<string>(sujet?.type ?? "technique");
   const [poids, setPoids] = useState(String(sujet?.poids ?? 5));
+  const [porteurId, setPorteurId] = useState<string | null>(
+    sujet?.porteur_id ?? null,
+  );
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -60,6 +64,7 @@ export default function SujetModal({
       dueDate: dueDate || null,
       type,
       poids: Math.min(100, Math.max(0, Math.round(Number(poids) || 0))),
+      porteurId,
       criticite,
       etat,
       commentaire,
@@ -273,6 +278,46 @@ export default function SujetModal({
                 disabled={loading || readOnly}
                 className={champ}
               />
+              {projet && (
+                <BudgetAxe
+                  attribueAxe={
+                    (type === "technique"
+                      ? projet.poidsTech
+                      : projet.poidsBusiness) -
+                    (sujet && sujet.type === type ? sujet.poids : 0)
+                  }
+                  poids={Math.round(Number(poids) || 0)}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <Etiquette>
+              Porteur de l&apos;action{" "}
+              <span className="font-normal text-stone">(facultatif)</span>
+            </Etiquette>
+            <div className="flex flex-wrap gap-1.5">
+              {(projet?.members ?? []).map((m) => {
+                const actif = porteurId === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    aria-pressed={actif}
+                    disabled={loading || readOnly}
+                    onClick={() => setPorteurId(actif ? null : m.id)}
+                    className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
+                      actif
+                        ? "border-brand bg-brand/5 text-ink ring-1 ring-brand"
+                        : "border-hairline text-mute hover:bg-surface"
+                    }`}
+                  >
+                    <Avatar personne={m} taille="h-5 w-5 text-[9px]" />
+                    {displayName(m)}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -327,6 +372,26 @@ export default function SujetModal({
         </form>
       </div>
     </div>
+  );
+}
+
+function BudgetAxe({
+  attribueAxe,
+  poids,
+}: {
+  attribueAxe: number;
+  poids: number;
+}) {
+  const total = Math.max(0, attribueAxe) + poids;
+  const reste = 100 - total;
+  return (
+    <p
+      className={`mt-1.5 text-[11px] font-medium ${reste < 0 ? "text-danger" : "text-stone"}`}
+    >
+      {reste < 0
+        ? `Dépasse le budget de l'axe de ${-reste} % (${total} % attribués)`
+        : `Axe à ${total} % attribués avec ce sujet · reste ${reste} %`}
+    </p>
   );
 }
 

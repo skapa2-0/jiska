@@ -34,6 +34,7 @@ export default function FicheSujet({
   const [type, setType] = useState<string>(sujet.type);
   const [poids, setPoids] = useState(String(sujet.poids));
   const [poidsSauve, setPoidsSauve] = useState(sujet.poids);
+  const [porteurId, setPorteurId] = useState(sujet.porteur_id);
   const [sauve, setSauve] = useState({
     title: sujet.title,
     action: sujet.action,
@@ -59,6 +60,15 @@ export default function FicheSujet({
   }, []);
 
   function fermer() {
+    // Sauvegarde des saisies en cours avant fermeture (Échap, clic
+    // sur le fond) : rien ne doit se perdre silencieusement.
+    if (editable) {
+      if (title.trim() && title.trim() !== sauve.title)
+        patch({ title: title.trim() });
+      if (action !== sauve.action) patch({ action });
+      if (commentaire !== sauve.commentaire) patch({ commentaire });
+      blurPoids();
+    }
     setVisible(false);
     window.setTimeout(onClose, 250);
   }
@@ -131,6 +141,15 @@ export default function FicheSujet({
     patch({ poids: n }).then((ok) => {
       if (ok) setPoidsSauve(n);
       else setPoids(String(poidsSauve));
+    });
+  }
+
+  function changerPorteur(v: string | null) {
+    const avant = porteurId;
+    if (v === avant) return;
+    setPorteurId(v);
+    patch({ porteurId: v }).then((ok) => {
+      if (!ok) setPorteurId(avant);
     });
   }
 
@@ -288,6 +307,12 @@ export default function FicheSujet({
                     />
                     %
                   </label>
+                  <BudgetAxe
+                    projet={projet}
+                    type={type}
+                    poidsInitial={sujet.type === type ? sujet.poids : 0}
+                    poidsActuel={Math.round(Number(poids) || 0)}
+                  />
                 </>
               ) : (
                 <Chip classe={TYPES_SUJET[type as keyof typeof TYPES_SUJET].chip}>
@@ -299,6 +324,36 @@ export default function FicheSujet({
           </div>
 
           <div className="space-y-5 px-6 py-5">
+          <Bloc titre="Porteur de l'action">
+            <div className="flex flex-wrap gap-1.5">
+              {(projet?.members ?? []).map((m) => {
+                const actif = porteurId === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    disabled={!editable}
+                    aria-pressed={actif}
+                    onClick={() =>
+                      editable && changerPorteur(actif ? null : m.id)
+                    }
+                    className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-semibold transition disabled:opacity-70 ${
+                      actif
+                        ? "border-brand bg-brand/5 text-ink ring-1 ring-brand"
+                        : "border-hairline text-mute hover:bg-surface"
+                    }`}
+                  >
+                    <Avatar personne={m} taille="h-5 w-5 text-[9px]" />
+                    {displayName(m)}
+                  </button>
+                );
+              })}
+              {(projet?.members ?? []).length === 0 && (
+                <span className="text-sm text-stone">-</span>
+              )}
+            </div>
+          </Bloc>
+
           <Bloc titre="Action de la semaine">
             {editable ? (
               <input
@@ -463,6 +518,35 @@ export default function FicheSujet({
         </footer>
       </aside>
     </div>
+  );
+}
+
+// Budget de l'axe : poids des autres sujets + celui-ci, reste à 100.
+function BudgetAxe({
+  projet,
+  type,
+  poidsInitial,
+  poidsActuel,
+}: {
+  projet?: ProjectOption;
+  type: string;
+  poidsInitial: number;
+  poidsActuel: number;
+}) {
+  if (!projet) return null;
+  const attribueAxe =
+    type === "technique" ? projet.poidsTech : projet.poidsBusiness;
+  const autres = Math.max(0, attribueAxe - poidsInitial);
+  const total = autres + poidsActuel;
+  const reste = 100 - total;
+  return (
+    <span
+      className={`text-[11px] font-medium ${reste < 0 ? "text-danger" : "text-stone"}`}
+    >
+      {reste < 0
+        ? `Dépasse le budget de l'axe de ${-reste} % (${total} % attribués)`
+        : `Axe à ${total} % attribués · reste ${reste} %`}
+    </span>
   );
 }
 

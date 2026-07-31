@@ -24,18 +24,22 @@ export default async function ProjetsPage() {
       logo: string | null;
       tech: string;
       business: string;
+      attrib_tech: string;
+      attrib_business: string;
       actifs: string;
       bloques: string;
       echeance: string | null;
       responsable_id: string | null;
     }>(
       `SELECT p.id, p.name, p.description, p.logo,
-              least(100, COALESCE((SELECT sum(s.poids) FROM sujets s
-                WHERE s.project_id = p.id AND s.etat = 'termine'
-                  AND s.type = 'technique'), 0))                     AS tech,
-              least(100, COALESCE((SELECT sum(s.poids) FROM sujets s
-                WHERE s.project_id = p.id AND s.etat = 'termine'
-                  AND s.type = 'business'), 0))                      AS business,
+              least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
+                WHERE s.project_id = p.id AND s.type = 'technique'), 0)) AS tech,
+              least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
+                WHERE s.project_id = p.id AND s.type = 'business'), 0))  AS business,
+              COALESCE((SELECT sum(s.poids) FROM sujets s
+                WHERE s.project_id = p.id AND s.type = 'technique'), 0) AS attrib_tech,
+              COALESCE((SELECT sum(s.poids) FROM sujets s
+                WHERE s.project_id = p.id AND s.type = 'business'), 0)  AS attrib_business,
               (SELECT min(s.due_date)::text FROM sujets s
                 WHERE s.project_id = p.id AND s.etat <> 'termine'
                   AND s.due_date IS NOT NULL)                      AS echeance,
@@ -75,6 +79,8 @@ export default async function ProjetsPage() {
     avancement: Math.round(Number(p.tech) * 0.6 + Number(p.business) * 0.4),
     jalonTech: Number(p.tech),
     jalonBusiness: Number(p.business),
+    attribTech: Number(p.attrib_tech),
+    attribBusiness: Number(p.attrib_business),
     echeance: p.echeance,
     actifs: Number(p.actifs),
     bloques: Number(p.bloques),

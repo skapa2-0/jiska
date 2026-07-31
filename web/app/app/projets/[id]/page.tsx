@@ -7,6 +7,7 @@ import {
   ETATS,
   JALONS_BUSINESS,
   JALONS_TECH,
+  creditSujet,
 } from "@/lib/sujets";
 import type { Criticite, Etat, SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "../../avatar";
@@ -29,6 +30,7 @@ const CHAMPS: Record<string, string> = {
   criticite: "la criticité",
   etat: "l'état",
   responsable_id: "le responsable",
+  porteur_id: "le porteur",
 };
 
 function valeurLisible(field: string, v: string | null): string {
@@ -100,9 +102,12 @@ export default async function ProjetPage({
       criticite: Criticite;
       type: "technique" | "business";
       poids: number;
+      porteur_id: string | null;
+      updated_at: string;
       due_date: string | null;
     }>(
       `SELECT id, title, action, commentaire, etat, criticite, type, poids,
+              porteur_id, updated_at::date::text AS updated_at,
               due_date::text AS due_date
          FROM sujets WHERE project_id = $1
         ORDER BY (etat = 'termine'), due_date NULLS LAST, id`,
@@ -141,15 +146,21 @@ export default async function ProjetPage({
   const nomDe = new Map(personnes.map((p) => [p.id, displayName(p)]));
   const canManage = dirigeant || equipe.some((m) => m.id === user.id && m.is_responsable);
 
-  const axe = (t: "technique" | "business", terminesSeuls: boolean) =>
+  const acquis = (t: "technique" | "business") =>
     Math.min(
       100,
-      sujetRows
-        .filter((s) => s.type === t && (!terminesSeuls || s.etat === "termine"))
-        .reduce((acc, s) => acc + Number(s.poids), 0),
+      Math.round(
+        sujetRows
+          .filter((s) => s.type === t)
+          .reduce((acc, s) => acc + creditSujet(s.etat, Number(s.poids)), 0),
+      ),
     );
-  const tech = axe("technique", true);
-  const business = axe("business", true);
+  const attribue = (t: "technique" | "business") =>
+    sujetRows
+      .filter((s) => s.type === t)
+      .reduce((acc, s) => acc + Number(s.poids), 0);
+  const tech = acquis("technique");
+  const business = acquis("business");
   const avancement = avancementGlobal(tech, business);
 
   const projetOption = {
@@ -158,6 +169,8 @@ export default async function ProjetPage({
     logo: projet.logo,
     responsableId: equipe.find((m) => m.is_responsable)?.id ?? null,
     avancement,
+    poidsTech: attribue("technique"),
+    poidsBusiness: attribue("business"),
     canManage,
     members: equipe.map((m) => ({
       id: m.id,
@@ -178,10 +191,12 @@ export default async function ProjetPage({
     due_date: s.due_date,
     type: s.type,
     poids: Number(s.poids),
+    porteur_id: s.porteur_id,
+    updated_at: s.updated_at,
     criticite: s.criticite,
     etat: s.etat,
     commentaire: s.commentaire,
-    can_edit: canManage,
+    can_edit: canManage || s.porteur_id === user.id,
     can_manage: canManage,
   }));
 
@@ -192,11 +207,11 @@ export default async function ProjetPage({
     titre: h.titre,
     champ: CHAMPS[h.field] ?? h.field,
     ancien:
-      h.field === "responsable_id"
+      ["responsable_id", "porteur_id"].includes(h.field)
         ? (nomDe.get(h.old_value ?? "") ?? "-")
         : valeurLisible(h.field, h.old_value),
     nouveau:
-      h.field === "responsable_id"
+      ["responsable_id", "porteur_id"].includes(h.field)
         ? (nomDe.get(h.new_value ?? "") ?? "-")
         : valeurLisible(h.field, h.new_value),
     creation: h.field === "creation",
@@ -284,17 +299,17 @@ export default async function ProjetPage({
             <BarreAxe
               nom="Technique · 60 %"
               valeur={tech}
-              attribue={axe("technique", false)}
+              attribue={attribue("technique")}
             />
             <BarreAxe
               nom="Business · 40 %"
               valeur={business}
-              attribue={axe("business", false)}
+              attribue={attribue("business")}
             />
           </div>
           <p className="mt-3 text-xs text-stone">
-            L&apos;avancement progresse quand des sujets sont terminés, à
-            hauteur du poids de chacun.
+            Un sujet terminé rapporte tout son poids, un sujet en validation
+            la moitié. Objectif : 100 % attribués par axe.
           </p>
         </div>
 
@@ -360,8 +375,10 @@ function BarreAxe({
       <div className="flex items-baseline justify-between">
         <p className="text-sm font-medium text-ink">{nom}</p>
         <p className="text-xs text-mute">
-          <span className="font-semibold text-ink">{valeur} %</span> terminés ·{" "}
-          {attribue} % attribués
+          <span className="font-semibold text-ink">{valeur} %</span> acquis ·{" "}
+          <span className={attribue < 100 ? "font-semibold text-warn" : ""}>
+            {attribue} % attribués
+          </span>
         </p>
       </div>
       <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface">

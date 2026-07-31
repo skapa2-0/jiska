@@ -24,25 +24,25 @@ export default async function AppPage() {
       ouverts: string;
       avancement: string;
       bloques: string;
+      retard: string;
       echeances: string;
-      membres: string;
       clotures: string;
     }>(
       `WITH s AS (SELECT * FROM sujets WHERE project_id IN (${vis}))
        SELECT
          (SELECT count(*) FROM (${vis}) v)                            AS projets,
          (SELECT count(*) FROM s WHERE etat <> 'termine')             AS ouverts,
-         COALESCE((SELECT round(avg(round(least(100, COALESCE((SELECT sum(s2.poids) FROM sujets s2
-                WHERE s2.project_id = p.id AND s2.etat = 'termine' AND s2.type = 'technique'), 0)) * 0.6
-              + least(100, COALESCE((SELECT sum(s2.poids) FROM sujets s2
-                WHERE s2.project_id = p.id AND s2.etat = 'termine' AND s2.type = 'business'), 0)) * 0.4)))
-              FROM projects p WHERE p.id IN (${vis})), 0)             AS avancement,
+         COALESCE((SELECT round(avg(round(least(100, COALESCE((SELECT sum(s2.poids * CASE s2.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END) FROM sujets s2
+                WHERE s2.project_id = p.id AND s2.type = 'technique'), 0)) * 0.6 + least(100, COALESCE((SELECT sum(s2.poids * CASE s2.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END) FROM sujets s2
+                WHERE s2.project_id = p.id AND s2.type = 'business'), 0)) * 0.4)))
+              FROM projects p WHERE p.id IN (${vis})
+               AND EXISTS (SELECT 1 FROM sujets sx WHERE sx.project_id = p.id)), 0) AS avancement,
          (SELECT count(*) FROM s WHERE etat = 'bloque')               AS bloques,
+         (SELECT count(*) FROM s WHERE etat <> 'termine'
+            AND due_date < current_date)                              AS retard,
          (SELECT count(*) FROM s WHERE etat <> 'termine'
             AND due_date >= date_trunc('week', current_date)::date
             AND due_date <  date_trunc('week', current_date)::date + 7) AS echeances,
-         (SELECT count(DISTINCT user_id) FROM project_members
-           WHERE project_id IN (${vis}))                              AS membres,
          (SELECT count(DISTINCT h.sujet_id) FROM sujet_history h
             JOIN sujets su ON su.id = h.sujet_id
            WHERE su.project_id IN (${vis}) AND h.field = 'etat'
@@ -54,6 +54,7 @@ export default async function AppPage() {
       `SELECT s.id, s.project_id, p.name AS project_name,
               p.logo AS project_logo, s.title, s.action,
               s.due_date::text AS due_date, s.type, s.poids,
+              s.porteur_id, s.updated_at::date::text AS updated_at,
               s.criticite, s.etat, s.commentaire,
               EXISTS (SELECT 1 FROM project_members m
                        WHERE m.project_id = s.project_id
@@ -70,14 +71,19 @@ export default async function AppPage() {
       name: string;
       logo: string | null;
       avancement: string | null;
+      poids_tech: string;
+      poids_business: string;
       is_resp: boolean;
       responsable_id: string | null;
     }>(
       `SELECT p.id, p.name, p.logo,
-              round(least(100, COALESCE((SELECT sum(s2.poids) FROM sujets s2
-                WHERE s2.project_id = p.id AND s2.etat = 'termine' AND s2.type = 'technique'), 0)) * 0.6
-              + least(100, COALESCE((SELECT sum(s2.poids) FROM sujets s2
-                WHERE s2.project_id = p.id AND s2.etat = 'termine' AND s2.type = 'business'), 0)) * 0.4) AS avancement,
+              round(least(100, COALESCE((SELECT sum(s2.poids * CASE s2.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END) FROM sujets s2
+                WHERE s2.project_id = p.id AND s2.type = 'technique'), 0)) * 0.6 + least(100, COALESCE((SELECT sum(s2.poids * CASE s2.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END) FROM sujets s2
+                WHERE s2.project_id = p.id AND s2.type = 'business'), 0)) * 0.4) AS avancement,
+              COALESCE((SELECT sum(s2.poids) FROM sujets s2
+                WHERE s2.project_id = p.id AND s2.type = 'technique'), 0) AS poids_tech,
+              COALESCE((SELECT sum(s2.poids) FROM sujets s2
+                WHERE s2.project_id = p.id AND s2.type = 'business'), 0)  AS poids_business,
               EXISTS (SELECT 1 FROM project_members m
                        WHERE m.project_id = p.id
                          AND m.user_id = $${visParams.length + 1}
@@ -107,7 +113,6 @@ export default async function AppPage() {
   ]);
 
   const ind = indicRows[0];
-  const membres = Number(ind.membres);
   const ouverts = Number(ind.ouverts);
 
   const projects = projectRows.map((p) => ({
@@ -116,6 +121,8 @@ export default async function AppPage() {
     logo: p.logo,
     responsableId: p.responsable_id,
     avancement: Number(p.avancement ?? 0),
+    poidsTech: Number(p.poids_tech),
+    poidsBusiness: Number(p.poids_business),
     canManage: dirigeant || p.is_resp,
     members: memberRows
       .filter((m) => m.project_id === p.id)
@@ -132,7 +139,7 @@ export default async function AppPage() {
     ...s,
     poids: Number(s.poids),
     can_manage: dirigeant || s.is_proj_resp,
-    can_edit: dirigeant || s.is_proj_resp,
+    can_edit: dirigeant || s.is_proj_resp || s.porteur_id === user.id,
   }));
 
   const canCreateSujet = projects.some((p) => p.canManage);
@@ -150,7 +157,7 @@ export default async function AppPage() {
           avancement: Number(ind.avancement),
           bloques: Number(ind.bloques),
           echeances: Number(ind.echeances),
-          charge: membres > 0 ? Math.round((ouverts / membres) * 10) / 10 : 0,
+          retard: Number(ind.retard),
           clotures: Number(ind.clotures),
         }}
       />

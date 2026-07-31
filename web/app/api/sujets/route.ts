@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     dueDate?: string;
     type?: string;
     poids?: number;
+    porteurId?: string | null;
     criticite?: string;
     etat?: string;
     commentaire?: string;
@@ -41,6 +42,22 @@ export async function POST(request: Request) {
     );
   }
 
+  const porteurId = /^\d+$/.test(String(body.porteurId ?? ""))
+    ? String(body.porteurId)
+    : null;
+  if (porteurId) {
+    const membre = await query(
+      "SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2",
+      [projectId, porteurId],
+    );
+    if (membre.length === 0) {
+      return NextResponse.json(
+        { error: "Le porteur doit être membre du projet." },
+        { status: 400 },
+      );
+    }
+  }
+
   const type =
     body.type && body.type in TYPES_SUJET ? body.type : "technique";
   const poids =
@@ -56,8 +73,8 @@ export async function POST(request: Request) {
 
   const rows = await query<{ id: string }>(
     `INSERT INTO sujets (project_id, title, action, due_date,
-                         type, poids, criticite, etat, commentaire)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+                         type, poids, porteur_id, criticite, etat, commentaire)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
     [
       projectId,
       title,
@@ -65,6 +82,7 @@ export async function POST(request: Request) {
       dueDate,
       type,
       poids,
+      porteurId,
       criticite,
       etat,
       body.commentaire?.trim() ?? "",

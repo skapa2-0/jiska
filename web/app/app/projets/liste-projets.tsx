@@ -15,6 +15,8 @@ export type CarteProjet = {
   avancement: number;
   jalonTech: number;
   jalonBusiness: number;
+  attribTech: number;
+  attribBusiness: number;
   echeance: string | null;
   actifs: number;
   bloques: number;
@@ -124,6 +126,12 @@ export default function ListeProjets({
                   <div className="mt-3 space-y-2">
                     <Barre nom="Tech" valeur={p.jalonTech} />
                     <Barre nom="Bus." valeur={p.jalonBusiness} />
+                    {(p.attribTech < 100 || p.attribBusiness < 100) && (
+                      <p className="text-[11px] font-medium text-warn">
+                        Pondération incomplète : Tech {p.attribTech} % · Bus.{" "}
+                        {p.attribBusiness} % attribués
+                      </p>
+                    )}
                   </div>
 
                   <div className="mt-3.5 flex min-h-6 items-center gap-2 text-xs font-medium">

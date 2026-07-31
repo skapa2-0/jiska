@@ -89,6 +89,9 @@ function ensureSchema(): Promise<void> {
          CHECK (type IN ('technique', 'business'));
        ALTER TABLE sujets ADD COLUMN IF NOT EXISTS poids int NOT NULL DEFAULT 0
          CHECK (poids BETWEEN 0 AND 100);
+       -- Porteur de l'action de la semaine (membre du projet, optionnel).
+       ALTER TABLE sujets ADD COLUMN IF NOT EXISTS porteur_id bigint
+         REFERENCES users(id) ON DELETE SET NULL;
        -- Historique conservé mais jamais affiché dans le tableau (PRD §11) ;
        -- sert aussi à l'indicateur « actions clôturées depuis la réunion ».
        CREATE TABLE IF NOT EXISTS sujet_history (

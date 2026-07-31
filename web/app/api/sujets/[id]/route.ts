@@ -12,6 +12,7 @@ type SujetDb = {
   due_date: string | null;
   type: string;
   poids: number;
+  porteur_id: string | null;
   criticite: string;
   etat: string;
   commentaire: string;
@@ -22,16 +23,17 @@ async function loadSujet(id: string): Promise<SujetDb | null> {
   const rows = await query<SujetDb>(
     `SELECT id, project_id, title, action,
             due_date::text AS due_date,
-            type, poids, criticite, etat, commentaire
+            type, poids, porteur_id, criticite, etat, commentaire
        FROM sujets WHERE id = $1`,
     [id],
   );
   return rows[0] ?? null;
 }
 
-// Peut modifier : dirigeant, ou responsable du projet (le responsable
-// et l'équipe sont portés par le projet, pas par le sujet).
-function canEdit(me: SessionUser, sujet: SujetDb): Promise<boolean> {
+// Peut modifier : dirigeant, responsable du projet, ou porteur de
+// l'action du sujet (il tient son sujet à jour entre deux réunions).
+async function canEdit(me: SessionUser, sujet: SujetDb): Promise<boolean> {
+  if (sujet.porteur_id === me.id) return true;
   return canManageSujets(me, sujet.project_id);
 }
 
@@ -89,7 +91,26 @@ export async function PATCH(
       typeof body.etat === "string" && body.etat in ETATS
         ? body.etat
         : undefined,
+    porteur_id:
+      body.porteurId === null
+        ? null
+        : /^\d+$/.test(String(body.porteurId ?? ""))
+          ? String(body.porteurId)
+          : undefined,
   };
+
+  if (typeof patch.porteur_id === "string") {
+    const membre = await query(
+      "SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2",
+      [sujet.project_id, patch.porteur_id],
+    );
+    if (membre.length === 0) {
+      return NextResponse.json(
+        { error: "Le porteur doit être membre du projet." },
+        { status: 400 },
+      );
+    }
+  }
 
   const changes = Object.entries(patch).filter(
     ([field, value]) =>
