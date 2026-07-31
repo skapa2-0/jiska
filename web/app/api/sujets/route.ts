@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { canManageSujets, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { CRITICITES, ETATS } from "@/lib/sujets";
+import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 
 // Création d'un sujet : dirigeant, ou responsable du projet concerné.
 export async function POST(request: Request) {
@@ -13,6 +13,8 @@ export async function POST(request: Request) {
     title?: string;
     action?: string;
     dueDate?: string;
+    type?: string;
+    poids?: number;
     criticite?: string;
     etat?: string;
     commentaire?: string;
@@ -39,6 +41,12 @@ export async function POST(request: Request) {
     );
   }
 
+  const type =
+    body.type && body.type in TYPES_SUJET ? body.type : "technique";
+  const poids =
+    typeof body.poids === "number" && Number.isFinite(body.poids)
+      ? Math.min(100, Math.max(0, Math.round(body.poids)))
+      : 0;
   const criticite =
     body.criticite && body.criticite in CRITICITES ? body.criticite : "normale";
   const etat = body.etat && body.etat in ETATS ? body.etat : "a_faire";
@@ -48,13 +56,15 @@ export async function POST(request: Request) {
 
   const rows = await query<{ id: string }>(
     `INSERT INTO sujets (project_id, title, action, due_date,
-                         criticite, etat, commentaire)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+                         type, poids, criticite, etat, commentaire)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
     [
       projectId,
       title,
       body.action?.trim() ?? "",
       dueDate,
+      type,
+      poids,
       criticite,
       etat,
       body.commentaire?.trim() ?? "",

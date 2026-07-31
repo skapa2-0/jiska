@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { canManageSujets, getSessionUser } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { isJalon } from "@/lib/sujets";
 
 const LOGO_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
 const LOGO_MAX = 300_000;
@@ -30,9 +29,9 @@ async function dirigeantEtProjet(id: string) {
   return { me };
 }
 
-// Modification d'un projet. Nom, description, logo, membres et
-// responsable : dirigeants seuls. Jalons d'avancement : dirigeants et
-// responsable du projet (mise à jour en réunion).
+// Modification d'un projet (nom, description, logo, membres,
+// responsable) : dirigeants seuls. L'avancement n'est plus stocké ici,
+// il découle des poids des sujets terminés.
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -55,8 +54,6 @@ export async function PATCH(
     logo?: string | null;
     memberIds?: unknown;
     responsableId?: string;
-    jalonTech?: number;
-    jalonBusiness?: number;
   };
   try {
     body = await request.json();
@@ -64,38 +61,15 @@ export async function PATCH(
     return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
   }
 
-  const changeAdmin =
-    body.name !== undefined ||
-    body.description !== undefined ||
-    body.logo !== undefined ||
-    body.memberIds !== undefined;
-  const changeJalons =
-    body.jalonTech !== undefined || body.jalonBusiness !== undefined;
-
-  if (changeAdmin && me.role !== "dirigeant") {
+  if (me.role !== "dirigeant") {
     return NextResponse.json(
       { error: "Seuls les dirigeants peuvent gérer un projet." },
-      { status: 403 },
-    );
-  }
-  if (changeJalons && !(await canManageSujets(me, id))) {
-    return NextResponse.json(
-      { error: "Seuls les dirigeants et le responsable du projet peuvent mettre à jour l'avancement." },
       { status: 403 },
     );
   }
 
   const sets: string[] = [];
   const paramsSql: (string | number | null)[] = [];
-
-  if (isJalon(body.jalonTech)) {
-    paramsSql.push(body.jalonTech);
-    sets.push(`jalon_tech = $${paramsSql.length}`);
-  }
-  if (isJalon(body.jalonBusiness)) {
-    paramsSql.push(body.jalonBusiness);
-    sets.push(`jalon_business = $${paramsSql.length}`);
-  }
 
   if (typeof body.name === "string") {
     const name = body.name.trim();

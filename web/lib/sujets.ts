@@ -63,6 +63,21 @@ export function isJalon(v: unknown): v is Jalon {
   return typeof v === "number" && (JALONS as readonly number[]).includes(v);
 }
 
+// Type d'un sujet : il pèse sur l'axe technique ou l'axe business.
+export const TYPES_SUJET = {
+  technique: {
+    label: "Technique",
+    court: "Tech",
+    chip: "bg-info-soft text-info",
+  },
+  business: {
+    label: "Business",
+    court: "Business",
+    chip: "bg-purple-50 text-purple-700",
+  },
+} as const;
+export type TypeSujet = keyof typeof TYPES_SUJET;
+
 export type SujetRow = {
   id: string;
   project_id: string;
@@ -71,6 +86,8 @@ export type SujetRow = {
   title: string;
   action: string;
   due_date: string | null;
+  type: TypeSujet;
+  poids: number;
   criticite: Criticite;
   etat: Etat;
   commentaire: string;

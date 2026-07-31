@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CRITICITES, ETATS } from "@/lib/sujets";
+import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import type { ProjectOption } from "../../dashboard";
 import FicheSujet from "../../fiche-sujet";
@@ -81,6 +81,11 @@ export default function SujetsProjet({
                   />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
                     {s.title}
+                  </span>
+                  <span
+                    className={`hidden rounded-md px-2 py-0.5 text-xs font-semibold sm:inline ${TYPES_SUJET[s.type].chip}`}
+                  >
+                    {TYPES_SUJET[s.type].court} · {s.poids} %
                   </span>
                   <span
                     className={`hidden rounded-md px-2 py-0.5 text-xs font-semibold sm:inline ${CRITICITES[s.criticite].chip}`}

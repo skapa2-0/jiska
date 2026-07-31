@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { canManageSujets, getSessionUser } from "@/lib/auth";
 import type { SessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { CRITICITES, ETATS } from "@/lib/sujets";
+import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 
 type SujetDb = {
   id: string;
@@ -10,6 +10,8 @@ type SujetDb = {
   title: string;
   action: string;
   due_date: string | null;
+  type: string;
+  poids: number;
   criticite: string;
   etat: string;
   commentaire: string;
@@ -20,7 +22,7 @@ async function loadSujet(id: string): Promise<SujetDb | null> {
   const rows = await query<SujetDb>(
     `SELECT id, project_id, title, action,
             due_date::text AS due_date,
-            criticite, etat, commentaire
+            type, poids, criticite, etat, commentaire
        FROM sujets WHERE id = $1`,
     [id],
   );
@@ -71,6 +73,14 @@ export async function PATCH(
         : /^\d{4}-\d{2}-\d{2}$/.test(String(body.dueDate ?? ""))
           ? String(body.dueDate)
           : undefined,
+    type:
+      typeof body.type === "string" && body.type in TYPES_SUJET
+        ? body.type
+        : undefined,
+    poids:
+      typeof body.poids === "number" && Number.isFinite(body.poids)
+        ? Math.min(100, Math.max(0, Math.round(body.poids)))
+        : undefined,
     criticite:
       typeof body.criticite === "string" && body.criticite in CRITICITES
         ? body.criticite

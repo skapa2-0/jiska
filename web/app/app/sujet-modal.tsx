@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { CRITICITES, ETATS } from "@/lib/sujets";
+import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import type { ProjectOption } from "./dashboard";
 import ProjetLogo from "./projet-logo";
@@ -33,6 +33,8 @@ export default function SujetModal({
   );
   const [etat, setEtat] = useState<string>(sujet?.etat ?? "a_faire");
   const [commentaire, setCommentaire] = useState(sujet?.commentaire ?? "");
+  const [type, setType] = useState<string>(sujet?.type ?? "technique");
+  const [poids, setPoids] = useState(String(sujet?.poids ?? 10));
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -56,6 +58,8 @@ export default function SujetModal({
       title,
       action,
       dueDate: dueDate || null,
+      type,
+      poids: Math.min(100, Math.max(0, Math.round(Number(poids) || 0))),
       criticite,
       etat,
       commentaire,
@@ -235,6 +239,42 @@ export default function SujetModal({
             </div>
           </div>
 
+
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
+            <div>
+              <Etiquette>Type de sujet</Etiquette>
+              <div className="flex gap-1.5">
+                {Object.entries(TYPES_SUJET).map(([k, t]) => (
+                  <Pastille
+                    key={k}
+                    actif={type === k}
+                    classe={t.chip}
+                    onClick={() => !readOnly && setType(k)}
+                    disabled={loading || readOnly}
+                  >
+                    {t.label}
+                  </Pastille>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Etiquette libelle="s-poids">
+                Poids dans le projet{" "}
+                <span className="font-normal text-stone">(%)</span>
+              </Etiquette>
+              <input
+                id="s-poids"
+                type="number"
+                min={0}
+                max={100}
+                step={5}
+                value={poids}
+                onChange={(e) => setPoids(e.target.value)}
+                disabled={loading || readOnly}
+                className={champ}
+              />
+            </div>
+          </div>
 
           <div className="mt-5">
             <Etiquette libelle="s-comm">

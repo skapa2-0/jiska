@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CRITICITES, ETATS } from "@/lib/sujets";
+import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "./avatar";
 import type { ProjectOption } from "./dashboard";
@@ -31,6 +31,9 @@ export default function FicheSujet({
   const [etat, setEtat] = useState<string>(sujet.etat);
   const [criticite, setCriticite] = useState<string>(sujet.criticite);
   const [commentaire, setCommentaire] = useState(sujet.commentaire);
+  const [type, setType] = useState<string>(sujet.type);
+  const [poids, setPoids] = useState(String(sujet.poids));
+  const [poidsSauve, setPoidsSauve] = useState(sujet.poids);
   const [sauve, setSauve] = useState({
     title: sujet.title,
     action: sujet.action,
@@ -110,13 +113,24 @@ export default function FicheSujet({
     });
   }
 
-  function changerChip(cle: "etat" | "criticite", v: string) {
-    const avant = cle === "etat" ? etat : criticite;
-    const poser = cle === "etat" ? setEtat : setCriticite;
+  function changerChip(cle: "etat" | "criticite" | "type", v: string) {
+    const avant = cle === "etat" ? etat : cle === "criticite" ? criticite : type;
+    const poser =
+      cle === "etat" ? setEtat : cle === "criticite" ? setCriticite : setType;
     if (v === avant) return;
     poser(v);
     patch({ [cle]: v }).then((ok) => {
       if (!ok) poser(avant);
+    });
+  }
+
+  function blurPoids() {
+    const n = Math.min(100, Math.max(0, Math.round(Number(poids) || 0)));
+    setPoids(String(n));
+    if (n === poidsSauve) return;
+    patch({ poids: n }).then((ok) => {
+      if (ok) setPoidsSauve(n);
+      else setPoids(String(poidsSauve));
     });
   }
 
@@ -243,6 +257,42 @@ export default function FicheSujet({
                   {CRITICITES[
                     criticite as keyof typeof CRITICITES
                   ].label.toLowerCase()}
+                </Chip>
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {editable ? (
+                <>
+                  {Object.entries(TYPES_SUJET).map(([k, t]) => (
+                    <Pastille
+                      key={k}
+                      actif={type === k}
+                      classe={t.chip}
+                      onClick={() => changerChip("type", k)}
+                    >
+                      {t.label}
+                    </Pastille>
+                  ))}
+                  <label className="ml-1 flex items-center gap-1.5 text-xs font-medium text-mute">
+                    Poids
+                    <input
+                      type="number"
+                      aria-label="Poids dans le projet (%)"
+                      min={0}
+                      max={100}
+                      step={5}
+                      value={poids}
+                      onChange={(e) => setPoids(e.target.value)}
+                      onBlur={blurPoids}
+                      className="w-16 rounded-lg bg-surface px-2 py-1 text-xs font-semibold text-ink outline-none transition focus:bg-white focus:ring-2 focus:ring-brand"
+                    />
+                    %
+                  </label>
+                </>
+              ) : (
+                <Chip classe={TYPES_SUJET[type as keyof typeof TYPES_SUJET].chip}>
+                  {TYPES_SUJET[type as keyof typeof TYPES_SUJET].label} ·{" "}
+                  {poids} %
                 </Chip>
               )}
             </div>

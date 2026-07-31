@@ -19,7 +19,7 @@ Outil de **pilotage hebdomadaire** des projets (PRD de Matthieu) : une seule pag
 ## Métier (PRD)
 
 - Rôles : `dirigeant` (voit tout, gère comptes et projets) / `collaborateur` ; un responsable par projet (crée des sujets de son projet, pas de projets).
-- Sujets : avancement par jalons uniquement (0/25/50/75/100), global = technique × 60 % + business × 40 %, jamais saisi à la main. Historique conservé en base (`sujet_history`), non affiché.
+- Sujets : chacun est typé `technique` ou `business` et porte un **poids en %** du projet. Avancement d'un axe = somme des poids des sujets **terminés** de cet axe (plafonnée à 100) ; global = technique × 60 % + business × 40 %. Rien n'est saisi à la main côté projet. Historique conservé en base (`sujet_history`), non affiché.
 
 ## Git
 

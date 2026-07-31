@@ -32,7 +32,10 @@ export default async function AppPage() {
        SELECT
          (SELECT count(*) FROM (${vis}) v)                            AS projets,
          (SELECT count(*) FROM s WHERE etat <> 'termine')             AS ouverts,
-         COALESCE((SELECT round(avg(p.jalon_tech * 0.6 + p.jalon_business * 0.4))
+         COALESCE((SELECT round(avg(round(least(100, COALESCE((SELECT sum(s2.poids) FROM sujets s2
+                WHERE s2.project_id = p.id AND s2.etat = 'termine' AND s2.type = 'technique'), 0)) * 0.6
+              + least(100, COALESCE((SELECT sum(s2.poids) FROM sujets s2
+                WHERE s2.project_id = p.id AND s2.etat = 'termine' AND s2.type = 'business'), 0)) * 0.4)))
               FROM projects p WHERE p.id IN (${vis})), 0)             AS avancement,
          (SELECT count(*) FROM s WHERE etat = 'bloque')               AS bloques,
          (SELECT count(*) FROM s WHERE etat <> 'termine'
@@ -50,7 +53,7 @@ export default async function AppPage() {
     query<SujetRow & { is_proj_resp: boolean }>(
       `SELECT s.id, s.project_id, p.name AS project_name,
               p.logo AS project_logo, s.title, s.action,
-              s.due_date::text AS due_date,
+              s.due_date::text AS due_date, s.type, s.poids,
               s.criticite, s.etat, s.commentaire,
               EXISTS (SELECT 1 FROM project_members m
                        WHERE m.project_id = s.project_id
@@ -71,7 +74,10 @@ export default async function AppPage() {
       responsable_id: string | null;
     }>(
       `SELECT p.id, p.name, p.logo,
-              round(p.jalon_tech * 0.6 + p.jalon_business * 0.4) AS avancement,
+              round(least(100, COALESCE((SELECT sum(s2.poids) FROM sujets s2
+                WHERE s2.project_id = p.id AND s2.etat = 'termine' AND s2.type = 'technique'), 0)) * 0.6
+              + least(100, COALESCE((SELECT sum(s2.poids) FROM sujets s2
+                WHERE s2.project_id = p.id AND s2.etat = 'termine' AND s2.type = 'business'), 0)) * 0.4) AS avancement,
               EXISTS (SELECT 1 FROM project_members m
                        WHERE m.project_id = p.id
                          AND m.user_id = $${visParams.length + 1}
@@ -124,6 +130,7 @@ export default async function AppPage() {
 
   const sujets = sujetRows.map((s) => ({
     ...s,
+    poids: Number(s.poids),
     can_manage: dirigeant || s.is_proj_resp,
     can_edit: dirigeant || s.is_proj_resp,
   }));

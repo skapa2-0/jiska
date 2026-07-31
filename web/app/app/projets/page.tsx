@@ -22,17 +22,20 @@ export default async function ProjetsPage() {
       name: string;
       description: string;
       logo: string | null;
-      avancement: string | null;
-      jalon_tech: number;
-      jalon_business: number;
+      tech: string;
+      business: string;
       actifs: string;
       bloques: string;
       echeance: string | null;
       responsable_id: string | null;
     }>(
       `SELECT p.id, p.name, p.description, p.logo,
-              round(p.jalon_tech * 0.6 + p.jalon_business * 0.4)   AS avancement,
-              p.jalon_tech, p.jalon_business,
+              least(100, COALESCE((SELECT sum(s.poids) FROM sujets s
+                WHERE s.project_id = p.id AND s.etat = 'termine'
+                  AND s.type = 'technique'), 0))                     AS tech,
+              least(100, COALESCE((SELECT sum(s.poids) FROM sujets s
+                WHERE s.project_id = p.id AND s.etat = 'termine'
+                  AND s.type = 'business'), 0))                      AS business,
               (SELECT min(s.due_date)::text FROM sujets s
                 WHERE s.project_id = p.id AND s.etat <> 'termine'
                   AND s.due_date IS NOT NULL)                      AS echeance,
@@ -69,9 +72,9 @@ export default async function ProjetsPage() {
     name: p.name,
     description: p.description,
     logo: p.logo,
-    avancement: Number(p.avancement ?? 0),
-    jalonTech: Number(p.jalon_tech),
-    jalonBusiness: Number(p.jalon_business),
+    avancement: Math.round(Number(p.tech) * 0.6 + Number(p.business) * 0.4),
+    jalonTech: Number(p.tech),
+    jalonBusiness: Number(p.business),
     echeance: p.echeance,
     actifs: Number(p.actifs),
     bloques: Number(p.bloques),

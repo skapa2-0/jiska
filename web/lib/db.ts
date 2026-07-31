@@ -52,11 +52,10 @@ function ensureSchema(): Promise<void> {
        ALTER TABLE projects ADD COLUMN IF NOT EXISTS logo text;
        ALTER TABLE projects DROP COLUMN IF EXISTS color;
        ALTER TABLE projects DROP COLUMN IF EXISTS icon;
-       -- Les jalons d'avancement sont portés par le projet, pas le sujet.
-       ALTER TABLE projects ADD COLUMN IF NOT EXISTS jalon_tech int NOT NULL DEFAULT 0
-         CHECK (jalon_tech IN (0, 25, 50, 75, 100));
-       ALTER TABLE projects ADD COLUMN IF NOT EXISTS jalon_business int NOT NULL DEFAULT 0
-         CHECK (jalon_business IN (0, 25, 50, 75, 100));
+       -- L'avancement du projet se calcule depuis les poids des sujets
+       -- terminés : plus de jalons stockés sur le projet.
+       ALTER TABLE projects DROP COLUMN IF EXISTS jalon_tech;
+       ALTER TABLE projects DROP COLUMN IF EXISTS jalon_business;
        CREATE TABLE IF NOT EXISTS project_members (
          project_id     bigint NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
          user_id        bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -70,6 +69,10 @@ function ensureSchema(): Promise<void> {
          title          text NOT NULL,
          action         text NOT NULL DEFAULT '',
          due_date       date,
+         type           text NOT NULL DEFAULT 'technique'
+           CHECK (type IN ('technique', 'business')),
+         poids          int NOT NULL DEFAULT 0
+           CHECK (poids BETWEEN 0 AND 100),
          criticite      text NOT NULL DEFAULT 'normale'
            CHECK (criticite IN ('critique', 'haute', 'normale', 'faible')),
          etat           text NOT NULL DEFAULT 'a_faire'
@@ -81,20 +84,11 @@ function ensureSchema(): Promise<void> {
        CREATE INDEX IF NOT EXISTS sujets_project_idx ON sujets (project_id);
        -- Le responsable est porté par le projet, pas par le sujet.
        ALTER TABLE sujets DROP COLUMN IF EXISTS responsable_id;
-       -- Migration : jalons des sujets remontés au projet (moyenne
-       -- arrondie au palier de 25), puis colonnes supprimées.
-       DO $$ BEGIN
-         IF EXISTS (SELECT 1 FROM information_schema.columns
-                     WHERE table_name = 'sujets' AND column_name = 'jalon_tech') THEN
-           UPDATE projects p SET
-             jalon_tech = COALESCE((SELECT least(100, round(avg(s.jalon_tech) / 25) * 25)
-                                      FROM sujets s WHERE s.project_id = p.id), 0),
-             jalon_business = COALESCE((SELECT least(100, round(avg(s.jalon_business) / 25) * 25)
-                                          FROM sujets s WHERE s.project_id = p.id), 0);
-           ALTER TABLE sujets DROP COLUMN jalon_tech;
-           ALTER TABLE sujets DROP COLUMN jalon_business;
-         END IF;
-       END $$;
+       -- Chaque sujet est typé et pèse un pourcentage du projet.
+       ALTER TABLE sujets ADD COLUMN IF NOT EXISTS type text NOT NULL DEFAULT 'technique'
+         CHECK (type IN ('technique', 'business'));
+       ALTER TABLE sujets ADD COLUMN IF NOT EXISTS poids int NOT NULL DEFAULT 0
+         CHECK (poids BETWEEN 0 AND 100);
        -- Historique conservé mais jamais affiché dans le tableau (PRD §11) ;
        -- sert aussi à l'indicateur « actions clôturées depuis la réunion ».
        CREATE TABLE IF NOT EXISTS sujet_history (

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CRITICITES, ETATS } from "@/lib/sujets";
+import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "./avatar";
 import type { Personne } from "./avatar";
@@ -45,6 +45,7 @@ type TriCol =
   | "projet"
   | "etat"
   | "sujet"
+  | "type"
   | "equipe"
   | "action"
   | "echeance"
@@ -218,6 +219,8 @@ export default function Dashboard({
           return ETAT_ORDRE[s.etat];
         case "sujet":
           return s.title.toLowerCase();
+        case "type":
+          return (s.type === "technique" ? 0 : 1000) + (100 - s.poids);
         case "equipe":
           return nomResponsable(s).toLowerCase() || null;
         case "action":
@@ -367,6 +370,7 @@ export default function Dashboard({
             <col />
             <col style={{ width: 110 }} />
             <col />
+            <col style={{ width: 120 }} />
             <col style={{ width: 130 }} />
             <col />
             <col style={{ width: 115 }} />
@@ -383,6 +387,9 @@ export default function Dashboard({
               </Th>
               <Th col="sujet" tri={tri} onTri={basculerTri}>
                 Sujet
+              </Th>
+              <Th centre col="type" tri={tri} onTri={basculerTri}>
+                Type · Poids
               </Th>
               <Th col="equipe" tri={tri} onTri={basculerTri}>
                 Équipe
@@ -404,7 +411,7 @@ export default function Dashboard({
           <tbody>
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-16 text-center text-stone">
+                <td colSpan={9} className="px-4 py-16 text-center text-stone">
                   {sujets.length === 0
                     ? "Aucun sujet pour l'instant. Créez le premier avec « Nouveau sujet »."
                     : "Aucun sujet ne correspond aux filtres."}
@@ -447,6 +454,13 @@ export default function Dashboard({
                   </td>
                   <td className="max-w-56 px-4 py-2 align-middle font-medium text-ink">
                     <span className="line-clamp-2">{s.title}</span>
+                  </td>
+                  <td className="px-2 py-2 align-middle">
+                    <span className="flex items-center justify-center">
+                      <Chip classe={TYPES_SUJET[s.type].chip}>
+                        {TYPES_SUJET[s.type].court} · {s.poids} %
+                      </Chip>
+                    </span>
                   </td>
                   <td className="px-4 py-2 align-middle">
                     <span className="flex items-center -space-x-1.5">

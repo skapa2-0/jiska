@@ -15,7 +15,6 @@ import ProjetLogo from "../../projet-logo";
 import Roue, { tonAvancement } from "../../roue";
 import HistoriqueProjet from "./historique-projet";
 import type { EntreeHistorique } from "./historique-projet";
-import JalonsProjet from "./jalons-projet";
 import SujetsProjet from "./sujets-projet";
 
 const CHAMPS: Record<string, string> = {
@@ -25,6 +24,8 @@ const CHAMPS: Record<string, string> = {
   due_date: "l'échéance",
   jalon_tech: "le jalon technique",
   jalon_business: "le jalon business",
+  type: "le type",
+  poids: "le poids",
   criticite: "la criticité",
   etat: "l'état",
   responsable_id: "le responsable",
@@ -38,6 +39,8 @@ function valeurLisible(field: string, v: string | null): string {
     return `${JALONS_TECH[Number(v) as 0] ?? v} (${v} %)`;
   if (field === "jalon_business")
     return `${JALONS_BUSINESS[Number(v) as 0] ?? v} (${v} %)`;
+  if (field === "type") return v === "technique" ? "Technique" : "Business";
+  if (field === "poids") return `${v} %`;
   if (field === "due_date") return v.split("-").reverse().join("/");
   return v.length > 60 ? `${v.slice(0, 60)}…` : v;
 }
@@ -69,11 +72,9 @@ export default async function ProjetPage({
       name: string;
       description: string;
       logo: string | null;
-      jalon_tech: number;
-      jalon_business: number;
       created_at: string;
     }>(
-      "SELECT id, name, description, logo, jalon_tech, jalon_business, created_at::date::text AS created_at FROM projects WHERE id = $1",
+      "SELECT id, name, description, logo, created_at::date::text AS created_at FROM projects WHERE id = $1",
       [id],
     ),
     query<{
@@ -97,9 +98,11 @@ export default async function ProjetPage({
       commentaire: string;
       etat: Etat;
       criticite: Criticite;
+      type: "technique" | "business";
+      poids: number;
       due_date: string | null;
     }>(
-      `SELECT id, title, action, commentaire, etat, criticite,
+      `SELECT id, title, action, commentaire, etat, criticite, type, poids,
               due_date::text AS due_date
          FROM sujets WHERE project_id = $1
         ORDER BY (etat = 'termine'), due_date NULLS LAST, id`,
@@ -138,15 +141,23 @@ export default async function ProjetPage({
   const nomDe = new Map(personnes.map((p) => [p.id, displayName(p)]));
   const canManage = dirigeant || equipe.some((m) => m.id === user.id && m.is_responsable);
 
+  const axe = (t: "technique" | "business", terminesSeuls: boolean) =>
+    Math.min(
+      100,
+      sujetRows
+        .filter((s) => s.type === t && (!terminesSeuls || s.etat === "termine"))
+        .reduce((acc, s) => acc + Number(s.poids), 0),
+    );
+  const tech = axe("technique", true);
+  const business = axe("business", true);
+  const avancement = avancementGlobal(tech, business);
+
   const projetOption = {
     id: projet.id,
     name: projet.name,
     logo: projet.logo,
     responsableId: equipe.find((m) => m.is_responsable)?.id ?? null,
-    avancement: avancementGlobal(
-      Number(projet.jalon_tech),
-      Number(projet.jalon_business),
-    ),
+    avancement,
     canManage,
     members: equipe.map((m) => ({
       id: m.id,
@@ -165,6 +176,8 @@ export default async function ProjetPage({
     title: s.title,
     action: s.action,
     due_date: s.due_date,
+    type: s.type,
+    poids: Number(s.poids),
     criticite: s.criticite,
     etat: s.etat,
     commentaire: s.commentaire,
@@ -192,10 +205,6 @@ export default async function ProjetPage({
   const actifs = sujets.filter((s) => s.etat !== "termine");
   const termines = sujets.length - actifs.length;
   const bloques = actifs.filter((s) => s.etat === "bloque").length;
-  const avancement = avancementGlobal(
-    Number(projet.jalon_tech),
-    Number(projet.jalon_business),
-  );
   const canCreateSujet = dirigeant || (await isResponsable(user.id));
   const today = new Date().toISOString().slice(0, 10);
 
@@ -269,14 +278,24 @@ export default async function ProjetPage({
           <Stat valeur={termines} label="Terminés" ton="text-success" />
         </div>
 
-        {/* Jalons d'avancement du projet (technique 60 / business 40). */}
-        <div className="mt-3">
-          <JalonsProjet
-            projetId={projet.id}
-            jalonTech={Number(projet.jalon_tech)}
-            jalonBusiness={Number(projet.jalon_business)}
-            editable={canManage}
-          />
+        {/* Avancement par axe : somme des poids des sujets terminés. */}
+        <div className="mt-3 rounded-lg bg-white p-4 shadow-card">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <BarreAxe
+              nom="Technique · 60 %"
+              valeur={tech}
+              attribue={axe("technique", false)}
+            />
+            <BarreAxe
+              nom="Business · 40 %"
+              valeur={business}
+              attribue={axe("business", false)}
+            />
+          </div>
+          <p className="mt-3 text-xs text-stone">
+            L&apos;avancement progresse quand des sujets sont terminés, à
+            hauteur du poids de chacun.
+          </p>
         </div>
 
         <div className="mt-8 grid gap-8 xl:grid-cols-[1fr_440px]">
@@ -323,6 +342,34 @@ export default async function ProjetPage({
           <HistoriqueProjet entrees={entrees} />
         </div>
       </main>
+    </div>
+  );
+}
+
+function BarreAxe({
+  nom,
+  valeur,
+  attribue,
+}: {
+  nom: string;
+  valeur: number;
+  attribue: number;
+}) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <p className="text-sm font-medium text-ink">{nom}</p>
+        <p className="text-xs text-mute">
+          <span className="font-semibold text-ink">{valeur} %</span> terminés ·{" "}
+          {attribue} % attribués
+        </p>
+      </div>
+      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface">
+        <div
+          className={`h-full rounded-full ${valeur >= 75 ? "bg-success" : "bg-warn"}`}
+          style={{ width: `${valeur}%` }}
+        />
+      </div>
     </div>
   );
 }
