@@ -99,6 +99,10 @@ export default function Dashboard({
   const zoneRef = useRef<HTMLElement>(null);
   // 11 lignes remplissent exactement la zone visible ; au-delà, on scrolle.
   const [hauteurLigne, setHauteurLigne] = useState(60);
+  // Tirer vers le bas pour rafraîchir (liste mobile).
+  const [tirage, setTirage] = useState(0);
+  const [actualise, setActualise] = useState(false);
+  const tirageDepart = useRef<number | null>(null);
 
   useEffect(() => {
     const zone = zoneRef.current;
@@ -274,6 +278,39 @@ export default function Dashboard({
     if (refresh) router.refresh();
   }
 
+  // Tirer la liste vers le bas depuis le haut pour recharger les
+  // données (mobile uniquement).
+  function onZoneTouchStart(e: React.TouchEvent) {
+    if (window.innerWidth >= 768) return;
+    if ((zoneRef.current?.scrollTop ?? 1) > 0) return;
+    tirageDepart.current = e.touches[0].clientY;
+  }
+  function onZoneTouchMove(e: React.TouchEvent) {
+    if (tirageDepart.current === null) return;
+    const delta = e.touches[0].clientY - tirageDepart.current;
+    setTirage(delta > 0 ? Math.min(90, delta * 0.45) : 0);
+  }
+  function onZoneTouchEnd() {
+    const assez = tirage > 55;
+    tirageDepart.current = null;
+    setTirage(0);
+    if (assez) {
+      setActualise(true);
+      router.refresh();
+      window.setTimeout(() => setActualise(false), 900);
+    }
+  }
+
+  // Mise à jour rapide depuis un glissement de carte (mobile).
+  async function changerEtat(s: SujetRow, etat: string) {
+    await fetch(`/api/sujets/${s.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ etat }),
+    }).catch(() => null);
+    router.refresh();
+  }
+
   // Liste mobile : sections dans l'ordre réunion, en-têtes collants.
   const groupes = [
     { titre: "En retard", items: [] as SujetRow[] },
@@ -416,7 +453,39 @@ export default function Dashboard({
           tout l'espace restant et scrolle en interne : la page, elle,
           tient dans le viewport. Sur téléphone le tableau laisse place
           à une liste de cartes, une carte = un sujet. */}
-      <section ref={zoneRef} className="min-h-0 flex-1 overflow-auto rounded-lg bg-white shadow-card">
+      <section
+        ref={zoneRef}
+        onTouchStart={onZoneTouchStart}
+        onTouchMove={onZoneTouchMove}
+        onTouchEnd={onZoneTouchEnd}
+        className="min-h-0 flex-1 overflow-auto overscroll-contain rounded-lg bg-white shadow-card"
+      >
+        {/* Indicateur de rafraîchissement, révélé par le tirage. */}
+        <div
+          aria-hidden={!actualise && tirage === 0}
+          style={{
+            height: actualise ? 40 : tirage,
+            transition: tirageDepart.current ? "none" : "height 200ms",
+          }}
+          className="flex items-center justify-center overflow-hidden text-stone md:hidden"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className={`h-5 w-5 ${actualise ? "animate-spin" : ""}`}
+            style={
+              actualise
+                ? undefined
+                : { transform: `rotate(${tirage * 3}deg)` }
+            }
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 12a9 9 0 1 1-3-6.7M21 3v5h-5" />
+          </svg>
+        </div>
         <ul className="md:hidden">
           {visibles.length === 0 && (
             <li className="px-4 py-16 text-center text-sm text-stone">
@@ -442,6 +511,7 @@ export default function Dashboard({
                       porteur={porteurDe(s)}
                       today={today}
                       onOuvrir={() => setFiche(s)}
+                      onEtat={(etat) => changerEtat(s, etat)}
                     />
                   ))}
                 </Fragment>
@@ -648,25 +718,102 @@ export default function Dashboard({
   );
 }
 
-// Carte d'un sujet dans la liste mobile : tap pour ouvrir la fiche.
+// Largeur des actions révélées par le glissement d'une carte.
+const LARGEUR_ACTIONS = 148;
+
+// Carte d'un sujet dans la liste mobile : tap pour ouvrir la fiche,
+// glissement vers la gauche pour les actions rapides (si éditable).
 function CarteSujet({
   sujet: s,
   porteur,
   today,
   onOuvrir,
+  onEtat,
 }: {
   sujet: SujetRow;
   porteur?: Personne;
   today: string;
   onOuvrir: () => void;
+  onEtat: (etat: string) => void;
 }) {
+  const [dx, setDx] = useState(0);
+  const [ouvert, setOuvert] = useState(false);
+  const depart = useRef<{ x: number; y: number } | null>(null);
+  const aGlisse = useRef(false);
+
+  function onTouchStart(e: React.TouchEvent) {
+    if (!s.can_edit) return;
+    depart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (!depart.current) return;
+    const ex = e.touches[0].clientX - depart.current.x;
+    const ey = e.touches[0].clientY - depart.current.y;
+    // On ne suit le doigt que si le geste est franchement horizontal.
+    if (Math.abs(ex) < 8 || Math.abs(ex) < Math.abs(ey) * 1.2) return;
+    aGlisse.current = true;
+    const base = ouvert ? -LARGEUR_ACTIONS : 0;
+    setDx(Math.max(-LARGEUR_ACTIONS, Math.min(0, base + ex)));
+  }
+  function onTouchEnd() {
+    depart.current = null;
+    const ouvrir = dx < -LARGEUR_ACTIONS / 2;
+    setOuvert(ouvrir);
+    setDx(ouvrir ? -LARGEUR_ACTIONS : 0);
+  }
+
+  function agir(etat: string) {
+    setOuvert(false);
+    setDx(0);
+    onEtat(etat);
+  }
+
   const retard = s.due_date && s.due_date < today && s.etat !== "termine";
   return (
-    <li className="border-b border-hairline last:border-b-0">
+    <li className="relative overflow-hidden border-b border-hairline [touch-action:pan-y] last:border-b-0">
+      {/* Actions derrière la carte, révélées par le glissement. */}
+      {s.can_edit && (
+        <span className="absolute inset-y-0 right-0 flex" aria-hidden={!ouvert}>
+          <button
+            type="button"
+            tabIndex={ouvert ? 0 : -1}
+            onClick={() =>
+              agir(s.etat === "termine" ? "en_cours" : "termine")
+            }
+            className="w-[74px] bg-success text-xs font-semibold text-white"
+          >
+            {s.etat === "termine" ? "Rouvrir" : "Terminer"}
+          </button>
+          <button
+            type="button"
+            tabIndex={ouvert ? 0 : -1}
+            onClick={() => agir(s.etat === "bloque" ? "en_cours" : "bloque")}
+            className="w-[74px] bg-danger text-xs font-semibold text-white"
+          >
+            {s.etat === "bloque" ? "Débloquer" : "Bloquer"}
+          </button>
+        </span>
+      )}
       <button
         type="button"
-        onClick={onOuvrir}
-        className="w-full bg-white px-4 py-3 text-left transition active:bg-surface"
+        onClick={() => {
+          if (aGlisse.current) {
+            aGlisse.current = false;
+            return;
+          }
+          if (ouvert) {
+            setOuvert(false);
+            setDx(0);
+          } else onOuvrir();
+        }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{
+          transform: `translateX(${dx}px)`,
+          transition: depart.current ? "none" : "transform 200ms",
+        }}
+        className="relative w-full bg-white px-4 py-3 text-left transition active:bg-surface"
       >
         <span className="flex items-center gap-2.5">
           <ProjetLogo
