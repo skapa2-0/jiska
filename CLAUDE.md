@@ -23,5 +23,5 @@ Outil de **pilotage hebdomadaire** des projets (PRD de Matthieu) : une seule pag
 
 ## Git
 
-- Identité : Matthieu <evolytics.services@gmail.com> (configurée par dépôt). Local seulement, pas de remote.
+- Identité : Matthieu <evolytics.services@gmail.com> (configurée par dépôt). Remote : `origin` = https://github.com/skapa2-0/jiska (branche `main`), pousser après chaque commit.
 - Committer systématiquement après chaque ensemble cohérent de changements (demande de Matthieu), messages en français.
