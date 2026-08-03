@@ -88,6 +88,8 @@ export default function Dashboard({
 }) {
   const router = useRouter();
   const [filtre, setFiltre] = useState<FiltreKey>("tous");
+  // Aperçu unique du glissement gauche (découvrabilité du geste).
+  const [apercuId, setApercuId] = useState<string | null>(null);
   const [projetId, setProjetId] = useState("");
   const [responsableId, setResponsableId] = useState("");
   const [recherche, setRecherche] = useState("");
@@ -138,6 +140,29 @@ export default function Dashboard({
     if (params.get("sujet") || projet) {
       window.history.replaceState(null, "", "/app");
     }
+    // Dernier filtre choisi, restauré d'une visite à l'autre.
+    const memorise = window.localStorage.getItem("jiska-filtre");
+    if (memorise && FILTRES.some((f) => f.key === memorise)) {
+      setFiltre(memorise as FiltreKey);
+    }
+  }, []);
+
+  function choisirFiltre(k: FiltreKey) {
+    setFiltre(k);
+    window.localStorage.setItem("jiska-filtre", k);
+  }
+
+  // À la première visite mobile, entrouvre les actions de la première
+  // carte éditable pour révéler le geste de glissement.
+  useEffect(() => {
+    if (window.innerWidth >= 768) return;
+    if (window.localStorage.getItem("jiska-apercu-glisse")) return;
+    const premier = sujets.find((s) => s.can_edit && s.etat !== "termine");
+    if (!premier) return;
+    window.localStorage.setItem("jiska-apercu-glisse", "1");
+    const t = window.setTimeout(() => setApercuId(premier.id), 600);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Bornes temporelles calculées une fois par rendu.
@@ -339,18 +364,41 @@ export default function Dashboard({
         aria-label="Indicateurs"
         className="-m-1 flex gap-2.5 overflow-x-auto p-1 [scrollbar-width:none] sm:m-0 sm:grid sm:grid-cols-4 sm:overflow-visible sm:p-0 lg:grid-cols-7"
       >
+        {/* Sur mobile, l'ordre remet les alertes en tête de carrousel :
+            bloqués et retards d'abord, le reste ensuite. */}
         <Indicateur
-          valeur={indicateurs.projets}
-          label="Projets actifs"
-          tint="bg-brand/10 text-brand"
-          icone={<IconeDossier />}
+          valeur={indicateurs.bloques}
+          label="Sujets bloqués"
+          tint="bg-danger-soft text-danger"
+          icone={<IconeAlerte />}
+          ton={indicateurs.bloques > 0 ? "text-danger" : "text-success"}
+          onClick={() => choisirFiltre("bloques")}
+          classe="order-1 sm:order-4"
+        />
+        <Indicateur
+          valeur={indicateurs.retard}
+          label="En retard"
+          tint="bg-danger-soft text-danger"
+          icone={<IconeHorloge />}
+          ton={indicateurs.retard > 0 ? "text-danger" : "text-success"}
+          onClick={() => choisirFiltre("retard")}
+          classe="order-2 sm:order-6"
+        />
+        <Indicateur
+          valeur={indicateurs.echeances}
+          label="Échéances semaine"
+          tint="bg-warn-soft text-warn"
+          icone={<IconeCalendrier />}
+          onClick={() => choisirFiltre("semaine")}
+          classe="order-3 sm:order-5"
         />
         <Indicateur
           valeur={indicateurs.ouverts}
           label="Sujets ouverts"
           tint="bg-purple-50 text-purple-600"
           icone={<IconeListe />}
-          onClick={() => setFiltre("tous")}
+          onClick={() => choisirFiltre("tous")}
+          classe="order-4 sm:order-2"
         />
         <Indicateur
           valeur={`${indicateurs.avancement} %`}
@@ -364,29 +412,14 @@ export default function Dashboard({
                 ? "text-warn"
                 : "text-ink"
           }
+          classe="order-5 sm:order-3"
         />
         <Indicateur
-          valeur={indicateurs.bloques}
-          label="Sujets bloqués"
-          tint="bg-danger-soft text-danger"
-          icone={<IconeAlerte />}
-          ton={indicateurs.bloques > 0 ? "text-danger" : "text-success"}
-          onClick={() => setFiltre("bloques")}
-        />
-        <Indicateur
-          valeur={indicateurs.echeances}
-          label="Échéances semaine"
-          tint="bg-warn-soft text-warn"
-          icone={<IconeCalendrier />}
-          onClick={() => setFiltre("semaine")}
-        />
-        <Indicateur
-          valeur={indicateurs.retard}
-          label="En retard"
-          tint="bg-danger-soft text-danger"
-          icone={<IconeHorloge />}
-          ton={indicateurs.retard > 0 ? "text-danger" : "text-success"}
-          onClick={() => setFiltre("retard")}
+          valeur={indicateurs.projets}
+          label="Projets actifs"
+          tint="bg-brand/10 text-brand"
+          icone={<IconeDossier />}
+          classe="order-6 sm:order-1"
         />
         <Indicateur
           valeur={indicateurs.clotures}
@@ -394,7 +427,8 @@ export default function Dashboard({
           tint="bg-success-soft text-success"
           icone={<IconeCoche />}
           ton={indicateurs.clotures > 0 ? "text-success" : undefined}
-          onClick={() => setFiltre("neuf")}
+          onClick={() => choisirFiltre("neuf")}
+          classe="order-7 sm:order-7"
         />
       </section>
 
@@ -410,7 +444,7 @@ export default function Dashboard({
             <button
               key={f.key}
               type="button"
-              onClick={() => setFiltre(f.key)}
+              onClick={() => choisirFiltre(f.key)}
               className={`shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
                 filtre === f.key
                   ? "bg-ink text-white"
@@ -510,6 +544,7 @@ export default function Dashboard({
                       sujet={s}
                       porteur={porteurDe(s)}
                       today={today}
+                      apercu={s.id === apercuId}
                       onOuvrir={() => setFiche(s)}
                       onEtat={(etat) => changerEtat(s, etat)}
                     />
@@ -727,12 +762,14 @@ function CarteSujet({
   sujet: s,
   porteur,
   today,
+  apercu = false,
   onOuvrir,
   onEtat,
 }: {
   sujet: SujetRow;
   porteur?: Personne;
   today: string;
+  apercu?: boolean;
   onOuvrir: () => void;
   onEtat: (etat: string) => void;
 }) {
@@ -740,6 +777,15 @@ function CarteSujet({
   const [ouvert, setOuvert] = useState(false);
   const depart = useRef<{ x: number; y: number } | null>(null);
   const aGlisse = useRef(false);
+
+  // Démonstration du geste : les actions s'entrouvrent puis se
+  // referment, une seule fois, à la première visite.
+  useEffect(() => {
+    if (!apercu) return;
+    setDx(-LARGEUR_ACTIONS + 40);
+    const t = window.setTimeout(() => setDx(0), 1100);
+    return () => window.clearTimeout(t);
+  }, [apercu]);
 
   function onTouchStart(e: React.TouchEvent) {
     if (!s.can_edit) return;
@@ -811,9 +857,9 @@ function CarteSujet({
         onTouchEnd={onTouchEnd}
         style={{
           transform: `translateX(${dx}px)`,
-          transition: depart.current ? "none" : "transform 200ms",
+          transition: depart.current ? "none" : "transform 250ms",
         }}
-        className="relative w-full bg-white px-4 py-3 text-left transition active:bg-surface"
+        className="relative w-full bg-white px-4 py-2.5 text-left transition active:bg-surface"
       >
         <span className="flex items-center gap-2.5">
           <ProjetLogo
@@ -830,11 +876,11 @@ function CarteSujet({
           {s.title}
         </span>
         {s.action && (
-          <span className="mt-1 line-clamp-2 block text-[13px] leading-snug text-mute">
+          <span className="mt-1 line-clamp-1 block text-[13px] leading-snug text-mute">
             {s.action}
           </span>
         )}
-        <span className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <span className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
           <Chip classe={TYPES_SUJET[s.type].chip}>
             {TYPES_SUJET[s.type].court} · {s.poids} %
           </Chip>
@@ -850,6 +896,16 @@ function CarteSujet({
               ? s.due_date.split("-").reverse().join("/")
               : "Sans échéance"}
           </span>
+          {retard && (
+            <span className="rounded bg-danger-soft px-1.5 py-0.5 text-[10px] font-semibold text-danger">
+              +
+              {Math.round(
+                (Date.parse(today) - Date.parse(s.due_date as string)) /
+                  86400000,
+              )}{" "}
+              j
+            </span>
+          )}
           {s.commentaire && (
             <IconeCommentaire className="h-4 w-4 text-stone" />
           )}
@@ -874,6 +930,7 @@ function Indicateur({
   tint,
   icone,
   onClick,
+  classe = "",
 }: {
   valeur: number | string;
   label: string;
@@ -881,13 +938,14 @@ function Indicateur({
   tint: string;
   icone: React.ReactNode;
   onClick?: () => void;
+  classe?: string;
 }) {
   const Balise = onClick ? "button" : "div";
   return (
     <Balise
       type={onClick ? "button" : undefined}
       onClick={onClick}
-      className={`flex min-w-40 shrink-0 items-center gap-2.5 rounded-lg bg-white px-3 py-2.5 text-left shadow-card sm:min-w-0 ${
+      className={`flex min-w-36 shrink-0 items-center gap-2.5 rounded-lg bg-white px-3 py-2 text-left shadow-card sm:min-w-0 sm:py-2.5 ${classe} ${
         onClick ? "transition hover:-translate-y-0.5 cursor-pointer" : ""
       }`}
     >

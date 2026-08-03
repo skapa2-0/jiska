@@ -266,7 +266,7 @@ export default async function ProjetPage({
               href={`/app?projet=${projet.id}`}
               className="rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface"
             >
-              Voir dans le tableau
+              Voir les sujets
             </a>
           </div>
         </div>
@@ -286,12 +286,18 @@ export default async function ProjetPage({
             </span>
           </div>
           <Stat valeur={actifs.length} label="Sujets actifs" />
+          {/* Couleur seulement quand la valeur porte un signal : un
+              zéro reste neutre. */}
           <Stat
             valeur={bloques}
             label="Bloqués"
-            ton={bloques > 0 ? "text-danger" : "text-success"}
+            ton={bloques > 0 ? "text-danger" : undefined}
           />
-          <Stat valeur={termines} label="Terminés" ton="text-success" />
+          <Stat
+            valeur={termines}
+            label="Terminés"
+            ton={termines > 0 ? "text-success" : undefined}
+          />
         </div>
 
         {/* Avancement par axe : somme des poids des sujets terminés. */}

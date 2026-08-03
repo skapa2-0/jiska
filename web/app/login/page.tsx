@@ -127,16 +127,40 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <label className="mb-8 flex cursor-pointer items-center gap-2.5 text-sm text-mute">
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-              disabled={loading}
-              className="h-4 w-4 accent-brand"
-            />
-            <span>Rester connecté</span>
-          </label>
+          {/* Case à cocher maison (règle : pas de contrôle natif),
+              toute la ligne est tappable. */}
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={remember}
+            onClick={() => setRemember((v) => !v)}
+            disabled={loading}
+            className="mb-8 flex min-h-11 w-full cursor-pointer items-center gap-2.5 text-sm text-mute disabled:opacity-60"
+          >
+            <span
+              aria-hidden="true"
+              className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border transition ${
+                remember
+                  ? "border-brand bg-brand text-white"
+                  : "border-hairline bg-white"
+              }`}
+            >
+              {remember && (
+                <svg
+                  viewBox="0 0 16 16"
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M13 4.5 6.5 11 3 7.5" />
+                </svg>
+              )}
+            </span>
+            Rester connecté
+          </button>
 
           {message && (
             <p role="alert" className="mb-4 text-sm text-danger">

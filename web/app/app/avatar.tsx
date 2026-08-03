@@ -17,7 +17,9 @@ export function avatarColor(id: string): string {
 
 export function displayName(p: Personne): string {
   const complet = `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim();
-  return complet || p.email;
+  // Sans prénom/nom : partie locale de l'e-mail, entière et lisible,
+  // plutôt qu'un e-mail complet tronqué au milieu du domaine.
+  return complet || p.email.split("@")[0];
 }
 
 // Anneau du responsable : bleu Jiska uni, séparé de la photo par un

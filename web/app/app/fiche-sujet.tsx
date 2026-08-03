@@ -484,6 +484,20 @@ export default function FicheSujet({
           )}
           </div>
 
+          {/* Suppression volontairement hors de la barre basse : action
+              rare, loin de la zone du pouce, derrière confirmation. */}
+          {sujet.can_manage && (
+            <div className="px-5 py-3 sm:px-6">
+              <button
+                type="button"
+                onClick={() => setConfirmer(true)}
+                className="w-full rounded-lg py-2.5 text-sm font-medium text-danger transition hover:bg-danger-soft"
+              >
+                Supprimer le sujet
+              </button>
+            </div>
+          )}
+
           {/* Le projet du sujet, en léger : logo, avancement, équipe. */}
           {projet && (
             <a
@@ -557,18 +571,9 @@ export default function FicheSujet({
             {statut
               ? statut.text
               : editable
-                ? "Modifications enregistrées automatiquement"
+                ? "Enregistré automatiquement"
                 : "Lecture seule"}
           </p>
-          {sujet.can_manage && (
-            <button
-              type="button"
-              onClick={() => setConfirmer(true)}
-              className="shrink-0 rounded-lg px-3 py-2 text-sm font-medium text-danger transition hover:bg-danger-soft"
-            >
-              Supprimer
-            </button>
-          )}
         </footer>
       </aside>
 

@@ -72,9 +72,10 @@ export default function TeamManager({
               <p className="truncate text-sm font-medium text-ink">
                 {displayName(m)}
               </p>
+              <p className="truncate text-xs text-mute">{m.email}</p>
               <p className="truncate text-xs text-stone">
-                {m.role === "dirigeant" ? "Dirigeant" : "Collaborateur"} ·{" "}
-                {m.email} · depuis le {m.created_at}
+                {m.role === "dirigeant" ? "Dirigeant" : "Collaborateur"} ·
+                depuis le {m.created_at.split("-").reverse().join("/")}
               </p>
             </div>
             {m.id !== selfId && (
@@ -119,29 +120,30 @@ export default function TeamManager({
           />
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex gap-4 text-sm text-mute">
-            <label className="flex cursor-pointer items-center gap-2">
-              <input
-                type="radio"
-                name="role"
-                value="collaborateur"
-                checked={role === "collaborateur"}
-                onChange={() => setRole("collaborateur")}
-                className="accent-brand"
-              />
-              Collaborateur
-            </label>
-            <label className="flex cursor-pointer items-center gap-2">
-              <input
-                type="radio"
-                name="role"
-                value="dirigeant"
-                checked={role === "dirigeant"}
-                onChange={() => setRole("dirigeant")}
-                className="accent-brand"
-              />
-              Dirigeant
-            </label>
+          {/* Choix du rôle en pastilles maison (règle : pas de radio
+              au style natif). */}
+          <div className="flex gap-1.5">
+            {(
+              [
+                ["collaborateur", "Collaborateur"],
+                ["dirigeant", "Dirigeant"],
+              ] as const
+            ).map(([valeur, label]) => (
+              <button
+                key={valeur}
+                type="button"
+                aria-pressed={role === valeur}
+                onClick={() => setRole(valeur)}
+                disabled={loading}
+                className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                  role === valeur
+                    ? "border-brand bg-brand/5 text-ink ring-1 ring-brand"
+                    : "border-hairline text-mute hover:bg-surface"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
           <button
             type="submit"

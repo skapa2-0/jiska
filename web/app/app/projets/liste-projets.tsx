@@ -25,6 +25,7 @@ export type CarteProjet = {
 };
 
 const TRIS = [
+  { value: "nom", label: "Par nom" },
   { value: "avancement-bas", label: "Avancement croissant" },
   { value: "avancement-haut", label: "Avancement décroissant" },
   { value: "bloques", label: "Bloqués d'abord" },
@@ -51,33 +52,44 @@ export default function ListeProjets({
       .includes(recherche.toLowerCase());
   });
 
-  if (tri) {
-    visibles = [...visibles].sort((a, b) => {
-      switch (tri) {
-        case "avancement-bas":
-          return a.avancement - b.avancement;
-        case "avancement-haut":
-          return b.avancement - a.avancement;
-        case "bloques":
-          return b.bloques - a.bloques;
-        case "actifs":
-          return b.actifs - a.actifs;
-        case "echeance":
+  visibles = [...visibles].sort((a, b) => {
+    switch (tri) {
+      case "nom":
+        return a.name.localeCompare(b.name, "fr");
+      case "avancement-bas":
+        return a.avancement - b.avancement;
+      case "avancement-haut":
+        return b.avancement - a.avancement;
+      case "bloques":
+        return b.bloques - a.bloques;
+      case "actifs":
+        return b.actifs - a.actifs;
+      case "echeance":
+        if (!a.echeance) return 1;
+        if (!b.echeance) return -1;
+        return a.echeance.localeCompare(b.echeance);
+      default: {
+        // Tri par risque : bloqués, puis retards, puis échéance proche.
+        if (a.bloques !== b.bloques) return b.bloques - a.bloques;
+        const ra = a.echeance !== null && a.echeance < today;
+        const rb = b.echeance !== null && b.echeance < today;
+        if (ra !== rb) return ra ? -1 : 1;
+        if (a.echeance !== b.echeance) {
           if (!a.echeance) return 1;
           if (!b.echeance) return -1;
           return a.echeance.localeCompare(b.echeance);
-        default:
-          return 0;
+        }
+        return a.name.localeCompare(b.name, "fr");
       }
-    });
-  }
+    }
+  });
 
   return (
     <>
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <Select
           ariaLabel="Trier les projets"
-          placeholder="Par nom"
+          placeholder="Risque d'abord"
           value={tri}
           onChange={setTri}
           options={TRIS}
@@ -126,10 +138,16 @@ export default function ListeProjets({
                   <div className="mt-3 space-y-2">
                     <Barre nom="Tech" valeur={p.jalonTech} />
                     <Barre nom="Bus." valeur={p.jalonBusiness} />
+                    {/* Signal discret : l'orange plein est réservé aux
+                        vraies alertes (bloqués, retards). */}
                     {(p.attribTech < 100 || p.attribBusiness < 100) && (
-                      <p className="text-[11px] font-medium text-warn">
-                        Pondération incomplète : Tech {p.attribTech} % · Bus.{" "}
-                        {p.attribBusiness} % attribués
+                      <p className="flex items-center gap-1.5 text-[11px] font-medium text-stone">
+                        <span
+                          aria-hidden="true"
+                          className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn"
+                        />
+                        Pondération : Tech {p.attribTech} % · Bus.{" "}
+                        {p.attribBusiness} %
                       </p>
                     )}
                   </div>
@@ -137,10 +155,22 @@ export default function ListeProjets({
                   <div className="mt-3.5 flex min-h-6 items-center gap-2 text-xs font-medium">
                     {p.echeance ? (
                       <span
-                        className={retard ? "text-danger" : "text-mute"}
+                        className={`flex items-center gap-1 ${retard ? "text-danger" : "text-mute"}`}
                         title="Prochaine échéance"
                       >
-                        ⏰ {p.echeance.split("-").reverse().join("/")}
+                        <svg
+                          aria-hidden="true"
+                          viewBox="0 0 24 24"
+                          className="h-3.5 w-3.5 shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.9"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm3-3v4m8-4v4M4 11h16" />
+                        </svg>
+                        {p.echeance.split("-").reverse().join("/")}
                       </span>
                     ) : (
                       <span className="text-stone">Aucune échéance</span>
