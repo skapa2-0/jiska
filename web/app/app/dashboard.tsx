@@ -161,7 +161,13 @@ export default function Dashboard({
     if (!premier) return;
     window.localStorage.setItem("jiska-apercu-glisse", "1");
     const t = window.setTimeout(() => setApercuId(premier.id), 600);
-    return () => window.clearTimeout(t);
+    // L'aperçu ne joue qu'une fois : on efface l'état après coup pour
+    // qu'un re-rendu de la carte ne le rejoue pas.
+    const fin = window.setTimeout(() => setApercuId(null), 2400);
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(fin);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
