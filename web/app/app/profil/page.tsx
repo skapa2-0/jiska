@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
+import BottomNav from "../bottom-nav";
 import Navbar from "../navbar";
 import ProfilForm from "./profil-form";
 
@@ -21,6 +22,7 @@ export default async function ProfilPage() {
         </p>
         <ProfilForm user={user} />
       </main>
+      <BottomNav onglet="profil" canCreate={user.role === "dirigeant"} />
     </div>
   );
 }

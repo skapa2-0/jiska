@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionUser, isResponsable } from "@/lib/auth";
 import { query } from "@/lib/db";
+import BottomNav from "../bottom-nav";
 import Navbar from "../navbar";
 import ListeProjets from "./liste-projets";
 import type { CarteProjet } from "./liste-projets";
@@ -114,6 +115,7 @@ export default async function ProjetsPage() {
           <ListeProjets projets={projets} today={today} />
         )}
       </main>
+      <BottomNav onglet="projets" canCreate={canCreateSujet} />
     </div>
   );
 }

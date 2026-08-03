@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
+import BottomNav from "../bottom-nav";
 import Navbar from "../navbar";
 import TeamManager from "./team-manager";
 
@@ -35,6 +36,7 @@ export default async function EquipePage() {
         </p>
         <TeamManager members={members} selfId={user.id} />
       </main>
+      <BottomNav canCreate />
     </div>
   );
 }

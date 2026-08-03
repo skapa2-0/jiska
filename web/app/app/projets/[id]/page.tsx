@@ -11,6 +11,7 @@ import {
 } from "@/lib/sujets";
 import type { Criticite, Etat, SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "../../avatar";
+import BottomNav from "../../bottom-nav";
 import Navbar from "../../navbar";
 import ProjetLogo from "../../projet-logo";
 import Roue, { tonAvancement } from "../../roue";
@@ -357,6 +358,7 @@ export default async function ProjetPage({
           <HistoriqueProjet entrees={entrees} />
         </div>
       </main>
+      <BottomNav onglet="projets" canCreate={canCreateSujet} />
     </div>
   );
 }

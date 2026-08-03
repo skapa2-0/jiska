@@ -22,10 +22,11 @@ export default function Navbar({
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG local, pas d'optimisation utile */}
           <img src="/logo.svg" alt="Jiska" className="h-6 w-auto" />
         </a>
-        {/* Sélecteur de vue : focus sujets (tableau) ou vue par projet. */}
+        {/* Sélecteur de vue : focus sujets (tableau) ou vue par projet.
+            Sur téléphone, la navigation passe dans la barre basse. */}
         <nav
           aria-label="Vues"
-          className="flex items-center gap-1 rounded-lg bg-surface p-1"
+          className="hidden items-center gap-1 rounded-lg bg-surface p-1 md:flex"
         >
           <OngletLien actif={onglet === "sujets"} href="/app">
             Sujets
@@ -35,28 +36,25 @@ export default function Navbar({
           </OngletLien>
         </nav>
       </div>
-      {/* Sur téléphone, les actions se réduisent à leur icône. */}
-      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+      {/* Les créations restent ici sur desktop ; sur téléphone le
+          « + » vit dans la barre basse. */}
+      <div className="flex shrink-0 items-center gap-3">
         {canCreateSujet && (
           <a
             href="/app?sujet=nouveau"
-            aria-label="Nouveau sujet"
-            title="Nouveau sujet"
-            className="flex items-center gap-1.5 rounded-lg border border-hairline p-2.5 text-sm font-semibold text-ink transition hover:bg-surface sm:px-4 sm:py-2"
+            className="hidden items-center gap-1.5 rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface md:flex"
           >
             <PlusIcon />
-            <span className="hidden sm:inline">Nouveau sujet</span>
+            Nouveau sujet
           </a>
         )}
         {user.role === "dirigeant" && (
           <a
             href="/app/projets/nouveau"
-            aria-label="Nouveau projet"
-            title="Nouveau projet"
-            className="flex items-center gap-1.5 rounded-lg bg-ink p-2.5 text-sm font-semibold text-white transition hover:opacity-85 sm:px-4 sm:py-2"
+            className="hidden items-center gap-1.5 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85 md:flex"
           >
             <PlusIcon />
-            <span className="hidden sm:inline">Nouveau projet</span>
+            Nouveau projet
           </a>
         )}
         <UserMenu user={user} />

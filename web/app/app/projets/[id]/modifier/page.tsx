@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
+import BottomNav from "../../../bottom-nav";
 import Navbar from "../../../navbar";
 import ProjetForm from "../../projet-form";
 
@@ -69,6 +70,7 @@ export default async function ModifierProjetPage({
           }}
         />
       </main>
+      <BottomNav onglet="projets" canCreate />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import type { SujetRow } from "@/lib/sujets";
+import BottomNav from "./bottom-nav";
 import Navbar from "./navbar";
 import Dashboard from "./dashboard";
 
@@ -161,6 +162,7 @@ export default async function AppPage() {
           clotures: Number(ind.clotures),
         }}
       />
+      <BottomNav onglet="sujets" canCreate={canCreateSujet} />
     </div>
   );
 }
