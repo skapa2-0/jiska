@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
@@ -21,6 +21,12 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Jiska",
   description: "Portail Jiska",
+  // Installée sur iOS, l'app s'ouvre sans le chrome de Safari.
+  appleWebApp: { capable: true, title: "Jiska", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({
