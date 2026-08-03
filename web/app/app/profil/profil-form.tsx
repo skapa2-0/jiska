@@ -109,7 +109,7 @@ export default function ProfilForm({ user }: { user: User }) {
         onSubmit={enregistrerInfos}
         className="mt-8 rounded-lg bg-white p-6 shadow-card"
       >
-        <div className="flex items-center gap-5">
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5">
           <Avatar
             personne={{
               id: user.id,

@@ -42,7 +42,7 @@ export default function LoginPage() {
   const loading = status === "loading";
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-10 bg-background px-6 py-16 lg:flex-row lg:items-center lg:gap-16">
+    <main className="flex flex-1 flex-col items-center justify-center gap-8 bg-background px-5 py-10 sm:gap-10 sm:px-6 sm:py-16 lg:flex-row lg:items-center lg:gap-16">
       <section aria-labelledby="login-title" className="w-full max-w-sm">
         <header className="mb-10 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG local, pas d'optimisation utile */}

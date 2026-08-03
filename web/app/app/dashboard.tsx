@@ -276,10 +276,12 @@ export default function Dashboard({
 
   return (
     <main className="flex min-h-0 w-full flex-1 flex-col gap-3 px-4 py-3 lg:px-6">
-      {/* Bandeau supérieur : vision immédiate de l'activité (PRD §4A). */}
+      {/* Bandeau supérieur : vision immédiate de l'activité (PRD §4A).
+          Sur téléphone il défile horizontalement pour ne pas manger la
+          hauteur ; en grille à partir de sm. */}
       <section
         aria-label="Indicateurs"
-        className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7"
+        className="-m-1 flex gap-2.5 overflow-x-auto p-1 [scrollbar-width:none] sm:m-0 sm:grid sm:grid-cols-4 sm:overflow-visible sm:p-0 lg:grid-cols-7"
       >
         <Indicateur
           valeur={indicateurs.projets}
@@ -340,54 +342,139 @@ export default function Dashboard({
         />
       </section>
 
-      {/* Filtres volontairement limités (PRD §10) + recherche. */}
+      {/* Filtres volontairement limités (PRD §10) + recherche. Sur
+          téléphone : une rangée défilante de pilules, recherche en
+          dessous ; à partir de md tout revient sur une ligne. */}
       <section
         aria-label="Filtres"
-        className="flex flex-wrap items-center gap-2"
+        className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center"
       >
-        {FILTRES.map((f) => (
-          <button
-            key={f.key}
-            type="button"
-            onClick={() => setFiltre(f.key)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-              filtre === f.key
-                ? "bg-ink text-white"
-                : "border border-hairline text-mute hover:bg-surface"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-        <Select
-          ariaLabel="Filtrer par projet"
-          placeholder="Par projet"
-          value={projetId}
-          onChange={setProjetId}
-          options={projects.map((p) => ({ value: p.id, label: p.name }))}
-        />
-        <Select
-          ariaLabel="Filtrer par responsable"
-          placeholder="Par responsable"
-          value={responsableId}
-          onChange={setResponsableId}
-          options={responsables.map((r) => ({ value: r.id, label: r.nom }))}
-        />
+        <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] md:contents">
+          {FILTRES.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setFiltre(f.key)}
+              className={`shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                filtre === f.key
+                  ? "bg-ink text-white"
+                  : "border border-hairline text-mute hover:bg-surface"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+          <span className="shrink-0">
+            <Select
+              ariaLabel="Filtrer par projet"
+              placeholder="Par projet"
+              value={projetId}
+              onChange={setProjetId}
+              options={projects.map((p) => ({ value: p.id, label: p.name }))}
+            />
+          </span>
+          <span className="shrink-0">
+            <Select
+              ariaLabel="Filtrer par responsable"
+              placeholder="Par responsable"
+              value={responsableId}
+              onChange={setResponsableId}
+              options={responsables.map((r) => ({ value: r.id, label: r.nom }))}
+            />
+          </span>
+        </div>
         <input
           type="search"
           placeholder="Rechercher un sujet, projet, responsable…"
           aria-label="Rechercher"
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
-          className="ml-auto w-full rounded-lg border border-hairline bg-white px-4 py-2 text-sm text-ink placeholder-stone outline-none transition focus:ring-2 focus:ring-brand sm:w-72"
+          className="w-full rounded-lg border border-hairline bg-white px-4 py-2 text-sm text-ink placeholder-stone outline-none transition focus:ring-2 focus:ring-brand md:ml-auto md:w-72"
         />
       </section>
 
       {/* Tableau principal : une ligne = un sujet (PRD §4B). Il occupe
           tout l'espace restant et scrolle en interne : la page, elle,
-          tient dans le viewport. */}
+          tient dans le viewport. Sur téléphone le tableau laisse place
+          à une liste de cartes, une carte = un sujet. */}
       <section ref={zoneRef} className="min-h-0 flex-1 overflow-auto rounded-lg bg-white shadow-card">
-        <table className="w-full min-w-[1250px] table-fixed border-collapse text-left text-sm">
+        <ul className="divide-y divide-hairline md:hidden">
+          {visibles.length === 0 && (
+            <li className="px-4 py-16 text-center text-sm text-stone">
+              {sujets.length === 0
+                ? "Aucun sujet pour l'instant. Créez le premier avec « Nouveau sujet »."
+                : "Aucun sujet ne correspond aux filtres."}
+            </li>
+          )}
+          {lignes.map((s) => {
+            const retard =
+              s.due_date && s.due_date < today && s.etat !== "termine";
+            const porteur = porteurDe(s);
+            return (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  onClick={() => setFiche(s)}
+                  className="w-full px-4 py-3 text-left transition active:bg-surface"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <ProjetLogo
+                      name={s.project_name}
+                      logo={s.project_logo}
+                      taille="h-7 w-7 text-sm"
+                    />
+                    <span className="min-w-0 flex-1 truncate text-xs font-medium text-stone">
+                      {s.project_name}
+                    </span>
+                    <Chip classe={ETATS[s.etat].chip}>
+                      {ETATS[s.etat].label}
+                    </Chip>
+                  </span>
+                  <span className="mt-2 block text-sm font-semibold leading-snug text-ink">
+                    {s.title}
+                  </span>
+                  {s.action && (
+                    <span className="mt-1 line-clamp-2 block text-[13px] leading-snug text-mute">
+                      {s.action}
+                    </span>
+                  )}
+                  <span className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                    <Chip classe={TYPES_SUJET[s.type].chip}>
+                      {TYPES_SUJET[s.type].court} · {s.poids} %
+                    </Chip>
+                    <Chip classe={CRITICITES[s.criticite].chip}>
+                      {CRITICITES[s.criticite].label}
+                    </Chip>
+                    <span
+                      className={`text-xs font-medium ${
+                        retard ? "text-danger" : "text-mute"
+                      }`}
+                    >
+                      {s.due_date
+                        ? s.due_date.split("-").reverse().join("/")
+                        : "Sans échéance"}
+                    </span>
+                    {s.commentaire && (
+                      <IconeCommentaire className="h-4 w-4 text-stone" />
+                    )}
+                    {porteur && (
+                      <span className="ml-auto flex items-center gap-1.5">
+                        <Avatar
+                          personne={porteur}
+                          taille="h-5 w-5 text-[9px]"
+                        />
+                        <span className="max-w-28 truncate text-xs text-mute">
+                          {displayName(porteur)}
+                        </span>
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <table className="hidden w-full min-w-[1250px] table-fixed border-collapse text-left text-sm md:table">
           {/* Largeurs figées (table-fixed) : Projet/Sujet/Action se
               partagent l'espace restant, le reste est en pixels. */}
           <colgroup>
@@ -547,10 +634,10 @@ export default function Dashboard({
           {visibles.length}/{sujets.length} sujet
           {sujets.length > 1 ? "s" : ""}
         </span>
-        <span className="text-stone">
+        <span className="hidden text-stone sm:inline">
           Cliquez sur une ligne pour ouvrir sa fiche
         </span>
-        <span className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1.5">
+        <span className="ml-auto hidden flex-wrap items-center gap-x-4 gap-y-1.5 lg:flex">
           {Object.entries(ETATS).map(([k, e]) => (
             <span key={k} className="flex items-center gap-1.5">
               <span className={`h-2 w-2 rounded-full ${e.dot}`} />
@@ -607,7 +694,7 @@ function Indicateur({
     <Balise
       type={onClick ? "button" : undefined}
       onClick={onClick}
-      className={`flex items-center gap-2.5 rounded-lg bg-white px-3 py-2.5 text-left shadow-card ${
+      className={`flex min-w-40 shrink-0 items-center gap-2.5 rounded-lg bg-white px-3 py-2.5 text-left shadow-card sm:min-w-0 ${
         onClick ? "transition hover:-translate-y-0.5 cursor-pointer" : ""
       }`}
     >

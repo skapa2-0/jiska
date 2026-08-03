@@ -103,7 +103,7 @@ export default async function ProjetsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Navbar user={user} canCreateSujet={canCreateSujet} onglet="projets" />
-      <main className="w-full flex-1 px-6 py-8 lg:px-8">
+      <main className="w-full flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         {projets.length === 0 ? (
           <p className="mt-24 text-center text-[15px] text-stone">
             {dirigeant

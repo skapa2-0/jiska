@@ -46,7 +46,7 @@ export default async function ModifierProjetPage({
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Navbar user={user} canCreateSujet onglet="projets" />
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
         <a
           href={`/app/projets/${projet.id}`}
           className="text-sm font-medium text-mute transition hover:text-ink"

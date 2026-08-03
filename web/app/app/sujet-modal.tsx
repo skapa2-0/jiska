@@ -109,17 +109,18 @@ export default function SujetModal({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 px-4 py-8"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 sm:px-4 sm:py-8"
       onClick={(e) => e.target === e.currentTarget && onClose(false)}
     >
+      {/* Plein écran sur téléphone, fenêtre centrée à partir de sm. */}
       <div
         role="dialog"
         aria-modal="true"
         aria-label={mode === "create" ? "Nouveau sujet" : "Modifier le sujet"}
-        className="max-h-full w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-card"
+        className="h-full w-full overflow-y-auto bg-white shadow-card sm:h-auto sm:max-h-full sm:max-w-3xl sm:rounded-xl"
       >
         {/* En-tête */}
-        <div className="flex items-center gap-3 border-b border-hairline px-7 py-4">
+        <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-hairline bg-white px-5 py-4 sm:static sm:px-7">
           {mode === "edit" && projet && (
             <ProjetLogo
               name={projet.name}
@@ -145,7 +146,11 @@ export default function SujetModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} noValidate className="px-7 py-6">
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="px-5 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-7"
+        >
           <div className="grid gap-5 sm:grid-cols-2">
             {mode === "create" && (
               <div className={creatable.length > 1 ? "" : "hidden"}>

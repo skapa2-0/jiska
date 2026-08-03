@@ -25,7 +25,7 @@ export default async function EquipePage() {
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Navbar user={user} canCreateSujet />
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
         <h1 className="font-display text-2xl font-medium tracking-[-0.02em] text-ink">
           Équipe
         </h1>

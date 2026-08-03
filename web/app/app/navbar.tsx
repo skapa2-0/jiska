@@ -16,9 +16,9 @@ export default function Navbar({
   onglet?: Onglet;
 }) {
   return (
-    <header className="flex items-center justify-between border-b border-hairline px-6 py-3">
-      <div className="flex items-center gap-5">
-        <a href="/app">
+    <header className="flex items-center justify-between gap-2 border-b border-hairline px-4 py-3 sm:px-6">
+      <div className="flex min-w-0 items-center gap-3 sm:gap-5">
+        <a href="/app" className="shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG local, pas d'optimisation utile */}
           <img src="/logo.svg" alt="Jiska" className="h-6 w-auto" />
         </a>
@@ -35,23 +35,28 @@ export default function Navbar({
           </OngletLien>
         </nav>
       </div>
-      <div className="flex items-center gap-3">
+      {/* Sur téléphone, les actions se réduisent à leur icône. */}
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         {canCreateSujet && (
           <a
             href="/app?sujet=nouveau"
-            className="flex items-center gap-1.5 rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface"
+            aria-label="Nouveau sujet"
+            title="Nouveau sujet"
+            className="flex items-center gap-1.5 rounded-lg border border-hairline p-2.5 text-sm font-semibold text-ink transition hover:bg-surface sm:px-4 sm:py-2"
           >
             <PlusIcon />
-            Nouveau sujet
+            <span className="hidden sm:inline">Nouveau sujet</span>
           </a>
         )}
         {user.role === "dirigeant" && (
           <a
             href="/app/projets/nouveau"
-            className="flex items-center gap-1.5 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85"
+            aria-label="Nouveau projet"
+            title="Nouveau projet"
+            className="flex items-center gap-1.5 rounded-lg bg-ink p-2.5 text-sm font-semibold text-white transition hover:opacity-85 sm:px-4 sm:py-2"
           >
             <PlusIcon />
-            Nouveau projet
+            <span className="hidden sm:inline">Nouveau projet</span>
           </a>
         )}
         <UserMenu user={user} />
@@ -73,7 +78,7 @@ function OngletLien({
     <a
       href={href}
       aria-current={actif ? "page" : undefined}
-      className={`rounded-md px-3.5 py-1.5 text-sm font-semibold transition ${
+      className={`rounded-md px-2.5 py-1.5 text-sm font-semibold transition sm:px-3.5 ${
         actif ? "bg-white text-ink shadow-card" : "text-mute hover:text-ink"
       }`}
     >

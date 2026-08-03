@@ -48,7 +48,7 @@ export default function RegisterPage() {
   const loading = status === "loading";
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-background px-6 py-16">
+    <main className="flex flex-1 items-center justify-center bg-background px-5 py-10 sm:px-6 sm:py-16">
       <section aria-labelledby="register-title" className="w-full max-w-sm">
         <header className="mb-10 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG local, pas d'optimisation utile */}

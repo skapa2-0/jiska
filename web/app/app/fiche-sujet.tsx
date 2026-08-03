@@ -196,7 +196,7 @@ export default function FicheSujet({
           visible ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <header className="flex items-center gap-3 border-b border-hairline px-6 py-4">
+        <header className="flex items-center gap-3 border-b border-hairline px-5 py-4 sm:px-6">
           <ProjetLogo
             name={sujet.project_name}
             logo={sujet.project_logo}
@@ -221,7 +221,7 @@ export default function FicheSujet({
         </header>
 
         <div className="min-h-0 flex-1 divide-y divide-hairline overflow-y-auto">
-          <div className="px-6 py-5">
+          <div className="px-5 py-5 sm:px-6">
             {editable ? (
               <input
                 type="text"
@@ -330,7 +330,7 @@ export default function FicheSujet({
             </div>
           </div>
 
-          <div className="space-y-5 px-6 py-5">
+          <div className="space-y-5 px-5 py-5 sm:px-6">
           <Bloc titre="Porteur de l'action">
             <div className="flex flex-wrap gap-1.5">
               {(projet?.members ?? []).map((m) => {
@@ -441,7 +441,7 @@ export default function FicheSujet({
           {projet && (
             <a
               href={`/app/projets/${projet.id}`}
-              className="block bg-surface/60 px-6 py-4 transition hover:bg-surface"
+              className="block bg-surface/60 px-5 py-4 transition hover:bg-surface sm:px-6"
             >
               <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-stone">
                 Projet
@@ -496,7 +496,7 @@ export default function FicheSujet({
           )}
         </div>
 
-        <footer className="flex min-h-[57px] items-center gap-3 border-t border-hairline px-6 py-3">
+        <footer className="flex min-h-[57px] items-center gap-3 border-t border-hairline px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
           <p
             role={statut && !statut.ok ? "alert" : undefined}
             className={`min-w-0 flex-1 truncate text-sm ${

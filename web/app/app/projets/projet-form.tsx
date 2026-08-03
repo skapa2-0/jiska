@@ -127,7 +127,7 @@ export default function ProjetForm({
   return (
     <form onSubmit={handleSubmit} className="mt-8" noValidate>
       {/* Logo importé, sinon première lettre du nom. */}
-      <div className="flex items-center gap-5">
+      <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5">
         <ProjetLogo
           name={name || "?"}
           logo={logo}
@@ -201,7 +201,7 @@ export default function ProjetForm({
         className="w-full resize-none rounded-lg bg-surface px-4 py-3.5 text-[15px] text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
       />
 
-      <div className="mb-2 mt-6 flex items-baseline justify-between">
+      <div className="mb-2 mt-6 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <p className="text-sm font-medium text-ink">Membres du projet</p>
         <p className="text-xs text-stone">
           Cochez les membres, puis désignez le responsable
@@ -265,13 +265,13 @@ export default function ProjetForm({
         </p>
       )}
 
-      <div className="mt-6 flex items-center gap-3">
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
         <button
           type="submit"
           disabled={
             loading || !name || memberIds.length === 0 || !responsableId
           }
-          className="flex-1 rounded-lg bg-ink py-3.5 text-[15px] font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-lg bg-ink py-3.5 text-[15px] font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-1"
         >
           {loading
             ? "Enregistrement…"
