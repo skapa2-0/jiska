@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
@@ -274,6 +274,25 @@ export default function Dashboard({
     if (refresh) router.refresh();
   }
 
+  // Liste mobile : sections dans l'ordre réunion, en-têtes collants.
+  const groupes = [
+    { titre: "En retard", items: [] as SujetRow[] },
+    { titre: "Cette semaine", items: [] as SujetRow[] },
+    { titre: "À venir", items: [] as SujetRow[] },
+    { titre: "Terminés", items: [] as SujetRow[] },
+  ];
+  for (const s of lignes) {
+    const i =
+      s.etat === "termine"
+        ? 3
+        : s.due_date && s.due_date < today
+          ? 0
+          : s.due_date && s.due_date <= weekEnd
+            ? 1
+            : 2;
+    groupes[i].items.push(s);
+  }
+
   return (
     <main className="flex min-h-0 w-full flex-1 flex-col gap-3 px-4 py-3 lg:px-6">
       {/* Bandeau supérieur : vision immédiate de l'activité (PRD §4A).
@@ -398,7 +417,7 @@ export default function Dashboard({
           tient dans le viewport. Sur téléphone le tableau laisse place
           à une liste de cartes, une carte = un sujet. */}
       <section ref={zoneRef} className="min-h-0 flex-1 overflow-auto rounded-lg bg-white shadow-card">
-        <ul className="divide-y divide-hairline md:hidden">
+        <ul className="md:hidden">
           {visibles.length === 0 && (
             <li className="px-4 py-16 text-center text-sm text-stone">
               {sujets.length === 0
@@ -406,73 +425,28 @@ export default function Dashboard({
                 : "Aucun sujet ne correspond aux filtres."}
             </li>
           )}
-          {lignes.map((s) => {
-            const retard =
-              s.due_date && s.due_date < today && s.etat !== "termine";
-            const porteur = porteurDe(s);
-            return (
-              <li key={s.id}>
-                <button
-                  type="button"
-                  onClick={() => setFiche(s)}
-                  className="w-full px-4 py-3 text-left transition active:bg-surface"
-                >
-                  <span className="flex items-center gap-2.5">
-                    <ProjetLogo
-                      name={s.project_name}
-                      logo={s.project_logo}
-                      taille="h-7 w-7 text-sm"
+          {groupes.map(
+            (g) =>
+              g.items.length > 0 && (
+                <Fragment key={g.titre}>
+                  <li className="sticky top-0 z-10 border-b border-hairline bg-surface px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-stone">
+                    {g.titre}
+                    <span className="ml-1.5 font-medium normal-case tracking-normal">
+                      {g.items.length}
+                    </span>
+                  </li>
+                  {g.items.map((s) => (
+                    <CarteSujet
+                      key={s.id}
+                      sujet={s}
+                      porteur={porteurDe(s)}
+                      today={today}
+                      onOuvrir={() => setFiche(s)}
                     />
-                    <span className="min-w-0 flex-1 truncate text-xs font-medium text-stone">
-                      {s.project_name}
-                    </span>
-                    <Chip classe={ETATS[s.etat].chip}>
-                      {ETATS[s.etat].label}
-                    </Chip>
-                  </span>
-                  <span className="mt-2 block text-sm font-semibold leading-snug text-ink">
-                    {s.title}
-                  </span>
-                  {s.action && (
-                    <span className="mt-1 line-clamp-2 block text-[13px] leading-snug text-mute">
-                      {s.action}
-                    </span>
-                  )}
-                  <span className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                    <Chip classe={TYPES_SUJET[s.type].chip}>
-                      {TYPES_SUJET[s.type].court} · {s.poids} %
-                    </Chip>
-                    <Chip classe={CRITICITES[s.criticite].chip}>
-                      {CRITICITES[s.criticite].label}
-                    </Chip>
-                    <span
-                      className={`text-xs font-medium ${
-                        retard ? "text-danger" : "text-mute"
-                      }`}
-                    >
-                      {s.due_date
-                        ? s.due_date.split("-").reverse().join("/")
-                        : "Sans échéance"}
-                    </span>
-                    {s.commentaire && (
-                      <IconeCommentaire className="h-4 w-4 text-stone" />
-                    )}
-                    {porteur && (
-                      <span className="ml-auto flex items-center gap-1.5">
-                        <Avatar
-                          personne={porteur}
-                          taille="h-5 w-5 text-[9px]"
-                        />
-                        <span className="max-w-28 truncate text-xs text-mute">
-                          {displayName(porteur)}
-                        </span>
-                      </span>
-                    )}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
+                  ))}
+                </Fragment>
+              ),
+          )}
         </ul>
         <table className="hidden w-full min-w-[1250px] table-fixed border-collapse text-left text-sm md:table">
           {/* Largeurs figées (table-fixed) : Projet/Sujet/Action se
@@ -671,6 +645,78 @@ export default function Dashboard({
         />
       )}
     </main>
+  );
+}
+
+// Carte d'un sujet dans la liste mobile : tap pour ouvrir la fiche.
+function CarteSujet({
+  sujet: s,
+  porteur,
+  today,
+  onOuvrir,
+}: {
+  sujet: SujetRow;
+  porteur?: Personne;
+  today: string;
+  onOuvrir: () => void;
+}) {
+  const retard = s.due_date && s.due_date < today && s.etat !== "termine";
+  return (
+    <li className="border-b border-hairline last:border-b-0">
+      <button
+        type="button"
+        onClick={onOuvrir}
+        className="w-full bg-white px-4 py-3 text-left transition active:bg-surface"
+      >
+        <span className="flex items-center gap-2.5">
+          <ProjetLogo
+            name={s.project_name}
+            logo={s.project_logo}
+            taille="h-7 w-7 text-sm"
+          />
+          <span className="min-w-0 flex-1 truncate text-xs font-medium text-stone">
+            {s.project_name}
+          </span>
+          <Chip classe={ETATS[s.etat].chip}>{ETATS[s.etat].label}</Chip>
+        </span>
+        <span className="mt-2 block text-sm font-semibold leading-snug text-ink">
+          {s.title}
+        </span>
+        {s.action && (
+          <span className="mt-1 line-clamp-2 block text-[13px] leading-snug text-mute">
+            {s.action}
+          </span>
+        )}
+        <span className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          <Chip classe={TYPES_SUJET[s.type].chip}>
+            {TYPES_SUJET[s.type].court} · {s.poids} %
+          </Chip>
+          <Chip classe={CRITICITES[s.criticite].chip}>
+            {CRITICITES[s.criticite].label}
+          </Chip>
+          <span
+            className={`text-xs font-medium ${
+              retard ? "text-danger" : "text-mute"
+            }`}
+          >
+            {s.due_date
+              ? s.due_date.split("-").reverse().join("/")
+              : "Sans échéance"}
+          </span>
+          {s.commentaire && (
+            <IconeCommentaire className="h-4 w-4 text-stone" />
+          )}
+          {porteur && (
+            <span className="ml-auto flex items-center gap-1.5">
+              <Avatar personne={porteur} taille="h-5 w-5 text-[9px]" />
+              <span className="max-w-28 truncate text-xs text-mute">
+                {displayName(porteur)}
+              </span>
+            </span>
+          )}
+        </span>
+      </button>
+    </li>
   );
 }
 
