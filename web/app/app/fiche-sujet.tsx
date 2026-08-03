@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
@@ -44,6 +44,9 @@ export default function FicheSujet({
   const [statut, setStatut] = useState<{ ok: boolean; text: string } | null>(
     null,
   );
+  // Glissement vers le bas pour fermer (bottom sheet, téléphone).
+  const [drag, setDrag] = useState(0);
+  const dragDepart = useRef<number | null>(null);
   const editable = sujet.can_edit;
 
   useEffect(() => {
@@ -167,6 +170,22 @@ export default function FicheSujet({
     }
   }
 
+  function onTouchStart(e: React.TouchEvent) {
+    // Uniquement en présentation bottom sheet (sous sm).
+    if (window.innerWidth >= 640) return;
+    dragDepart.current = e.touches[0].clientY;
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (dragDepart.current === null) return;
+    setDrag(Math.max(0, e.touches[0].clientY - dragDepart.current));
+  }
+  function onTouchEnd() {
+    const distance = drag;
+    dragDepart.current = null;
+    setDrag(0);
+    if (distance > 90) fermer();
+  }
+
   const retard = dueDate && dueDate < today && etat !== "termine";
   const joursRetard = retard
     ? Math.round((Date.parse(today) - Date.parse(dueDate)) / 86400000)
@@ -188,15 +207,40 @@ export default function FicheSujet({
           visible ? "opacity-100" : "opacity-0"
         }`}
       />
+      {/* Bottom sheet sur téléphone (glisse depuis le bas, poignée,
+          fermeture au geste) ; panneau latéral droit à partir de sm. */}
       <aside
         role="dialog"
         aria-modal="true"
         aria-label={`Fiche du sujet ${sujet.title}`}
-        className={`absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-white shadow-[-12px_0_32px_rgb(25_28_31/0.18)] transition-transform duration-300 ${
-          visible ? "translate-x-0" : "translate-x-full"
+        style={
+          drag > 0
+            ? { transform: `translateY(${drag}px)`, transition: "none" }
+            : undefined
+        }
+        className={`absolute inset-x-0 bottom-0 flex h-[92dvh] w-full flex-col rounded-t-2xl bg-white shadow-[0_-12px_32px_rgb(25_28_31/0.18)] transition-transform duration-300 sm:inset-x-auto sm:right-0 sm:top-0 sm:h-full sm:max-w-md sm:rounded-none sm:shadow-[-12px_0_32px_rgb(25_28_31/0.18)] ${
+          visible
+            ? "translate-x-0 translate-y-0"
+            : "translate-y-full sm:translate-x-full sm:translate-y-0"
         }`}
       >
-        <header className="flex items-center gap-3 border-b border-hairline px-5 py-4 sm:px-6">
+        <div
+          className="shrink-0 touch-none pt-2.5 sm:hidden"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
+          <span
+            aria-hidden="true"
+            className="mx-auto block h-1 w-10 rounded-full bg-hairline"
+          />
+        </div>
+        <header
+          className="flex items-center gap-3 border-b border-hairline px-5 py-4 pt-2.5 sm:px-6 sm:pt-4"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
           <ProjetLogo
             name={sujet.project_name}
             logo={sujet.project_logo}
