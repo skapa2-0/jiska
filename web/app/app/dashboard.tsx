@@ -439,6 +439,8 @@ export default function Dashboard({
         aria-label="Filtres"
         className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center"
       >
+        {/* Seules les pilules défilent : les Select doivent rester hors
+            de tout conteneur overflow, sinon leur panneau est rogné. */}
         <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] md:contents">
           {FILTRES.map((f) => (
             <button
@@ -454,24 +456,22 @@ export default function Dashboard({
               {f.label}
             </button>
           ))}
-          <span className="shrink-0">
-            <Select
-              ariaLabel="Filtrer par projet"
-              placeholder="Par projet"
-              value={projetId}
-              onChange={setProjetId}
-              options={projects.map((p) => ({ value: p.id, label: p.name }))}
-            />
-          </span>
-          <span className="shrink-0">
-            <Select
-              ariaLabel="Filtrer par responsable"
-              placeholder="Par responsable"
-              value={responsableId}
-              onChange={setResponsableId}
-              options={responsables.map((r) => ({ value: r.id, label: r.nom }))}
-            />
-          </span>
+        </div>
+        <div className="flex items-center gap-2 md:contents">
+          <Select
+            ariaLabel="Filtrer par projet"
+            placeholder="Par projet"
+            value={projetId}
+            onChange={setProjetId}
+            options={projects.map((p) => ({ value: p.id, label: p.name }))}
+          />
+          <Select
+            ariaLabel="Filtrer par responsable"
+            placeholder="Par responsable"
+            value={responsableId}
+            onChange={setResponsableId}
+            options={responsables.map((r) => ({ value: r.id, label: r.nom }))}
+          />
         </div>
         <input
           type="search"
