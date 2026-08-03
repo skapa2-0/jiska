@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import Avatar, { displayName } from "../avatar";
+import Confirmation from "../confirmer";
 
 type Member = {
   id: string;
@@ -26,6 +27,7 @@ export default function TeamManager({
   const [role, setRole] = useState("collaborateur");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [aSupprimer, setASupprimer] = useState<Member | null>(null);
 
   async function handleCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -51,12 +53,7 @@ export default function TeamManager({
   }
 
   async function handleDelete(member: Member) {
-    if (
-      !window.confirm(
-        `Supprimer le compte ${member.email} ? Il sera retiré de tous les projets.`,
-      )
-    )
-      return;
+    setASupprimer(null);
     const res = await fetch(`/api/users/${member.id}`, { method: "DELETE" });
     if (res.ok) window.location.reload();
     else {
@@ -83,7 +80,7 @@ export default function TeamManager({
             {m.id !== selfId && (
               <button
                 type="button"
-                onClick={() => handleDelete(m)}
+                onClick={() => setASupprimer(m)}
                 className="rounded-md px-3 py-1 text-xs font-medium text-danger transition hover:bg-surface"
               >
                 Supprimer
@@ -160,6 +157,15 @@ export default function TeamManager({
           </p>
         )}
       </form>
+
+      {aSupprimer && (
+        <Confirmation
+          titre="Supprimer le compte ?"
+          message={`${aSupprimer.email} sera retiré de tous les projets.`}
+          onConfirm={() => handleDelete(aSupprimer)}
+          onCancel={() => setASupprimer(null)}
+        />
+      )}
     </>
   );
 }

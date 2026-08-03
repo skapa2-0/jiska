@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "./avatar";
+import Confirmation from "./confirmer";
 import type { ProjectOption } from "./dashboard";
+import DatePicker from "./date-picker";
 import ProjetLogo from "./projet-logo";
 import Select from "./select";
 import Roue, { tonAvancement } from "./roue";
@@ -44,6 +46,7 @@ export default function FicheSujet({
   const [statut, setStatut] = useState<{ ok: boolean; text: string } | null>(
     null,
   );
+  const [confirmer, setConfirmer] = useState(false);
   // Glissement vers le bas pour fermer (bottom sheet, téléphone).
   const [drag, setDrag] = useState(0);
   const dragDepart = useRef<number | null>(null);
@@ -159,7 +162,7 @@ export default function FicheSujet({
   }
 
   async function supprimer() {
-    if (!window.confirm(`Supprimer le sujet « ${title} » ?`)) return;
+    setConfirmer(false);
     const res = await fetch(`/api/sujets/${sujet.id}`, { method: "DELETE" });
     if (res.ok) {
       router.refresh();
@@ -428,13 +431,13 @@ export default function FicheSujet({
           <Bloc titre="Échéance">
             {editable ? (
               <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  aria-label="Échéance"
-                  value={dueDate}
-                  onChange={(e) => changerDate(e.target.value)}
-                  className={champ}
-                />
+                <div className="min-w-0 flex-1">
+                  <DatePicker
+                    ariaLabel="Échéance"
+                    value={dueDate}
+                    onChange={changerDate}
+                  />
+                </div>
                 {retard && (
                   <span className="shrink-0 rounded-md bg-danger-soft px-2 py-0.5 text-xs font-semibold text-danger">
                     ⚠ {joursRetard} j
@@ -560,7 +563,7 @@ export default function FicheSujet({
           {sujet.can_manage && (
             <button
               type="button"
-              onClick={supprimer}
+              onClick={() => setConfirmer(true)}
               className="shrink-0 rounded-lg px-3 py-2 text-sm font-medium text-danger transition hover:bg-danger-soft"
             >
               Supprimer
@@ -568,6 +571,15 @@ export default function FicheSujet({
           )}
         </footer>
       </aside>
+
+      {confirmer && (
+        <Confirmation
+          titre="Supprimer le sujet ?"
+          message={`« ${title} » et son historique seront supprimés.`}
+          onConfirm={supprimer}
+          onCancel={() => setConfirmer(false)}
+        />
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { FORMATS_IMAGE, reduireImage } from "@/lib/image";
 import Avatar, { displayName } from "../avatar";
+import Confirmation from "../confirmer";
 import ProjetLogo from "../projet-logo";
 
 type Person = {
@@ -44,6 +45,7 @@ export default function ProjetForm({
   );
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [confirmer, setConfirmer] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function toggleMember(id: string) {
@@ -105,13 +107,8 @@ export default function ProjetForm({
   }
 
   async function handleDelete() {
-    if (
-      !initial ||
-      !window.confirm(
-        `Supprimer le projet « ${initial.name} » ? Tous ses sujets et leur historique seront supprimés.`,
-      )
-    )
-      return;
+    if (!initial) return;
+    setConfirmer(false);
     setLoading(true);
     const res = await fetch(`/api/projects/${initial.id}`, {
       method: "DELETE",
@@ -282,7 +279,7 @@ export default function ProjetForm({
         {edition && (
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={() => setConfirmer(true)}
             disabled={loading}
             className="rounded-lg px-4 py-3.5 text-sm font-medium text-danger transition hover:bg-danger-soft"
           >
@@ -290,6 +287,15 @@ export default function ProjetForm({
           </button>
         )}
       </div>
+
+      {confirmer && initial && (
+        <Confirmation
+          titre="Supprimer le projet ?"
+          message={`« ${initial.name} », tous ses sujets et leur historique seront supprimés.`}
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmer(false)}
+        />
+      )}
     </form>
   );
 }

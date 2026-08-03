@@ -6,6 +6,8 @@ import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import type { ProjectOption } from "./dashboard";
 import Avatar, { displayName } from "./avatar";
+import Confirmation from "./confirmer";
+import DatePicker from "./date-picker";
 import ProjetLogo from "./projet-logo";
 import Select from "./select";
 
@@ -41,6 +43,7 @@ export default function SujetModal({
   );
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [confirmer, setConfirmer] = useState(false);
 
   const readOnly = mode === "edit" && !sujet?.can_edit;
   const projet = projects.find((p) => p.id === projectId);
@@ -92,8 +95,8 @@ export default function SujetModal({
   }
 
   async function handleDelete() {
-    if (!sujet || !window.confirm(`Supprimer le sujet « ${sujet.title} » ?`))
-      return;
+    if (!sujet) return;
+    setConfirmer(false);
     setLoading(true);
     const res = await fetch(`/api/sujets/${sujet.id}`, { method: "DELETE" });
     setLoading(false);
@@ -200,14 +203,12 @@ export default function SujetModal({
 
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
             <div>
-              <Etiquette libelle="s-date">Échéance</Etiquette>
-              <input
-                id="s-date"
-                type="date"
+              <Etiquette>Échéance</Etiquette>
+              <DatePicker
+                ariaLabel="Échéance"
                 value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
+                onChange={setDueDate}
                 disabled={loading || readOnly}
-                className={champ}
               />
             </div>
             <div>
@@ -365,7 +366,7 @@ export default function SujetModal({
               {mode === "edit" && sujet?.can_manage && (
                 <button
                   type="button"
-                  onClick={handleDelete}
+                  onClick={() => setConfirmer(true)}
                   disabled={loading}
                   className="rounded-lg px-4 py-3 text-sm font-medium text-danger transition hover:bg-danger-soft"
                 >
@@ -376,6 +377,15 @@ export default function SujetModal({
           )}
         </form>
       </div>
+
+      {confirmer && sujet && (
+        <Confirmation
+          titre="Supprimer le sujet ?"
+          message={`« ${sujet.title} » et son historique seront supprimés.`}
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmer(false)}
+        />
+      )}
     </div>
   );
 }
