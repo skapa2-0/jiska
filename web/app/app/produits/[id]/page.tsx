@@ -69,7 +69,8 @@ export default async function ProjetPage({
     if (membre.length === 0) redirect("/app");
   }
 
-  const [projets, equipe, sujetRows, histRows, personnes] = await Promise.all([
+  const [projets, equipe, sujetRows, histRows, personnes, creations] =
+    await Promise.all([
     query<{
       id: string;
       name: string;
@@ -139,6 +140,14 @@ export default async function ProjetPage({
       first_name: string;
       last_name: string;
     }>("SELECT id, email, first_name, last_name FROM users"),
+    // Qui a émis chaque sujet : la trace de création de l'historique.
+    query<{ sujet_id: string; changed_by: string | null }>(
+      `SELECT h.sujet_id, h.changed_by
+         FROM sujet_history h
+         JOIN sujets s ON s.id = h.sujet_id
+        WHERE s.project_id = $1 AND h.field = 'creation'`,
+      [id],
+    ),
   ]);
 
   const projet = projets[0];
@@ -217,6 +226,13 @@ export default async function ProjetPage({
         : valeurLisible(h.field, h.new_value),
     creation: h.field === "creation",
   }));
+
+  // Nom de l'émetteur par sujet (vide si la trace n'existe pas).
+  const emetteurs: Record<string, string> = {};
+  for (const c of creations) {
+    const nom = c.changed_by ? nomDe.get(c.changed_by) : undefined;
+    if (nom) emetteurs[c.sujet_id] = nom;
+  }
 
   const actifs = sujets.filter((s) => s.etat !== "termine");
   const termines = sujets.length - actifs.length;
@@ -325,6 +341,7 @@ export default async function ProjetPage({
             <SujetsProjet
               sujets={sujets}
               projet={projetOption}
+              emetteurs={emetteurs}
               today={today}
             />
 

@@ -4,19 +4,23 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
+import Avatar, { displayName } from "../../avatar";
 import type { ProjectOption } from "../../dashboard";
 import FicheSujet from "../../fiche-sujet";
 import SujetModal from "../../sujet-modal";
 
-// Sujets du projet : lignes cliquables (fiche latérale + édition) et
-// création d'un sujet directement scopée au projet.
+// Sujets du produit : lignes quasi complètes (sujet, action, porteur,
+// émetteur) cliquables vers la fiche, et création d'un sujet
+// directement scopée au produit.
 export default function SujetsProjet({
   sujets,
   projet,
+  emetteurs = {},
   today,
 }: {
   sujets: SujetRow[];
   projet: ProjectOption;
+  emetteurs?: Record<string, string>;
   today: string;
 }) {
   const router = useRouter();
@@ -68,38 +72,65 @@ export default function SujetsProjet({
           {actifs.map((s) => {
             const retard =
               s.due_date && s.due_date < today && s.etat !== "termine";
+            const porteur = projet.members.find((m) => m.id === s.porteur_id);
+            const emetteur = emetteurs[s.id];
             return (
               <li key={s.id}>
                 <button
                   type="button"
                   onClick={() => setFiche(s)}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-surface"
+                  className="w-full px-4 py-3 text-left transition hover:bg-surface active:bg-surface"
                 >
-                  <span
-                    title={ETATS[s.etat].label}
-                    className={`h-2.5 w-2.5 shrink-0 rounded-full ${ETATS[s.etat].dot}`}
-                  />
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
-                    {s.title}
+                  <span className="flex items-center gap-2.5">
+                    <span
+                      title={ETATS[s.etat].label}
+                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${ETATS[s.etat].dot}`}
+                    />
+                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
+                      {s.title}
+                    </span>
+                    <span
+                      className={`hidden rounded-md px-2 py-0.5 text-xs font-semibold sm:inline ${TYPES_SUJET[s.type].chip}`}
+                    >
+                      {TYPES_SUJET[s.type].court} · {s.poids} %
+                    </span>
+                    <span
+                      className={`rounded-md px-2 py-0.5 text-xs font-semibold ${CRITICITES[s.criticite].chip}`}
+                    >
+                      {CRITICITES[s.criticite].label}
+                    </span>
+                    <span
+                      className={`w-20 shrink-0 whitespace-nowrap text-right text-xs ${
+                        retard ? "font-semibold text-danger" : "text-mute"
+                      }`}
+                    >
+                      {s.due_date
+                        ? s.due_date.split("-").reverse().join("/")
+                        : "-"}
+                    </span>
                   </span>
-                  <span
-                    className={`hidden rounded-md px-2 py-0.5 text-xs font-semibold sm:inline ${TYPES_SUJET[s.type].chip}`}
-                  >
-                    {TYPES_SUJET[s.type].court} · {s.poids} %
-                  </span>
-                  <span
-                    className={`hidden rounded-md px-2 py-0.5 text-xs font-semibold sm:inline ${CRITICITES[s.criticite].chip}`}
-                  >
-                    {CRITICITES[s.criticite].label}
-                  </span>
-                  <span
-                    className={`w-20 whitespace-nowrap text-right text-xs ${
-                      retard ? "font-semibold text-danger" : "text-mute"
-                    }`}
-                  >
-                    {s.due_date
-                      ? s.due_date.split("-").reverse().join("/")
-                      : "-"}
+                  <span className="mt-1 flex items-center gap-2 pl-5">
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-mute">
+                      {s.action || (
+                        <span className="text-stone">
+                          Aucune action définie
+                        </span>
+                      )}
+                    </span>
+                    {emetteur && (
+                      <span className="hidden shrink-0 text-xs text-stone sm:inline">
+                        Émis par {emetteur}
+                      </span>
+                    )}
+                    {porteur && (
+                      <span className="flex shrink-0 items-center gap-1.5 text-xs text-mute">
+                        <Avatar
+                          personne={porteur}
+                          taille="h-5 w-5 text-[9px]"
+                        />
+                        {displayName(porteur)}
+                      </span>
+                    )}
                   </span>
                 </button>
               </li>
