@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
   if (me.role !== "dirigeant") {
     return NextResponse.json(
-      { error: "Seuls les dirigeants peuvent créer un projet." },
+      { error: "Seuls les dirigeants peuvent créer un produit." },
       { status: 403 },
     );
   }
@@ -36,19 +36,19 @@ export async function POST(request: Request) {
 
   if (!name) {
     return NextResponse.json(
-      { error: "Le nom du projet est requis." },
+      { error: "Le nom du produit est requis." },
       { status: 400 },
     );
   }
   if (memberIds.length === 0) {
     return NextResponse.json(
-      { error: "Ajoutez au moins un membre au projet." },
+      { error: "Ajoutez au moins un membre au produit." },
       { status: 400 },
     );
   }
   if (!memberIds.includes(responsableId)) {
     return NextResponse.json(
-      { error: "Le responsable doit faire partie des membres du projet." },
+      { error: "Le responsable doit faire partie des membres du produit." },
       { status: 400 },
     );
   }

@@ -3,11 +3,11 @@ import { getSessionUser, isResponsable } from "@/lib/auth";
 import { query } from "@/lib/db";
 import BottomNav from "./bottom-nav";
 import Navbar from "./navbar";
-import ListeProjets from "./projets/liste-projets";
-import type { CarteProjet } from "./projets/liste-projets";
+import ListeProjets from "./produits/liste-projets";
+import type { CarteProjet } from "./produits/liste-projets";
 
-// Page principale de l'espace : la vue par projet. Une carte par
-// projet, clic pour entrer dans le détail ; le tableau de pilotage
+// Page principale de l'espace : la vue par produit. Une carte par
+// produit, clic pour entrer dans le détail ; le tableau de pilotage
 // vit sur la page Actions.
 export default async function AppPage() {
   const user = await getSessionUser();
@@ -105,22 +105,22 @@ export default async function AppPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      <Navbar user={user} canCreateSujet={canCreateSujet} onglet="projets" />
+      <Navbar user={user} canCreateSujet={canCreateSujet} onglet="produits" />
       <main className="w-full flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         <h1 className="mb-4 font-display text-2xl font-medium tracking-[-0.02em] text-ink">
-          Projets
+          Produits
         </h1>
         {projets.length === 0 ? (
           <p className="mt-24 text-center text-[15px] text-stone">
             {dirigeant
-              ? "Aucun projet pour l'instant. Créez le premier avec « Nouveau projet »."
-              : "Vous ne faites partie d'aucun projet pour l'instant."}
+              ? "Aucun produit pour l'instant. Créez le premier avec « Nouveau produit »."
+              : "Vous ne faites partie d'aucun produit pour l'instant."}
           </p>
         ) : (
           <ListeProjets projets={projets} today={today} />
         )}
       </main>
-      <BottomNav onglet="projets" canCreate={canCreateSujet} />
+      <BottomNav onglet="produits" canCreate={canCreateSujet} />
     </div>
   );
 }

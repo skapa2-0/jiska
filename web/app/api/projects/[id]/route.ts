@@ -11,7 +11,7 @@ async function dirigeantEtProjet(id: string) {
   if (me.role !== "dirigeant") {
     return {
       erreur: NextResponse.json(
-        { error: "Seuls les dirigeants peuvent gérer un projet." },
+        { error: "Seuls les dirigeants peuvent gérer un produit." },
         { status: 403 },
       ),
     };
@@ -24,7 +24,7 @@ async function dirigeantEtProjet(id: string) {
     [id],
   );
   if (rows.length === 0) {
-    return { erreur: NextResponse.json({ error: "Projet introuvable." }, { status: 404 }) };
+    return { erreur: NextResponse.json({ error: "Produit introuvable." }, { status: 404 }) };
   }
   return { me };
 }
@@ -45,7 +45,7 @@ export async function PATCH(
   }
   const existe = await query("SELECT 1 FROM projects WHERE id = $1", [id]);
   if (existe.length === 0) {
-    return NextResponse.json({ error: "Projet introuvable." }, { status: 404 });
+    return NextResponse.json({ error: "Produit introuvable." }, { status: 404 });
   }
 
   let body: {
@@ -63,7 +63,7 @@ export async function PATCH(
 
   if (me.role !== "dirigeant") {
     return NextResponse.json(
-      { error: "Seuls les dirigeants peuvent gérer un projet." },
+      { error: "Seuls les dirigeants peuvent gérer un produit." },
       { status: 403 },
     );
   }
@@ -75,7 +75,7 @@ export async function PATCH(
     const name = body.name.trim();
     if (!name) {
       return NextResponse.json(
-        { error: "Le nom du projet est requis." },
+        { error: "Le nom du produit est requis." },
         { status: 400 },
       );
     }
@@ -116,13 +116,13 @@ export async function PATCH(
     const responsableId = body.responsableId ? String(body.responsableId) : "";
     if (memberIds.length === 0) {
       return NextResponse.json(
-        { error: "Le projet doit garder au moins un membre." },
+        { error: "Le produit doit garder au moins un membre." },
         { status: 400 },
       );
     }
     if (!memberIds.includes(responsableId)) {
       return NextResponse.json(
-        { error: "Le responsable doit faire partie des membres du projet." },
+        { error: "Le responsable doit faire partie des membres du produit." },
         { status: 400 },
       );
     }

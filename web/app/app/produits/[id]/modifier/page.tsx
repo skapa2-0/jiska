@@ -46,13 +46,13 @@ export default async function ModifierProjetPage({
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      <Navbar user={user} canCreateSujet onglet="projets" />
+      <Navbar user={user} canCreateSujet onglet="produits" />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
         <a
           href={`/app/projets/${projet.id}`}
           className="text-sm font-medium text-mute transition hover:text-ink"
         >
-          ← Retour au projet
+          ← Retour au produit
         </a>
         <h1 className="mt-3 font-display text-2xl font-medium tracking-[-0.02em] text-ink">
           Modifier « {projet.name} »
@@ -70,7 +70,7 @@ export default async function ModifierProjetPage({
           }}
         />
       </main>
-      <BottomNav onglet="projets" canCreate />
+      <BottomNav onglet="produits" canCreate />
     </div>
   );
 }

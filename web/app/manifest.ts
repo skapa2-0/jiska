@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Jiska",
     short_name: "Jiska",
-    description: "Pilotage hebdomadaire des projets",
+    description: "Pilotage hebdomadaire des produits",
     start_url: "/app",
     display: "standalone",
     background_color: "#ffffff",

@@ -157,10 +157,10 @@ export default function SujetModal({
           <div className="grid gap-5 sm:grid-cols-2">
             {mode === "create" && (
               <div className={creatable.length > 1 ? "" : "hidden"}>
-                <Etiquette>Projet</Etiquette>
+                <Etiquette>Produit</Etiquette>
                 <Select
-                  ariaLabel="Projet du sujet"
-                  placeholder="Choisir un projet"
+                  ariaLabel="Produit du sujet"
+                  placeholder="Choisir un produit"
                   variante="champ"
                   value={projectId}
                   disabled={loading}
@@ -270,7 +270,7 @@ export default function SujetModal({
             </div>
             <div>
               <Etiquette libelle="s-poids">
-                Poids dans le projet{" "}
+                Poids dans le produit{" "}
                 <span className="font-normal text-stone">(%)</span>
               </Etiquette>
               <input

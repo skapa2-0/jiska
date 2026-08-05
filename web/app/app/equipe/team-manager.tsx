@@ -163,7 +163,7 @@ export default function TeamManager({
       {aSupprimer && (
         <Confirmation
           titre="Supprimer le compte ?"
-          message={`${aSupprimer.email} sera retiré de tous les projets.`}
+          message={`${aSupprimer.email} sera retiré de tous les produits.`}
           onConfirm={() => handleDelete(aSupprimer)}
           onCancel={() => setASupprimer(null)}
         />

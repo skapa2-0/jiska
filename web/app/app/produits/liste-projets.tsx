@@ -88,7 +88,7 @@ export default function ListeProjets({
     <>
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <Select
-          ariaLabel="Trier les projets"
+          ariaLabel="Trier les produits"
           placeholder="Risque d'abord"
           value={tri}
           onChange={setTri}
@@ -96,8 +96,8 @@ export default function ListeProjets({
         />
         <input
           type="search"
-          placeholder="Rechercher un projet…"
-          aria-label="Rechercher un projet"
+          placeholder="Rechercher un produit…"
+          aria-label="Rechercher un produit"
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
           className="ml-auto w-full rounded-lg border border-hairline bg-white px-4 py-2 text-sm text-ink placeholder-stone outline-none transition focus:ring-2 focus:ring-brand sm:w-72"
@@ -106,7 +106,7 @@ export default function ListeProjets({
 
       {visibles.length === 0 ? (
         <p className="mt-20 text-center text-[15px] text-stone">
-          Aucun projet ne correspond à la recherche.
+          Aucun produit ne correspond à la recherche.
         </p>
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -115,7 +115,7 @@ export default function ListeProjets({
             return (
               <li key={p.id}>
                 <a
-                  href={`/app/projets/${p.id}`}
+                  href={`/app/produits/${p.id}`}
                   className="block rounded-lg bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgb(25_28_31/0.08),0_8px_20px_rgb(25_28_31/0.10)]"
                 >
                   <div className="flex items-center justify-between gap-3">

@@ -31,13 +31,13 @@ export async function POST(request: Request) {
 
   if (!/^\d+$/.test(projectId) || !title) {
     return NextResponse.json(
-      { error: "Projet et sujet sont requis." },
+      { error: "Produit et sujet sont requis." },
       { status: 400 },
     );
   }
   if (!(await canManageSujets(me, projectId))) {
     return NextResponse.json(
-      { error: "Seuls les dirigeants et le responsable du projet peuvent créer un sujet." },
+      { error: "Seuls les dirigeants et le responsable du produit peuvent créer un sujet." },
       { status: 403 },
     );
   }
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     );
     if (membre.length === 0) {
       return NextResponse.json(
-        { error: "Le porteur doit être membre du projet." },
+        { error: "Le porteur doit être membre du produit." },
         { status: 400 },
       );
     }

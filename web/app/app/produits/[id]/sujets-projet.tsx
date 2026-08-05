@@ -62,7 +62,7 @@ export default function SujetsProjet({
       </div>
 
       {actifs.length === 0 ? (
-        <p className="text-sm text-stone">Aucun sujet actif sur ce projet.</p>
+        <p className="text-sm text-stone">Aucun sujet actif sur ce produit.</p>
       ) : (
         <ul className="divide-y divide-hairline rounded-lg bg-white shadow-card">
           {actifs.map((s) => {

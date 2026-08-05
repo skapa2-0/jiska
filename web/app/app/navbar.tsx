@@ -2,9 +2,9 @@ import UserMenu from "./user-menu";
 import type { SessionUser } from "@/lib/auth";
 
 // Barre du haut de l'espace : les actions dépendent des permissions.
-// « Nouveau projet » : dirigeants seuls. « Nouveau sujet » : dirigeants
+// « Nouveau produit » : dirigeants seuls. « Nouveau sujet » : dirigeants
 // et responsables de projet.
-export type Onglet = "projets" | "actions";
+export type Onglet = "produits" | "actions";
 
 export default function Navbar({
   user,
@@ -22,14 +22,14 @@ export default function Navbar({
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG local, pas d'optimisation utile */}
           <img src="/logo.svg" alt="Jiska" className="h-6 w-auto" />
         </a>
-        {/* Sélecteur de vue : les projets (accueil) ou le tableau des
+        {/* Sélecteur de vue : les produits (accueil) ou le tableau des
             actions. Sur téléphone, la navigation passe en barre basse. */}
         <nav
           aria-label="Vues"
           className="hidden items-center gap-1 rounded-lg bg-surface p-1 md:flex"
         >
-          <OngletLien actif={onglet === "projets"} href="/app">
-            Projets
+          <OngletLien actif={onglet === "produits"} href="/app">
+            Produits
           </OngletLien>
           <OngletLien actif={onglet === "actions"} href="/app/actions">
             Actions
@@ -50,11 +50,11 @@ export default function Navbar({
         )}
         {user.role === "dirigeant" && (
           <a
-            href="/app/projets/nouveau"
+            href="/app/produits/nouveau"
             className="hidden items-center gap-1.5 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85 md:flex"
           >
             <PlusIcon />
-            Nouveau projet
+            Nouveau produit
           </a>
         )}
         <UserMenu user={user} />

@@ -1,6 +1,6 @@
 // Barre de navigation basse, téléphone uniquement : les vues à portée
-// de pouce (Projets, Actions, Profil) et la création de sujet au centre.
-export type OngletBas = "projets" | "actions" | "profil";
+// de pouce (Produits, Actions, Profil) et la création de sujet au centre.
+export type OngletBas = "produits" | "actions" | "profil";
 
 export default function BottomNav({
   onglet,
@@ -15,7 +15,7 @@ export default function BottomNav({
       className="sticky bottom-0 z-20 border-t border-hairline bg-white pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       <div className="flex items-stretch justify-around">
-        <Item actif={onglet === "projets"} href="/app" label="Projets">
+        <Item actif={onglet === "produits"} href="/app" label="Produits">
           <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
         </Item>
         <Item actif={onglet === "actions"} href="/app/actions" label="Actions">

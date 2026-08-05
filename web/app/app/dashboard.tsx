@@ -422,7 +422,7 @@ export default function Dashboard({
         />
         <Indicateur
           valeur={indicateurs.projets}
-          label="Projets actifs"
+          label="Produits actifs"
           tint="bg-brand/10 text-brand"
           icone={<IconeDossier />}
           classe="order-6 sm:order-1"
@@ -465,8 +465,8 @@ export default function Dashboard({
         </div>
         <div className="flex items-center gap-2 md:contents">
           <Select
-            ariaLabel="Filtrer par projet"
-            placeholder="Par projet"
+            ariaLabel="Filtrer par produit"
+            placeholder="Par produit"
             value={projetId}
             onChange={setProjetId}
             options={projects.map((p) => ({ value: p.id, label: p.name }))}
@@ -481,7 +481,7 @@ export default function Dashboard({
         </div>
         <input
           type="search"
-          placeholder="Rechercher un sujet, projet, responsable…"
+          placeholder="Rechercher un sujet, produit, responsable…"
           aria-label="Rechercher"
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
@@ -576,7 +576,7 @@ export default function Dashboard({
           <thead>
             <tr className="divide-x divide-hairline text-xs text-ink">
               <Th col="projet" tri={tri} onTri={basculerTri}>
-                Projet
+                Produit
               </Th>
               <Th centre col="etat" tri={tri} onTri={basculerTri}>
                 État

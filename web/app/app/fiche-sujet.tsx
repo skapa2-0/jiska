@@ -350,7 +350,7 @@ export default function FicheSujet({
                     Poids
                     <input
                       type="number"
-                      aria-label="Poids dans le projet (%)"
+                      aria-label="Poids dans le produit (%)"
                       min={0}
                       max={100}
                       step={5}
@@ -498,14 +498,14 @@ export default function FicheSujet({
             </div>
           )}
 
-          {/* Le projet du sujet, en léger : logo, avancement, équipe. */}
+          {/* Le produit du sujet, en léger : logo, avancement, équipe. */}
           {projet && (
             <a
-              href={`/app/projets/${projet.id}`}
+              href={`/app/produits/${projet.id}`}
               className="block bg-surface/60 px-5 py-4 transition hover:bg-surface sm:px-6"
             >
               <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-stone">
-                Projet
+                Produit
               </p>
               <span className="flex items-center gap-3">
                 <ProjetLogo

@@ -106,7 +106,7 @@ export async function PATCH(
     );
     if (membre.length === 0) {
       return NextResponse.json(
-        { error: "Le porteur doit être membre du projet." },
+        { error: "Le porteur doit être membre du produit." },
         { status: 400 },
       );
     }
@@ -151,7 +151,7 @@ export async function DELETE(
   }
   if (!(await canManageSujets(me, sujet.project_id))) {
     return NextResponse.json(
-      { error: "Seuls les dirigeants et le responsable du projet peuvent supprimer un sujet." },
+      { error: "Seuls les dirigeants et le responsable du produit peuvent supprimer un sujet." },
       { status: 403 },
     );
   }

@@ -97,7 +97,7 @@ export default function ProjetForm({
         return;
       }
       window.location.href = edition
-        ? `/app/projets/${initial!.id}`
+        ? `/app/produits/${initial!.id}`
         : "/app";
     } catch {
       setMessage("Impossible de joindre le serveur.");
@@ -152,7 +152,7 @@ export default function ProjetForm({
             )}
           </div>
           <p className="text-xs text-stone">
-            Facultatif : sans logo, la première lettre du nom du projet sera
+            Facultatif : sans logo, la première lettre du nom du produit sera
             affichée.
           </p>
         </div>
@@ -169,7 +169,7 @@ export default function ProjetForm({
         htmlFor="name"
         className="mb-2 mt-6 block text-sm font-medium text-ink"
       >
-        Nom du projet
+        Nom du produit
       </label>
       <input
         id="name"
@@ -191,7 +191,7 @@ export default function ProjetForm({
       <textarea
         id="description"
         rows={3}
-        placeholder="En quelques mots, l'objectif du projet…"
+        placeholder="En quelques mots, l'objectif du produit…"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         disabled={loading}
@@ -199,7 +199,7 @@ export default function ProjetForm({
       />
 
       <div className="mb-2 mt-6 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <p className="text-sm font-medium text-ink">Membres du projet</p>
+        <p className="text-sm font-medium text-ink">Membres du produit</p>
         <p className="text-xs text-stone">
           Cochez les membres, puis désignez le responsable
         </p>
@@ -274,7 +274,7 @@ export default function ProjetForm({
             ? "Enregistrement…"
             : edition
               ? "Enregistrer les modifications"
-              : "Créer le projet"}
+              : "Créer le produit"}
         </button>
         {edition && (
           <button
@@ -283,14 +283,14 @@ export default function ProjetForm({
             disabled={loading}
             className="rounded-lg px-4 py-3.5 text-sm font-medium text-danger transition hover:bg-danger-soft"
           >
-            Supprimer le projet
+            Supprimer le produit
           </button>
         )}
       </div>
 
       {confirmer && initial && (
         <Confirmation
-          titre="Supprimer le projet ?"
+          titre="Supprimer le produit ?"
           message={`« ${initial.name} », tous ses sujets et leur historique seront supprimés.`}
           onConfirm={handleDelete}
           onCancel={() => setConfirmer(false)}
