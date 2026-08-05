@@ -98,7 +98,7 @@ export default function ProjetForm({
       }
       window.location.href = edition
         ? `/app/projets/${initial!.id}`
-        : "/app/projets";
+        : "/app";
     } catch {
       setMessage("Impossible de joindre le serveur.");
     } finally {
@@ -114,7 +114,7 @@ export default function ProjetForm({
       method: "DELETE",
     });
     setLoading(false);
-    if (res.ok) window.location.href = "/app/projets";
+    if (res.ok) window.location.href = "/app";
     else {
       const data = await res.json().catch(() => null);
       setMessage(data?.error ?? "Échec de la suppression.");

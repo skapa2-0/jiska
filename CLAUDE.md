@@ -1,6 +1,6 @@
 # Jiska
 
-Outil de **pilotage hebdomadaire** des projets (PRD de Matthieu) : une seule page `/app` — bandeau d'indicateurs, filtres limités, tableau une-ligne-un-sujet, mise à jour en modale pendant la réunion. Stack : **Next.js** en front, **PostgreSQL** en back.
+Outil de **pilotage hebdomadaire** des projets (PRD de Matthieu). Accueil `/app` : la vue **Projets** (cartes). Page **Actions** (`/app/actions`) : bandeau d'indicateurs, filtres limités, tableau une-ligne-un-sujet, mise à jour en fiche/modale pendant la réunion. Stack : **Next.js** en front, **PostgreSQL** en back.
 
 ## Organisation
 

@@ -138,7 +138,7 @@ export default function Dashboard({
     const projet = params.get("projet");
     if (projet) setProjetId(projet);
     if (params.get("sujet") || projet) {
-      window.history.replaceState(null, "", "/app");
+      window.history.replaceState(null, "", "/app/actions");
     }
     // Dernier filtre choisi, restauré d'une visite à l'autre.
     const memorise = window.localStorage.getItem("jiska-filtre");

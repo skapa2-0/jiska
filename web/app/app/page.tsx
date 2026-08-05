@@ -1,100 +1,61 @@
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, isResponsable } from "@/lib/auth";
 import { query } from "@/lib/db";
-import type { SujetRow } from "@/lib/sujets";
 import BottomNav from "./bottom-nav";
 import Navbar from "./navbar";
-import Dashboard from "./dashboard";
+import ListeProjets from "./projets/liste-projets";
+import type { CarteProjet } from "./projets/liste-projets";
 
-// Le dashboard de pilotage hebdomadaire (PRD) : une seule page.
-// Dirigeants : tous les projets. Collaborateurs : leurs projets.
+// Page principale de l'espace : la vue par projet. Une carte par
+// projet, clic pour entrer dans le détail ; le tableau de pilotage
+// vit sur la page Actions.
 export default async function AppPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
   const dirigeant = user.role === "dirigeant";
-  // Filtre de visibilité injecté dans chaque requête ($1 = user id).
   const vis = dirigeant
     ? "SELECT id FROM projects"
     : "SELECT project_id FROM project_members WHERE user_id = $1";
   const visParams = dirigeant ? [] : [user.id];
 
-  const [indicRows, sujetRows, projectRows, memberRows] = await Promise.all([
-    query<{
-      projets: string;
-      ouverts: string;
-      avancement: string;
-      bloques: string;
-      retard: string;
-      echeances: string;
-      clotures: string;
-    }>(
-      `WITH s AS (SELECT * FROM sujets WHERE project_id IN (${vis}))
-       SELECT
-         (SELECT count(*) FROM (${vis}) v)                            AS projets,
-         (SELECT count(*) FROM s WHERE etat <> 'termine')             AS ouverts,
-         COALESCE((SELECT round(avg(round(least(100, COALESCE((SELECT sum(s2.poids * CASE s2.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END) FROM sujets s2
-                WHERE s2.project_id = p.id AND s2.type = 'technique'), 0)) * 0.6 + least(100, COALESCE((SELECT sum(s2.poids * CASE s2.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END) FROM sujets s2
-                WHERE s2.project_id = p.id AND s2.type = 'business'), 0)) * 0.4)))
-              FROM projects p WHERE p.id IN (${vis})
-               AND EXISTS (SELECT 1 FROM sujets sx WHERE sx.project_id = p.id)), 0) AS avancement,
-         (SELECT count(*) FROM s WHERE etat = 'bloque')               AS bloques,
-         (SELECT count(*) FROM s WHERE etat <> 'termine'
-            AND due_date < current_date)                              AS retard,
-         (SELECT count(*) FROM s WHERE etat <> 'termine'
-            AND due_date >= date_trunc('week', current_date)::date
-            AND due_date <  date_trunc('week', current_date)::date + 7) AS echeances,
-         (SELECT count(DISTINCT h.sujet_id) FROM sujet_history h
-            JOIN sujets su ON su.id = h.sujet_id
-           WHERE su.project_id IN (${vis}) AND h.field = 'etat'
-             AND h.new_value = 'termine'
-             AND h.changed_at > now() - interval '7 days')            AS clotures`,
-      visParams,
-    ),
-    query<SujetRow & { is_proj_resp: boolean }>(
-      `SELECT s.id, s.project_id, p.name AS project_name,
-              p.logo AS project_logo, s.title, s.action,
-              s.due_date::text AS due_date, s.type, s.poids,
-              s.porteur_id, s.updated_at::date::text AS updated_at,
-              s.criticite, s.etat, s.commentaire,
-              EXISTS (SELECT 1 FROM project_members m
-                       WHERE m.project_id = s.project_id
-                         AND m.user_id = $${visParams.length + 1}
-                         AND m.is_responsable) AS is_proj_resp
-         FROM sujets s
-         JOIN projects p ON p.id = s.project_id
-        WHERE s.project_id IN (${vis})
-        ORDER BY s.due_date NULLS LAST, s.id`,
-      [...visParams, user.id],
-    ),
+  const [projetRows, membres] = await Promise.all([
     query<{
       id: string;
       name: string;
+      description: string;
       logo: string | null;
-      avancement: string | null;
-      poids_tech: string;
-      poids_business: string;
-      is_resp: boolean;
+      tech: string;
+      business: string;
+      attrib_tech: string;
+      attrib_business: string;
+      actifs: string;
+      bloques: string;
+      echeance: string | null;
       responsable_id: string | null;
     }>(
-      `SELECT p.id, p.name, p.logo,
-              round(least(100, COALESCE((SELECT sum(s2.poids * CASE s2.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END) FROM sujets s2
-                WHERE s2.project_id = p.id AND s2.type = 'technique'), 0)) * 0.6 + least(100, COALESCE((SELECT sum(s2.poids * CASE s2.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END) FROM sujets s2
-                WHERE s2.project_id = p.id AND s2.type = 'business'), 0)) * 0.4) AS avancement,
-              COALESCE((SELECT sum(s2.poids) FROM sujets s2
-                WHERE s2.project_id = p.id AND s2.type = 'technique'), 0) AS poids_tech,
-              COALESCE((SELECT sum(s2.poids) FROM sujets s2
-                WHERE s2.project_id = p.id AND s2.type = 'business'), 0)  AS poids_business,
-              EXISTS (SELECT 1 FROM project_members m
-                       WHERE m.project_id = p.id
-                         AND m.user_id = $${visParams.length + 1}
-                         AND m.is_responsable) AS is_resp,
+      `SELECT p.id, p.name, p.description, p.logo,
+              least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
+                WHERE s.project_id = p.id AND s.type = 'technique'), 0)) AS tech,
+              least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
+                WHERE s.project_id = p.id AND s.type = 'business'), 0))  AS business,
+              COALESCE((SELECT sum(s.poids) FROM sujets s
+                WHERE s.project_id = p.id AND s.type = 'technique'), 0) AS attrib_tech,
+              COALESCE((SELECT sum(s.poids) FROM sujets s
+                WHERE s.project_id = p.id AND s.type = 'business'), 0)  AS attrib_business,
+              (SELECT min(s.due_date)::text FROM sujets s
+                WHERE s.project_id = p.id AND s.etat <> 'termine'
+                  AND s.due_date IS NOT NULL)                      AS echeance,
+              (SELECT count(*) FROM sujets s
+                WHERE s.project_id = p.id AND s.etat <> 'termine') AS actifs,
+              (SELECT count(*) FROM sujets s
+                WHERE s.project_id = p.id AND s.etat = 'bloque')   AS bloques,
               (SELECT m.user_id FROM project_members m
                 WHERE m.project_id = p.id AND m.is_responsable LIMIT 1) AS responsable_id
          FROM projects p
         WHERE p.id IN (${vis})
         ORDER BY p.name`,
-      [...visParams, user.id],
+      visParams,
     ),
     query<{
       project_id: string;
@@ -113,19 +74,21 @@ export default async function AppPage() {
     ),
   ]);
 
-  const ind = indicRows[0];
-  const ouverts = Number(ind.ouverts);
-
-  const projects = projectRows.map((p) => ({
+  const projets: CarteProjet[] = projetRows.map((p) => ({
     id: p.id,
     name: p.name,
+    description: p.description,
     logo: p.logo,
+    avancement: Math.round(Number(p.tech) * 0.6 + Number(p.business) * 0.4),
+    jalonTech: Number(p.tech),
+    jalonBusiness: Number(p.business),
+    attribTech: Number(p.attrib_tech),
+    attribBusiness: Number(p.attrib_business),
+    echeance: p.echeance,
+    actifs: Number(p.actifs),
+    bloques: Number(p.bloques),
     responsableId: p.responsable_id,
-    avancement: Number(p.avancement ?? 0),
-    poidsTech: Number(p.poids_tech),
-    poidsBusiness: Number(p.poids_business),
-    canManage: dirigeant || p.is_resp,
-    members: memberRows
+    equipe: membres
       .filter((m) => m.project_id === p.id)
       .map((m) => ({
         id: m.id,
@@ -136,33 +99,28 @@ export default async function AppPage() {
       })),
   }));
 
-  const sujets = sujetRows.map((s) => ({
-    ...s,
-    poids: Number(s.poids),
-    can_manage: dirigeant || s.is_proj_resp,
-    can_edit: dirigeant || s.is_proj_resp || s.porteur_id === user.id,
-  }));
+  const canCreateSujet = dirigeant || (await isResponsable(user.id));
 
-  const canCreateSujet = projects.some((p) => p.canManage);
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-white">
-      <Navbar user={user} canCreateSujet={canCreateSujet} onglet="sujets" />
-      <Dashboard
-        meId={user.id}
-        sujets={sujets}
-        projects={projects}
-        indicateurs={{
-          projets: Number(ind.projets),
-          ouverts,
-          avancement: Number(ind.avancement),
-          bloques: Number(ind.bloques),
-          echeances: Number(ind.echeances),
-          retard: Number(ind.retard),
-          clotures: Number(ind.clotures),
-        }}
-      />
-      <BottomNav onglet="sujets" canCreate={canCreateSujet} />
+    <div className="flex min-h-screen flex-col bg-white">
+      <Navbar user={user} canCreateSujet={canCreateSujet} onglet="projets" />
+      <main className="w-full flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+        <h1 className="mb-4 font-display text-2xl font-medium tracking-[-0.02em] text-ink">
+          Projets
+        </h1>
+        {projets.length === 0 ? (
+          <p className="mt-24 text-center text-[15px] text-stone">
+            {dirigeant
+              ? "Aucun projet pour l'instant. Créez le premier avec « Nouveau projet »."
+              : "Vous ne faites partie d'aucun projet pour l'instant."}
+          </p>
+        ) : (
+          <ListeProjets projets={projets} today={today} />
+        )}
+      </main>
+      <BottomNav onglet="projets" canCreate={canCreateSujet} />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import type { SessionUser } from "@/lib/auth";
 // Barre du haut de l'espace : les actions dépendent des permissions.
 // « Nouveau projet » : dirigeants seuls. « Nouveau sujet » : dirigeants
 // et responsables de projet.
-export type Onglet = "sujets" | "projets";
+export type Onglet = "projets" | "actions";
 
 export default function Navbar({
   user,
@@ -22,17 +22,17 @@ export default function Navbar({
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG local, pas d'optimisation utile */}
           <img src="/logo.svg" alt="Jiska" className="h-6 w-auto" />
         </a>
-        {/* Sélecteur de vue : focus sujets (tableau) ou vue par projet.
-            Sur téléphone, la navigation passe dans la barre basse. */}
+        {/* Sélecteur de vue : les projets (accueil) ou le tableau des
+            actions. Sur téléphone, la navigation passe en barre basse. */}
         <nav
           aria-label="Vues"
           className="hidden items-center gap-1 rounded-lg bg-surface p-1 md:flex"
         >
-          <OngletLien actif={onglet === "sujets"} href="/app">
-            Sujets
-          </OngletLien>
-          <OngletLien actif={onglet === "projets"} href="/app/projets">
+          <OngletLien actif={onglet === "projets"} href="/app">
             Projets
+          </OngletLien>
+          <OngletLien actif={onglet === "actions"} href="/app/actions">
+            Actions
           </OngletLien>
         </nav>
       </div>
@@ -41,7 +41,7 @@ export default function Navbar({
       <div className="flex shrink-0 items-center gap-3">
         {canCreateSujet && (
           <a
-            href="/app?sujet=nouveau"
+            href="/app/actions?sujet=nouveau"
             className="hidden items-center gap-1.5 rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface md:flex"
           >
             <PlusIcon />

@@ -13,10 +13,10 @@ export default async function ModifierProjetPage({
 }) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  if (user.role !== "dirigeant") redirect("/app/projets");
+  if (user.role !== "dirigeant") redirect("/app");
 
   const { id } = await params;
-  if (!/^\d+$/.test(id)) redirect("/app/projets");
+  if (!/^\d+$/.test(id)) redirect("/app");
 
   const [projets, membres, people] = await Promise.all([
     query<{
@@ -42,7 +42,7 @@ export default async function ModifierProjetPage({
   ]);
 
   const projet = projets[0];
-  if (!projet) redirect("/app/projets");
+  if (!projet) redirect("/app");
 
   return (
     <div className="flex min-h-screen flex-col bg-white">

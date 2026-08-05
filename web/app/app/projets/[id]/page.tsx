@@ -58,7 +58,7 @@ export default async function ProjetPage({
   if (!user) redirect("/login");
 
   const { id } = await params;
-  if (!/^\d+$/.test(id)) redirect("/app/projets");
+  if (!/^\d+$/.test(id)) redirect("/app");
 
   const dirigeant = user.role === "dirigeant";
   if (!dirigeant) {
@@ -66,7 +66,7 @@ export default async function ProjetPage({
       "SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2",
       [id, user.id],
     );
-    if (membre.length === 0) redirect("/app/projets");
+    if (membre.length === 0) redirect("/app");
   }
 
   const [projets, equipe, sujetRows, histRows, personnes] = await Promise.all([
@@ -142,7 +142,7 @@ export default async function ProjetPage({
   ]);
 
   const projet = projets[0];
-  if (!projet) redirect("/app/projets");
+  if (!projet) redirect("/app");
 
   const nomDe = new Map(personnes.map((p) => [p.id, displayName(p)]));
   const canManage = dirigeant || equipe.some((m) => m.id === user.id && m.is_responsable);
@@ -229,7 +229,7 @@ export default async function ProjetPage({
       <Navbar user={user} canCreateSujet={canCreateSujet} onglet="projets" />
       <main className="w-full flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         <a
-          href="/app/projets"
+          href="/app"
           className="text-sm font-medium text-mute transition hover:text-ink"
         >
           ← Tous les projets
@@ -263,7 +263,7 @@ export default async function ProjetPage({
               </a>
             )}
             <a
-              href={`/app?projet=${projet.id}`}
+              href={`/app/actions?projet=${projet.id}`}
               className="rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface"
             >
               Voir les sujets

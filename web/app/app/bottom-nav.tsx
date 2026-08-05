@@ -1,6 +1,6 @@
 // Barre de navigation basse, téléphone uniquement : les vues à portée
-// de pouce (Sujets, Projets, Profil) et la création de sujet au centre.
-export type OngletBas = "sujets" | "projets" | "profil";
+// de pouce (Projets, Actions, Profil) et la création de sujet au centre.
+export type OngletBas = "projets" | "actions" | "profil";
 
 export default function BottomNav({
   onglet,
@@ -15,15 +15,15 @@ export default function BottomNav({
       className="sticky bottom-0 z-20 border-t border-hairline bg-white pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       <div className="flex items-stretch justify-around">
-        <Item actif={onglet === "sujets"} href="/app" label="Sujets">
-          <path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01" />
-        </Item>
-        <Item actif={onglet === "projets"} href="/app/projets" label="Projets">
+        <Item actif={onglet === "projets"} href="/app" label="Projets">
           <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+        </Item>
+        <Item actif={onglet === "actions"} href="/app/actions" label="Actions">
+          <path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01" />
         </Item>
         {canCreate && (
           <a
-            href="/app?sujet=nouveau"
+            href="/app/actions?sujet=nouveau"
             aria-label="Nouveau sujet"
             className="flex flex-col items-center justify-center px-4 py-1.5"
           >
