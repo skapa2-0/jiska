@@ -137,13 +137,21 @@ export default function Dashboard({
     if (params.get("sujet") === "nouveau") setModal({ mode: "create" });
     const projet = params.get("projet");
     if (projet) setProjetId(projet);
-    if (params.get("sujet") || projet) {
-      window.history.replaceState(null, "", "/app/actions");
-    }
-    // Dernier filtre choisi, restauré d'une visite à l'autre.
+    // Dernier filtre choisi, restauré d'une visite à l'autre ; un
+    // ?filtre= explicite (tuiles de l'accueil) prend le dessus.
     const memorise = window.localStorage.getItem("jiska-filtre");
     if (memorise && FILTRES.some((f) => f.key === memorise)) {
       setFiltre(memorise as FiltreKey);
+    }
+    // En arrivant sur un produit précis, on repart de « tous » pour
+    // ne rien masquer.
+    if (projet) setFiltre("tous");
+    const demande = params.get("filtre");
+    if (demande && FILTRES.some((f) => f.key === demande)) {
+      setFiltre(demande as FiltreKey);
+    }
+    if (params.get("sujet") || projet || demande) {
+      window.history.replaceState(null, "", "/app/actions");
     }
   }, []);
 

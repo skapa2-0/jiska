@@ -6,9 +6,9 @@ import Navbar from "./navbar";
 import ListeProjets from "./produits/liste-projets";
 import type { CarteProjet } from "./produits/liste-projets";
 
-// Page principale de l'espace : la vue par produit. Une carte par
-// produit, clic pour entrer dans le détail ; le tableau de pilotage
-// vit sur la page Actions.
+// Page principale de l'espace : la vue par produit. Un bandeau de
+// synthèse du portefeuille, puis une carte par produit ; le tableau
+// de pilotage vit sur la page Actions.
 export default async function AppPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
@@ -31,6 +31,10 @@ export default async function AppPage() {
       attrib_business: string;
       actifs: string;
       bloques: string;
+      retards: string;
+      semaine: string;
+      total: string;
+      derniere: string | null;
       echeance: string | null;
       responsable_id: string | null;
     }>(
@@ -50,6 +54,17 @@ export default async function AppPage() {
                 WHERE s.project_id = p.id AND s.etat <> 'termine') AS actifs,
               (SELECT count(*) FROM sujets s
                 WHERE s.project_id = p.id AND s.etat = 'bloque')   AS bloques,
+              (SELECT count(*) FROM sujets s
+                WHERE s.project_id = p.id AND s.etat <> 'termine'
+                  AND s.due_date < current_date)                   AS retards,
+              (SELECT count(*) FROM sujets s
+                WHERE s.project_id = p.id AND s.etat <> 'termine'
+                  AND s.due_date >= date_trunc('week', current_date)::date
+                  AND s.due_date <  date_trunc('week', current_date)::date + 7) AS semaine,
+              (SELECT count(*) FROM sujets s
+                WHERE s.project_id = p.id)                         AS total,
+              (SELECT max(s.updated_at)::date::text FROM sujets s
+                WHERE s.project_id = p.id)                         AS derniere,
               (SELECT m.user_id FROM project_members m
                 WHERE m.project_id = p.id AND m.is_responsable LIMIT 1) AS responsable_id
          FROM projects p
@@ -87,6 +102,8 @@ export default async function AppPage() {
     echeance: p.echeance,
     actifs: Number(p.actifs),
     bloques: Number(p.bloques),
+    retards: Number(p.retards),
+    derniere: p.derniere,
     responsableId: p.responsable_id,
     equipe: membres
       .filter((m) => m.project_id === p.id)
@@ -99,6 +116,24 @@ export default async function AppPage() {
       })),
   }));
 
+  // Synthèse du portefeuille : moyenne sur les produits pondérés,
+  // signaux d'alerte agrégés.
+  const pondere = projetRows.filter((p) => Number(p.total) > 0);
+  const avancementMoyen = pondere.length
+    ? Math.round(
+        pondere.reduce(
+          (acc, p) => acc + Number(p.tech) * 0.6 + Number(p.business) * 0.4,
+          0,
+        ) / pondere.length,
+      )
+    : 0;
+  const aRisque = projets.filter((p) => p.bloques > 0 || p.retards > 0).length;
+  const bloquesTotal = projets.reduce((acc, p) => acc + p.bloques, 0);
+  const semaineTotal = projetRows.reduce(
+    (acc, p) => acc + Number(p.semaine),
+    0,
+  );
+
   const canCreateSujet = dirigeant || (await isResponsable(user.id));
 
   const today = new Date().toISOString().slice(0, 10);
@@ -107,9 +142,75 @@ export default async function AppPage() {
     <div className="flex min-h-screen flex-col bg-white">
       <Navbar user={user} canCreateSujet={canCreateSujet} onglet="produits" />
       <main className="w-full flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
-        <h1 className="mb-4 font-display text-2xl font-medium tracking-[-0.02em] text-ink">
-          Produits
-        </h1>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="font-display text-2xl font-medium tracking-[-0.02em] text-ink">
+            Produits
+          </h1>
+          {projets.length > 0 && (
+            <a
+              href="/app/reunion"
+              className="flex items-center gap-1.5 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 16 16"
+                className="h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 2.5 12.5 8 4 13.5V2.5Z" />
+              </svg>
+              Passer en revue
+            </a>
+          )}
+        </div>
+
+        {projets.length > 0 && (
+          <section
+            aria-label="Synthèse du portefeuille"
+            className="mb-6 grid grid-cols-2 gap-2.5 lg:grid-cols-4"
+          >
+            <Tuile
+              valeur={`${avancementMoyen} %`}
+              label="Avancement du portefeuille"
+              tint="bg-success-soft text-success"
+              ton={
+                avancementMoyen >= 75
+                  ? "text-success"
+                  : avancementMoyen >= 50
+                    ? "text-warn"
+                    : "text-ink"
+              }
+              icone="M3 17l6-6 4 4 8-8m0 0h-5m5 0v5"
+            />
+            <Tuile
+              valeur={aRisque}
+              label="Produits à risque"
+              tint="bg-danger-soft text-danger"
+              ton={aRisque > 0 ? "text-danger" : "text-success"}
+              icone="M12 4 2.5 20h19L12 4Zm0 6v4m0 3v.01"
+            />
+            <Tuile
+              valeur={bloquesTotal}
+              label="Sujets bloqués"
+              tint="bg-danger-soft text-danger"
+              ton={bloquesTotal > 0 ? "text-danger" : "text-success"}
+              icone="M7 10V7a5 5 0 0 1 10 0v3m-11 0h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Z"
+              href="/app/actions?filtre=bloques"
+            />
+            <Tuile
+              valeur={semaineTotal}
+              label="Échéances cette semaine"
+              tint="bg-warn-soft text-warn"
+              icone="M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm3-3v4m8-4v4M4 11h16"
+              href="/app/actions?filtre=semaine"
+            />
+          </section>
+        )}
+
         {projets.length === 0 ? (
           <p className="mt-24 text-center text-[15px] text-stone">
             {dirigeant
@@ -123,4 +224,63 @@ export default async function AppPage() {
       <BottomNav onglet="produits" canCreate={canCreateSujet} />
     </div>
   );
+}
+
+// Tuile de synthèse : cliquable quand elle mène à la page Actions
+// filtrée.
+function Tuile({
+  valeur,
+  label,
+  tint,
+  ton,
+  icone,
+  href,
+}: {
+  valeur: number | string;
+  label: string;
+  tint: string;
+  ton?: string;
+  icone: string;
+  href?: string;
+}) {
+  const contenu = (
+    <>
+      <span
+        aria-hidden="true"
+        className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${tint}`}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          className="h-[18px] w-[18px]"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d={icone} />
+        </svg>
+      </span>
+      <span className="min-w-0">
+        <span
+          className={`block font-display text-[21px] font-semibold leading-tight ${ton ?? "text-ink"}`}
+        >
+          {valeur}
+        </span>
+        <span className="block truncate text-xs font-medium text-mute">
+          {label}
+        </span>
+      </span>
+    </>
+  );
+  const classe = `flex items-center gap-2.5 rounded-lg bg-white px-3 py-2.5 text-left shadow-card ${
+    href ? "transition hover:-translate-y-0.5" : ""
+  }`;
+  if (href)
+    return (
+      <a href={href} className={classe}>
+        {contenu}
+      </a>
+    );
+  return <div className={classe}>{contenu}</div>;
 }
