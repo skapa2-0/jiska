@@ -337,21 +337,17 @@ export default function ImportTranscript({
           {p.titre}
         </h3>
 
-        {/* Le diff proposé */}
-        <div className="mt-2.5 space-y-1.5">
+        {/* Ce que c'était, ce que ça devient */}
+        <div className="mt-3 space-y-2">
           {(Object.keys(p.champs) as (keyof ChampsProposes)[]).map((cle) => (
-            <p key={cle} className="flex flex-wrap items-center gap-1.5 text-sm">
-              <span className="text-stone">{LIBELLES[cle]}</span>
-              {p.sujetId && (
-                <>
-                  <span className="text-mute">{rendu(cle, p.avant[cle], nomDe)}</span>
-                  <span className="text-stone">→</span>
-                </>
-              )}
-              <span className="font-semibold text-ink">
-                {rendu(cle, p.champs[cle], nomDe)}
-              </span>
-            </p>
+            <Diff
+              key={cle}
+              cle={cle}
+              avant={p.avant[cle]}
+              apres={p.champs[cle]}
+              creation={!p.sujetId}
+              nomDe={nomDe}
+            />
           ))}
           {!p.sujetId && (
             <p className="text-xs text-warn">
@@ -686,22 +682,163 @@ function Bloc({ titre, children }: { titre: string; children: React.ReactNode })
   );
 }
 
-// Rend une valeur de champ en français lisible plutôt qu'en code interne.
-function rendu(
-  cle: keyof ChampsProposes,
-  valeur: unknown,
-  nomDe: Map<string, Personne>,
-): string {
-  if (valeur === undefined || valeur === null || valeur === "") return "-";
-  const v = String(valeur);
-  if (cle === "etat") return ETATS[v as keyof typeof ETATS]?.label ?? v;
-  if (cle === "criticite")
-    return CRITICITES[v as keyof typeof CRITICITES]?.label ?? v;
-  if (cle === "type") return TYPES_SUJET[v as keyof typeof TYPES_SUJET]?.label ?? v;
-  if (cle === "dueDate") return jolieDate(v);
+// Les textes longs ne se comparent pas sur une ligne : au-delà de deux
+// mots, « ancien → nouveau » devient illisible et il faut tronquer.
+const CHAMPS_LONGS: (keyof ChampsProposes)[] = ["action", "commentaire"];
+
+const VIDE: Partial<Record<keyof ChampsProposes, string>> = {
+  dueDate: "Aucune échéance",
+  porteurId: "Aucun porteur",
+  action: "Aucune action",
+  commentaire: "Aucun commentaire",
+};
+
+const texteBrut = (v: unknown) =>
+  v === undefined || v === null ? "" : String(v).trim();
+
+// Ce que c'était, ce que ça devient. Deux traitements : les valeurs
+// courtes se comparent d'un coup d'œil sur une ligne, avec les pastilles
+// du reste de l'application ; les textes longs se superposent en avant et
+// après, entiers, sans troncature.
+function Diff({
+  cle,
+  avant,
+  apres,
+  creation,
+  nomDe,
+}: {
+  cle: keyof ChampsProposes;
+  avant: unknown;
+  apres: unknown;
+  creation: boolean;
+  nomDe: Map<string, Personne>;
+}) {
+  const long = CHAMPS_LONGS.includes(cle);
+  const vide = VIDE[cle] ?? "Vide";
+
+  return (
+    <div className="rounded-lg bg-surface px-3.5 py-2.5">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-stone">
+        {LIBELLES[cle]}
+      </p>
+
+      {long ? (
+        <div className="mt-1.5 space-y-1">
+          {!creation && (
+            <div className="flex gap-2.5">
+              <span className="w-[3.4rem] shrink-0 pt-0.5 text-[11px] font-semibold uppercase tracking-wide text-stone">
+                Avant
+              </span>
+              <span className="text-sm leading-snug text-stone line-through decoration-stone/40">
+                {texteBrut(avant) || vide}
+              </span>
+            </div>
+          )}
+          <div className="flex gap-2.5">
+            <span className="w-[3.4rem] shrink-0 pt-0.5 text-[11px] font-semibold uppercase tracking-wide text-success">
+              {creation ? "Valeur" : "Après"}
+            </span>
+            <span className="text-sm font-medium leading-snug text-ink">
+              {texteBrut(apres) || vide}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          {!creation && (
+            <>
+              <Valeur cle={cle} valeur={avant} nomDe={nomDe} passe />
+              <span aria-hidden="true" className="text-stone">
+                →
+              </span>
+            </>
+          )}
+          <Valeur cle={cle} valeur={apres} nomDe={nomDe} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Une valeur courte, rendue comme partout ailleurs dans Jiska : pastille
+// d'état, de criticité ou de type, avatar pour un porteur. « passe » grise
+// l'ancienne valeur pour que la nouvelle ressorte.
+function Valeur({
+  cle,
+  valeur,
+  nomDe,
+  passe = false,
+}: {
+  cle: keyof ChampsProposes;
+  valeur: unknown;
+  nomDe: Map<string, Personne>;
+  passe?: boolean;
+}) {
+  const v = texteBrut(valeur);
+  const attenue = passe ? "opacity-55" : "";
+
+  if (!v) {
+    return (
+      <span className={`text-sm text-stone ${attenue}`}>
+        {VIDE[cle] ?? "Vide"}
+      </span>
+    );
+  }
+
+  if (cle === "etat") {
+    const e = ETATS[v as keyof typeof ETATS];
+    return e ? <Chip classe={e.chip} attenue={passe}>{e.label}</Chip> : <>{v}</>;
+  }
+  if (cle === "criticite") {
+    const c = CRITICITES[v as keyof typeof CRITICITES];
+    return c ? <Chip classe={c.chip} attenue={passe}>{c.label}</Chip> : <>{v}</>;
+  }
+  if (cle === "type") {
+    const t = TYPES_SUJET[v as keyof typeof TYPES_SUJET];
+    return t ? <Chip classe={t.chip} attenue={passe}>{t.label}</Chip> : <>{v}</>;
+  }
   if (cle === "porteurId") {
     const p = nomDe.get(v);
-    return p ? displayName(p) : v;
+    return (
+      <span
+        className={`flex items-center gap-1.5 text-sm font-medium text-ink ${attenue}`}
+      >
+        <Avatar
+          personne={p ?? { id: v, email: v }}
+          taille="h-5 w-5 text-[9px]"
+        />
+        {p ? displayName(p) : v}
+      </span>
+    );
   }
-  return v.length > 90 ? `${v.slice(0, 90)}…` : v;
+  if (cle === "dueDate") {
+    return (
+      <span
+        className={`rounded-md bg-white px-2 py-1 text-xs font-semibold text-ink ${attenue}`}
+      >
+        {jolieDate(v)}
+      </span>
+    );
+  }
+  return <span className={`text-sm text-ink ${attenue}`}>{v}</span>;
+}
+
+function Chip({
+  classe,
+  attenue,
+  children,
+}: {
+  classe: string;
+  attenue?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={`inline-block whitespace-nowrap rounded-md px-2 py-1 text-xs font-semibold ${classe} ${
+        attenue ? "opacity-55" : ""
+      }`}
+    >
+      {children}
+    </span>
+  );
 }
