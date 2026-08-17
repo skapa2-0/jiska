@@ -146,6 +146,27 @@ export default async function AppPage() {
           <h1 className="font-display text-2xl font-medium tracking-[-0.02em] text-ink">
             Produits
           </h1>
+          <div className="flex flex-wrap items-center gap-2">
+          {dirigeant && (
+            <a
+              href="/app/reunion/import"
+              className="flex items-center gap-1.5 rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 16V4m0 0L8 8m4-4 4 4M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" />
+              </svg>
+              Importer une réunion
+            </a>
+          )}
           {projets.length > 0 && (
             <a
               href="/app/reunion"
@@ -166,6 +187,7 @@ export default async function AppPage() {
               Passer en revue
             </a>
           )}
+          </div>
         </div>
 
         {projets.length > 0 && (

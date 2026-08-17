@@ -1,100 +1,24 @@
 import { NextResponse } from "next/server";
-import { canManageSujets, getSessionUser } from "@/lib/auth";
-import { query } from "@/lib/db";
-import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
+import { getSessionUser } from "@/lib/auth";
+import { creerSujet, estEchec } from "@/lib/sujets-write";
 
 // Création d'un sujet : dirigeant, ou responsable du projet concerné.
+// La validation vit dans lib/sujets-write, partagée avec l'application
+// d'un import de réunion.
 export async function POST(request: Request) {
   const me = await getSessionUser();
   if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
 
-  let body: {
-    projectId?: string;
-    title?: string;
-    action?: string;
-    dueDate?: string;
-    type?: string;
-    poids?: number;
-    porteurId?: string | null;
-    criticite?: string;
-    etat?: string;
-    commentaire?: string;
-  };
+  let body: Record<string, unknown>;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
   }
 
-  const projectId = String(body.projectId ?? "");
-  const title = body.title?.trim() ?? "";
-
-  if (!/^\d+$/.test(projectId) || !title) {
-    return NextResponse.json(
-      { error: "Produit et sujet sont requis." },
-      { status: 400 },
-    );
+  const res = await creerSujet(me, String(body.projectId ?? ""), body);
+  if (estEchec(res)) {
+    return NextResponse.json({ error: res.error }, { status: res.status });
   }
-  if (!(await canManageSujets(me, projectId))) {
-    return NextResponse.json(
-      { error: "Seuls les dirigeants et le responsable du produit peuvent créer un sujet." },
-      { status: 403 },
-    );
-  }
-
-  const porteurId = /^\d+$/.test(String(body.porteurId ?? ""))
-    ? String(body.porteurId)
-    : null;
-  if (porteurId) {
-    const membre = await query(
-      "SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2",
-      [projectId, porteurId],
-    );
-    if (membre.length === 0) {
-      return NextResponse.json(
-        { error: "Le porteur doit être membre du produit." },
-        { status: 400 },
-      );
-    }
-  }
-
-  const type =
-    body.type && body.type in TYPES_SUJET ? body.type : "technique";
-  const poids =
-    typeof body.poids === "number" && Number.isFinite(body.poids)
-      ? Math.min(100, Math.max(0, Math.round(body.poids)))
-      : 0;
-  const criticite =
-    body.criticite && body.criticite in CRITICITES ? body.criticite : "normale";
-  const etat = body.etat && body.etat in ETATS ? body.etat : "a_faire";
-  const dueDate = /^\d{4}-\d{2}-\d{2}$/.test(body.dueDate ?? "")
-    ? body.dueDate
-    : null;
-
-  const rows = await query<{ id: string }>(
-    `INSERT INTO sujets (project_id, title, action, due_date,
-                         type, poids, porteur_id, criticite, etat, commentaire)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
-    [
-      projectId,
-      title,
-      body.action?.trim() ?? "",
-      dueDate,
-      type,
-      poids,
-      porteurId,
-      criticite,
-      etat,
-      body.commentaire?.trim() ?? "",
-    ],
-  );
-
-  // Trace de création dans l'historique du projet.
-  await query(
-    `INSERT INTO sujet_history (sujet_id, changed_by, field, new_value)
-     VALUES ($1, $2, 'creation', $3)`,
-    [rows[0].id, me.id, title],
-  );
-
-  return NextResponse.json({ ok: true, id: rows[0].id }, { status: 201 });
+  return NextResponse.json({ ok: true, id: res.id }, { status: 201 });
 }

@@ -15,6 +15,8 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://jiska:${POSTGRES_PASSWORD}@jiska-db:5432/jiska
+      # Analyse des comptes rendus de réunion (import de transcript).
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     depends_on:
       jiska-db:
         condition: service_healthy

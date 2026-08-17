@@ -270,9 +270,17 @@ export default async function ProjetPage({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {canManage && (
+              <a
+                href={`/app/produits/${projet.id}/import`}
+                className="rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface"
+              >
+                Importer une réunion
+              </a>
+            )}
             {dirigeant && (
               <a
-                href={`/app/projets/${projet.id}/modifier`}
+                href={`/app/produits/${projet.id}/modifier`}
                 className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85"
               >
                 Modifier

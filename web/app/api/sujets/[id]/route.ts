@@ -1,41 +1,12 @@
 import { NextResponse } from "next/server";
 import { canManageSujets, getSessionUser } from "@/lib/auth";
-import type { SessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
-
-type SujetDb = {
-  id: string;
-  project_id: string;
-  title: string;
-  action: string;
-  due_date: string | null;
-  type: string;
-  poids: number;
-  porteur_id: string | null;
-  criticite: string;
-  etat: string;
-  commentaire: string;
-};
-
-async function loadSujet(id: string): Promise<SujetDb | null> {
-  if (!/^\d+$/.test(id)) return null;
-  const rows = await query<SujetDb>(
-    `SELECT id, project_id, title, action,
-            due_date::text AS due_date,
-            type, poids, porteur_id, criticite, etat, commentaire
-       FROM sujets WHERE id = $1`,
-    [id],
-  );
-  return rows[0] ?? null;
-}
-
-// Peut modifier : dirigeant, responsable du projet, ou porteur de
-// l'action du sujet (il tient son sujet à jour entre deux réunions).
-async function canEdit(me: SessionUser, sujet: SujetDb): Promise<boolean> {
-  if (sujet.porteur_id === me.id) return true;
-  return canManageSujets(me, sujet.project_id);
-}
+import {
+  appliquerPatch,
+  chargerSujet,
+  estEchec,
+  peutEditer,
+} from "@/lib/sujets-write";
 
 export async function PATCH(
   request: Request,
@@ -45,11 +16,11 @@ export async function PATCH(
   if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
 
   const { id } = await params;
-  const sujet = await loadSujet(id);
+  const sujet = await chargerSujet(id);
   if (!sujet) {
     return NextResponse.json({ error: "Sujet introuvable." }, { status: 404 });
   }
-  if (!(await canEdit(me, sujet))) {
+  if (!(await peutEditer(me, sujet))) {
     return NextResponse.json({ error: "Accès refusé." }, { status: 403 });
   }
 
@@ -60,80 +31,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
   }
 
-  // Champs modifiables -> valeur validée (undefined = non fourni/invalide).
-  const patch: Record<string, string | number | null | undefined> = {
-    title:
-      typeof body.title === "string" && body.title.trim()
-        ? body.title.trim()
-        : undefined,
-    action: typeof body.action === "string" ? body.action.trim() : undefined,
-    commentaire:
-      typeof body.commentaire === "string" ? body.commentaire.trim() : undefined,
-    due_date:
-      body.dueDate === null
-        ? null
-        : /^\d{4}-\d{2}-\d{2}$/.test(String(body.dueDate ?? ""))
-          ? String(body.dueDate)
-          : undefined,
-    type:
-      typeof body.type === "string" && body.type in TYPES_SUJET
-        ? body.type
-        : undefined,
-    poids:
-      typeof body.poids === "number" && Number.isFinite(body.poids)
-        ? Math.min(100, Math.max(0, Math.round(body.poids)))
-        : undefined,
-    criticite:
-      typeof body.criticite === "string" && body.criticite in CRITICITES
-        ? body.criticite
-        : undefined,
-    etat:
-      typeof body.etat === "string" && body.etat in ETATS
-        ? body.etat
-        : undefined,
-    porteur_id:
-      body.porteurId === null
-        ? null
-        : /^\d+$/.test(String(body.porteurId ?? ""))
-          ? String(body.porteurId)
-          : undefined,
-  };
-
-  if (typeof patch.porteur_id === "string") {
-    const membre = await query(
-      "SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2",
-      [sujet.project_id, patch.porteur_id],
-    );
-    if (membre.length === 0) {
-      return NextResponse.json(
-        { error: "Le porteur doit être membre du produit." },
-        { status: 400 },
-      );
-    }
+  const res = await appliquerPatch(me, sujet, body);
+  if (estEchec(res)) {
+    return NextResponse.json({ error: res.error }, { status: res.status });
   }
-
-  const changes = Object.entries(patch).filter(
-    ([field, value]) =>
-      value !== undefined &&
-      String(value ?? "") !== String(sujet[field as keyof SujetDb] ?? ""),
-  );
-  if (changes.length === 0) return NextResponse.json({ ok: true });
-
-  const sets = changes.map(([field], i) => `${field} = $${i + 2}`).join(", ");
-  await query(
-    `UPDATE sujets SET ${sets}, updated_at = now() WHERE id = $1`,
-    [id, ...changes.map(([, value]) => value)],
-  );
-
-  // Historique champ par champ (PRD §11 : conservé, non affiché).
-  for (const [field, value] of changes) {
-    await query(
-      `INSERT INTO sujet_history (sujet_id, changed_by, field, old_value, new_value)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [id, me.id, field, String(sujet[field as keyof SujetDb] ?? ""), String(value ?? "")],
-    );
-  }
-
   return NextResponse.json({ ok: true });
 }
 
@@ -145,13 +46,16 @@ export async function DELETE(
   if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
 
   const { id } = await params;
-  const sujet = await loadSujet(id);
+  const sujet = await chargerSujet(id);
   if (!sujet) {
     return NextResponse.json({ error: "Sujet introuvable." }, { status: 404 });
   }
   if (!(await canManageSujets(me, sujet.project_id))) {
     return NextResponse.json(
-      { error: "Seuls les dirigeants et le responsable du produit peuvent supprimer un sujet." },
+      {
+        error:
+          "Seuls les dirigeants et le responsable du produit peuvent supprimer un sujet.",
+      },
       { status: 403 },
     );
   }

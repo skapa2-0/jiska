@@ -49,7 +49,7 @@ export default async function ModifierProjetPage({
       <Navbar user={user} canCreateSujet onglet="produits" />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
         <a
-          href={`/app/projets/${projet.id}`}
+          href={`/app/produits/${projet.id}`}
           className="text-sm font-medium text-mute transition hover:text-ink"
         >
           ← Retour au produit

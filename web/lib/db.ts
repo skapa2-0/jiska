@@ -103,7 +103,47 @@ function ensureSchema(): Promise<void> {
          old_value  text,
          new_value  text
        );
-       CREATE INDEX IF NOT EXISTS sujet_history_sujet_idx ON sujet_history (sujet_id);`,
+       CREATE INDEX IF NOT EXISTS sujet_history_sujet_idx ON sujet_history (sujet_id);
+       -- Provenance d'une écriture : saisie manuelle ou import de réunion.
+       ALTER TABLE sujet_history ADD COLUMN IF NOT EXISTS source text NOT NULL
+         DEFAULT 'manuel';
+       -- Dépôt d'un transcript. project_id NULL = portée portefeuille ;
+       -- renseigné = portée produit, les propositions ne peuvent pas en sortir.
+       CREATE TABLE IF NOT EXISTS reunion_imports (
+         id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+         project_id   bigint REFERENCES projects(id) ON DELETE CASCADE,
+         date_reunion date NOT NULL,
+         transcript   text NOT NULL,
+         propositions jsonb NOT NULL DEFAULT '[]'::jsonb,
+         ecartes      jsonb NOT NULL DEFAULT '[]'::jsonb,
+         statut       text NOT NULL DEFAULT 'a_verifier'
+           CHECK (statut IN ('a_verifier', 'applique', 'abandonne')),
+         created_by   bigint REFERENCES users(id) ON DELETE SET NULL,
+         created_at   timestamptz NOT NULL DEFAULT now(),
+         applied_at   timestamptz
+       );
+       CREATE INDEX IF NOT EXISTS reunion_imports_statut_idx
+         ON reunion_imports (statut, project_id);
+       -- Lexique : un terme entendu en réunion vers un produit ou un sujet.
+       -- Alimenté quand l'utilisateur corrige la cible d'une proposition.
+       CREATE TABLE IF NOT EXISTS lexique (
+         id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+         terme      text NOT NULL,
+         cible_type text NOT NULL CHECK (cible_type IN ('projet', 'sujet')),
+         cible_id   bigint NOT NULL,
+         created_by bigint REFERENCES users(id) ON DELETE SET NULL,
+         created_at timestamptz NOT NULL DEFAULT now()
+       );
+       CREATE UNIQUE INDEX IF NOT EXISTS lexique_terme_idx
+         ON lexique (lower(terme), cible_type);
+       -- Correspondance entre un nom de locuteur Fireflies et un compte.
+       CREATE TABLE IF NOT EXISTS locuteurs (
+         id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+         nom        text NOT NULL,
+         user_id    bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+         created_at timestamptz NOT NULL DEFAULT now()
+       );
+       CREATE UNIQUE INDEX IF NOT EXISTS locuteurs_nom_idx ON locuteurs (lower(nom));`,
     )
     .then(() => undefined);
   return schemaReady;
