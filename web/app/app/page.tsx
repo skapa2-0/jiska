@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionUser, isResponsable } from "@/lib/auth";
+import { chargerImportsEnAttente } from "@/lib/imports";
 import { query } from "@/lib/db";
 import BottomNav from "./bottom-nav";
 import Navbar from "./navbar";
@@ -135,6 +136,8 @@ export default async function AppPage() {
   );
 
   const canCreateSujet = dirigeant || (await isResponsable(user.id));
+  // Une analyse déjà payée qui dort en base doit se voir depuis l'accueil.
+  const enAttente = dirigeant ? await chargerImportsEnAttente(null) : [];
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -165,6 +168,11 @@ export default async function AppPage() {
                 <path d="M12 16V4m0 0L8 8m4-4 4 4M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" />
               </svg>
               Importer une réunion
+              {enAttente.length > 0 && (
+                <span className="rounded-md bg-warn-soft px-1.5 py-0.5 text-xs font-semibold text-warn">
+                  {enAttente.length}
+                </span>
+              )}
             </a>
           )}
           {projets.length > 0 && (

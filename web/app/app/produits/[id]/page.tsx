@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionUser, isResponsable } from "@/lib/auth";
+import { chargerImportsEnAttente } from "@/lib/imports";
 import { query } from "@/lib/db";
 import {
   avancementGlobal,
@@ -238,6 +239,7 @@ export default async function ProjetPage({
   const termines = sujets.length - actifs.length;
   const bloques = actifs.filter((s) => s.etat === "bloque").length;
   const canCreateSujet = dirigeant || (await isResponsable(user.id));
+  const importsEnAttente = canManage ? await chargerImportsEnAttente(id) : [];
   const today = new Date().toISOString().slice(0, 10);
 
   return (
@@ -273,9 +275,14 @@ export default async function ProjetPage({
             {canManage && (
               <a
                 href={`/app/produits/${projet.id}/import`}
-                className="rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface"
+                className="flex items-center gap-1.5 rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface"
               >
                 Importer une réunion
+                {importsEnAttente.length > 0 && (
+                  <span className="rounded-md bg-warn-soft px-1.5 py-0.5 text-xs font-semibold text-warn">
+                    {importsEnAttente.length}
+                  </span>
+                )}
               </a>
             )}
             {dirigeant && (

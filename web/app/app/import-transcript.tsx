@@ -20,6 +20,15 @@ export type ProduitImport = {
 
 type Statut = "attente" | "accepte" | "rejete";
 
+// Un import déjà analysé, rouvert pour être vérifié : l'analyse coûte une
+// minute, un onglet fermé ne doit pas la faire perdre.
+export type Reprise = {
+  id: string;
+  dateReunion: string;
+  propositions: Proposition[];
+  ecartes: string[];
+};
+
 const LIBELLES: Record<keyof ChampsProposes, string> = {
   etat: "État",
   criticite: "Criticité",
@@ -42,22 +51,30 @@ export default function ImportTranscript({
   produits,
   porteeProjetId,
   retour,
+  reprise = null,
 }: {
   produits: ProduitImport[];
   porteeProjetId: string | null;
   retour: string;
+  reprise?: Reprise | null;
 }) {
   const router = useRouter();
-  const [dateReunion, setDateReunion] = useState("");
+  const [dateReunion, setDateReunion] = useState(reprise?.dateReunion ?? "");
   const [transcript, setTranscript] = useState("");
   const [nomFichier, setNomFichier] = useState("");
   const [chargement, setChargement] = useState(false);
   const [message, setMessage] = useState("");
 
-  const [importId, setImportId] = useState<string | null>(null);
-  const [propositions, setPropositions] = useState<Proposition[]>([]);
-  const [ecartes, setEcartes] = useState<string[]>([]);
-  const [statuts, setStatuts] = useState<Record<string, Statut>>({});
+  const [importId, setImportId] = useState<string | null>(reprise?.id ?? null);
+  const [propositions, setPropositions] = useState<Proposition[]>(
+    reprise?.propositions ?? [],
+  );
+  const [ecartes, setEcartes] = useState<string[]>(reprise?.ecartes ?? []);
+  const [statuts, setStatuts] = useState<Record<string, Statut>>(() =>
+    Object.fromEntries(
+      (reprise?.propositions ?? []).map((p) => [p.ref, "attente" as Statut]),
+    ),
+  );
   const [retouches, setRetouches] = useState<Record<string, boolean>>({});
   const [edition, setEdition] = useState<string | null>(null);
   const [bilan, setBilan] = useState<string | null>(null);
@@ -160,6 +177,15 @@ export default function ImportTranscript({
     } finally {
       setChargement(false);
     }
+  }
+
+  async function abandonner() {
+    if (importId) {
+      await fetch(`/api/imports/${importId}/abandonner`, {
+        method: "POST",
+      }).catch(() => null);
+    }
+    window.location.href = retour;
   }
 
   const champ =
@@ -608,12 +634,14 @@ export default function ImportTranscript({
 
       {propositions.length > 0 && (
         <div className="sticky bottom-0 z-10 mt-8 flex flex-wrap items-center gap-3 border-t border-hairline bg-white/95 py-4 backdrop-blur">
-          <a
-            href={retour}
-            className="rounded-lg border border-hairline px-4 py-2.5 text-sm font-medium text-mute transition hover:bg-surface"
+          <button
+            type="button"
+            onClick={abandonner}
+            disabled={chargement}
+            className="rounded-lg border border-hairline px-4 py-2.5 text-sm font-medium text-mute transition hover:bg-surface disabled:opacity-50"
           >
             Abandonner
-          </a>
+          </button>
           <button
             type="button"
             onClick={appliquer}

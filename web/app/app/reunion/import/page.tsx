@@ -1,19 +1,30 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
+import { chargerImport, chargerImportsEnAttente } from "@/lib/imports";
 import BottomNav from "../../bottom-nav";
 import Navbar from "../../navbar";
 import { chargerProduits } from "../../charger-produits";
+import ImportsEnAttente from "../../imports-en-attente";
 import ImportTranscript from "../../import-transcript";
 
 // Portée portefeuille : la réunion hebdomadaire générale, où l'on fait le
 // tour de tous les produits. Réservée aux dirigeants, comme la création
 // d'un produit.
-export default async function ImportReunionPage() {
+export default async function ImportReunionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reprise?: string }>;
+}) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
   if (user.role !== "dirigeant") redirect("/app");
 
-  const produits = await chargerProduits(null);
+  const { reprise: repriseId } = await searchParams;
+  const [produits, enAttente, reprise] = await Promise.all([
+    chargerProduits(null),
+    chargerImportsEnAttente(null),
+    repriseId ? chargerImport(repriseId, null) : Promise.resolve(null),
+  ]);
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -26,17 +37,25 @@ export default async function ImportReunionPage() {
           ← Tous les produits
         </a>
         <h1 className="mt-3 font-display text-2xl font-medium tracking-[-0.02em] text-ink">
-          Importer une réunion générale
+          {reprise
+            ? `Vérifier la réunion du ${reprise.dateReunion.split("-").reverse().join("/")}`
+            : "Importer une réunion générale"}
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-stone">
-          Le compte rendu est analysé sur l&apos;ensemble du portefeuille
-          ({produits.length} produit{produits.length > 1 ? "s" : ""}). Rien
-          n&apos;est écrit avant votre validation, proposition par proposition.
+          {reprise
+            ? "Analyse déjà effectuée : il reste à accepter, corriger ou rejeter chaque proposition."
+            : `Le compte rendu est analysé sur l'ensemble du portefeuille (${produits.length} produit${produits.length > 1 ? "s" : ""}). Rien n'est écrit avant votre validation, proposition par proposition.`}
         </p>
+
+        {!reprise && (
+          <ImportsEnAttente imports={enAttente} base="/app/reunion/import" />
+        )}
+
         <ImportTranscript
           produits={produits}
           porteeProjetId={null}
           retour="/app"
+          reprise={reprise}
         />
       </main>
       <BottomNav onglet="produits" canCreate />

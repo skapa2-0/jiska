@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { canManageSujets, getSessionUser, isResponsable } from "@/lib/auth";
+import { chargerImport, chargerImportsEnAttente } from "@/lib/imports";
 import BottomNav from "../../../bottom-nav";
 import Navbar from "../../../navbar";
 import { chargerProduits } from "../../../charger-produits";
+import ImportsEnAttente from "../../../imports-en-attente";
 import ImportTranscript from "../../../import-transcript";
 
 // Portée produit : une réunion qui ne porte que sur ce produit. Le
@@ -10,8 +12,10 @@ import ImportTranscript from "../../../import-transcript";
 // d'application refuse toute écriture ailleurs.
 export default async function ImportProduitPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ reprise?: string }>;
 }) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
@@ -20,12 +24,17 @@ export default async function ImportProduitPage({
   if (!/^\d+$/.test(id)) redirect("/app");
   if (!(await canManageSujets(user, id))) redirect(`/app/produits/${id}`);
 
-  const produits = await chargerProduits(id);
+  const { reprise: repriseId } = await searchParams;
+  const [produits, enAttente, reprise, canCreateSujet] = await Promise.all([
+    chargerProduits(id),
+    chargerImportsEnAttente(id),
+    repriseId ? chargerImport(repriseId, id) : Promise.resolve(null),
+    user.role === "dirigeant" ? Promise.resolve(true) : isResponsable(user.id),
+  ]);
+
   const produit = produits[0];
   if (!produit) redirect("/app");
-
-  const canCreateSujet =
-    user.role === "dirigeant" || (await isResponsable(user.id));
+  const base = `/app/produits/${id}/import`;
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -38,18 +47,23 @@ export default async function ImportProduitPage({
           ← Retour au produit
         </a>
         <h1 className="mt-3 font-display text-2xl font-medium tracking-[-0.02em] text-ink">
-          Importer une réunion « {produit.name} »
+          {reprise
+            ? `Vérifier la réunion du ${reprise.dateReunion.split("-").reverse().join("/")}`
+            : `Importer une réunion « ${produit.name} »`}
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-stone">
-          L&apos;analyse est limitée à ce produit et à ses{" "}
-          {produit.sujets.length} sujet
-          {produit.sujets.length > 1 ? "s" : ""} : aucune proposition ne peut
-          concerner un autre produit.
+          {reprise
+            ? "Analyse déjà effectuée : il reste à accepter, corriger ou rejeter chaque proposition."
+            : `L'analyse est limitée à ce produit et à ses ${produit.sujets.length} sujet${produit.sujets.length > 1 ? "s" : ""} : aucune proposition ne peut concerner un autre produit.`}
         </p>
+
+        {!reprise && <ImportsEnAttente imports={enAttente} base={base} />}
+
         <ImportTranscript
           produits={produits}
           porteeProjetId={id}
           retour={`/app/produits/${id}`}
+          reprise={reprise}
         />
       </main>
       <BottomNav onglet="produits" canCreate={canCreateSujet} />
