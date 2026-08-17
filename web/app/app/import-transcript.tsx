@@ -251,7 +251,7 @@ export default function ImportTranscript({
         </button>
         {chargement && (
           <p className="mt-2 text-center text-xs text-stone">
-            Une réunion d&apos;une heure demande environ vingt secondes.
+            Comptez environ une minute pour une réunion d&apos;une heure.
           </p>
         )}
       </div>
