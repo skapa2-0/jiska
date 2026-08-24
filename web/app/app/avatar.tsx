@@ -39,7 +39,7 @@ export default function Avatar({
 }) {
   const bordure = dore ? "border-2 border-white" : classe;
   const noyau = personne.avatar ? (
-    // eslint-disable-next-line @next/next/no-img-element -- data URL locale
+    // eslint-disable-next-line @next/next/no-img-element -- image servie par /api/avatars
     <img
       src={personne.avatar}
       alt=""

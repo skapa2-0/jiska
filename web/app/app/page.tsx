@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser, isResponsable } from "@/lib/auth";
 import { chargerImportsEnAttente } from "@/lib/imports";
 import { query } from "@/lib/db";
+import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
 import BottomNav from "./bottom-nav";
 import Navbar from "./navbar";
 import ListeProjets from "./produits/liste-projets";
@@ -39,7 +40,7 @@ export default async function AppPage() {
       echeance: string | null;
       responsable_id: string | null;
     }>(
-      `SELECT p.id, p.name, p.description, p.logo,
+      `SELECT p.id, p.name, p.description, ${sqlLogoUrl("p")} AS logo,
               least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
                 WHERE s.project_id = p.id AND s.type = 'technique'), 0)) AS tech,
               least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
@@ -81,7 +82,8 @@ export default async function AppPage() {
       last_name: string;
       avatar: string | null;
     }>(
-      `SELECT m.project_id, u.id, u.email, u.first_name, u.last_name, u.avatar
+      `SELECT m.project_id, u.id, u.email, u.first_name, u.last_name,
+              ${sqlAvatarUrl("u")} AS avatar
          FROM project_members m
          JOIN users u ON u.id = m.user_id
         WHERE m.project_id IN (${vis})

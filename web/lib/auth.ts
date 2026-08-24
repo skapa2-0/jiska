@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { query } from "./db";
+import { sqlAvatarUrl } from "./media";
 
 const SESSION_COOKIE = "jiska_session";
 const SESSION_DAYS = 1;
@@ -64,7 +65,8 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   if (!token) return null;
 
   const rows = await query<SessionUser>(
-    `SELECT u.id, u.email, u.first_name, u.last_name, u.avatar, u.role
+    `SELECT u.id, u.email, u.first_name, u.last_name, u.role,
+            ${sqlAvatarUrl("u")} AS avatar
        FROM sessions s
        JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = $1 AND s.expires_at > now()`,

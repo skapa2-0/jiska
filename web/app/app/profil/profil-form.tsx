@@ -18,6 +18,10 @@ export default function ProfilForm({ user }: { user: User }) {
   const [nom, setNom] = useState(user.last_name);
   const [email, setEmail] = useState(user.email);
   const [avatar, setAvatar] = useState<string | null>(user.avatar);
+  // `avatar` sert à l'aperçu : au chargement c'est l'URL de la photo
+  // servie par /api/avatars, après un choix c'est la nouvelle data URL.
+  // Seul ce second cas est envoyé à l'API.
+  const [photoModifiee, setPhotoModifiee] = useState(false);
   const [infoMsg, setInfoMsg] = useState<{ ok: boolean; text: string } | null>(
     null,
   );
@@ -38,6 +42,7 @@ export default function ProfilForm({ user }: { user: User }) {
     }
     try {
       setAvatar(await reduireImage(file, "cover"));
+      setPhotoModifiee(true);
       setInfoMsg(null);
     } catch {
       setInfoMsg({ ok: false, text: "Impossible de lire cette image." });
@@ -52,7 +57,12 @@ export default function ProfilForm({ user }: { user: User }) {
       const res = await fetch("/api/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName: prenom, lastName: nom, email, avatar }),
+        body: JSON.stringify({
+          firstName: prenom,
+          lastName: nom,
+          email,
+          ...(photoModifiee ? { avatar } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -133,7 +143,10 @@ export default function ProfilForm({ user }: { user: User }) {
               {avatar && (
                 <button
                   type="button"
-                  onClick={() => setAvatar(null)}
+                  onClick={() => {
+                    setAvatar(null);
+                    setPhotoModifiee(true);
+                  }}
                   disabled={loading}
                   className="rounded-lg px-3 py-2 text-sm font-medium text-danger transition hover:bg-danger-soft"
                 >

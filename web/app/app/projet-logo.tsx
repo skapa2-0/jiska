@@ -13,7 +13,7 @@ export default function ProjetLogo({
 }) {
   if (logo) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element -- data URL locale
+      // eslint-disable-next-line @next/next/no-img-element -- image servie par /api/logos
       <img
         src={logo}
         alt=""

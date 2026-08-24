@@ -37,6 +37,9 @@ export default function ProjetForm({
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [logo, setLogo] = useState<string | null>(initial?.logo ?? null);
+  // Comme la photo de profil : `logo` est l'URL servie par /api/logos au
+  // chargement, une data URL seulement après un nouvel import.
+  const [logoModifie, setLogoModifie] = useState(false);
   const [memberIds, setMemberIds] = useState<string[]>(
     initial?.memberIds ?? [],
   );
@@ -66,6 +69,7 @@ export default function ProjetForm({
     }
     try {
       setLogo(await reduireImage(file, "contain"));
+      setLogoModifie(true);
       setMessage("");
     } catch {
       setMessage("Impossible de lire cette image.");
@@ -85,7 +89,7 @@ export default function ProjetForm({
           body: JSON.stringify({
             name,
             description,
-            logo,
+            ...(logoModifie ? { logo } : {}),
             memberIds,
             responsableId,
           }),
@@ -143,7 +147,10 @@ export default function ProjetForm({
             {logo && (
               <button
                 type="button"
-                onClick={() => setLogo(null)}
+                onClick={() => {
+                  setLogo(null);
+                  setLogoModifie(true);
+                }}
                 disabled={loading}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-danger transition hover:bg-danger-soft"
               >

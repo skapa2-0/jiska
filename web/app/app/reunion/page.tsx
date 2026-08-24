@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
 import type { SujetRow } from "@/lib/sujets";
 import type { ProjectOption } from "../dashboard";
 import Revue from "./revue";
@@ -30,7 +31,7 @@ export default async function ReunionPage() {
       responsable_id: string | null;
       is_resp: boolean;
     }>(
-      `SELECT p.id, p.name, p.logo,
+      `SELECT p.id, p.name, ${sqlLogoUrl("p")} AS logo,
               least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
                 WHERE s.project_id = p.id AND s.type = 'technique'), 0)) AS tech,
               least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
@@ -58,7 +59,8 @@ export default async function ReunionPage() {
       last_name: string;
       avatar: string | null;
     }>(
-      `SELECT m.project_id, u.id, u.email, u.first_name, u.last_name, u.avatar
+      `SELECT m.project_id, u.id, u.email, u.first_name, u.last_name,
+              ${sqlAvatarUrl("u")} AS avatar
          FROM project_members m
          JOIN users u ON u.id = m.user_id
         WHERE m.project_id IN (${vis})

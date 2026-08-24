@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { sqlAvatarUrl } from "@/lib/media";
 import BottomNav from "../bottom-nav";
 import Navbar from "../navbar";
 import TeamManager from "./team-manager";
@@ -20,7 +21,10 @@ export default async function EquipePage() {
     role: string;
     created_at: string;
   }>(
-    "SELECT id, email, first_name, last_name, avatar, role, created_at::date::text AS created_at FROM users ORDER BY created_at, id",
+    `SELECT id, email, first_name, last_name, role,
+            created_at::date::text AS created_at,
+            ${sqlAvatarUrl()} AS avatar
+       FROM users ORDER BY created_at, id`,
   );
 
   return (

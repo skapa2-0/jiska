@@ -1,4 +1,5 @@
 import { query } from "@/lib/db";
+import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
 import type { ProduitImport } from "./import-transcript";
 
 // Produits, membres et sujets nécessaires à l'écran de vérification.
@@ -12,7 +13,8 @@ export async function chargerProduits(
 
   const [produits, membres, sujets] = await Promise.all([
     query<{ id: string; name: string; logo: string | null }>(
-      `SELECT p.id, p.name, p.logo FROM projects p ${filtre} ORDER BY p.name`,
+      `SELECT p.id, p.name, ${sqlLogoUrl("p")} AS logo
+         FROM projects p ${filtre} ORDER BY p.name`,
       args,
     ),
     query<{
@@ -23,7 +25,8 @@ export async function chargerProduits(
       last_name: string;
       avatar: string | null;
     }>(
-      `SELECT m.project_id, u.id, u.email, u.first_name, u.last_name, u.avatar
+      `SELECT m.project_id, u.id, u.email, u.first_name, u.last_name,
+              ${sqlAvatarUrl("u")} AS avatar
          FROM project_members m
          JOIN users u ON u.id = m.user_id
          JOIN projects p ON p.id = m.project_id ${filtre}

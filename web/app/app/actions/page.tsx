@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
 import type { SujetRow } from "@/lib/sujets";
 import BottomNav from "../bottom-nav";
 import Navbar from "../navbar";
@@ -53,7 +54,7 @@ export default async function ActionsPage() {
     ),
     query<SujetRow & { is_proj_resp: boolean }>(
       `SELECT s.id, s.project_id, p.name AS project_name,
-              p.logo AS project_logo, s.title, s.action,
+              ${sqlLogoUrl("p")} AS project_logo, s.title, s.action,
               s.due_date::text AS due_date, s.type, s.poids,
               s.porteur_id, s.updated_at::date::text AS updated_at,
               s.criticite, s.etat, s.commentaire,
@@ -77,7 +78,7 @@ export default async function ActionsPage() {
       is_resp: boolean;
       responsable_id: string | null;
     }>(
-      `SELECT p.id, p.name, p.logo,
+      `SELECT p.id, p.name, ${sqlLogoUrl("p")} AS logo,
               round(least(100, COALESCE((SELECT sum(s2.poids * CASE s2.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END) FROM sujets s2
                 WHERE s2.project_id = p.id AND s2.type = 'technique'), 0)) * 0.6 + least(100, COALESCE((SELECT sum(s2.poids * CASE s2.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END) FROM sujets s2
                 WHERE s2.project_id = p.id AND s2.type = 'business'), 0)) * 0.4) AS avancement,
@@ -104,7 +105,8 @@ export default async function ActionsPage() {
       last_name: string;
       avatar: string | null;
     }>(
-      `SELECT m.project_id, u.id, u.email, u.first_name, u.last_name, u.avatar
+      `SELECT m.project_id, u.id, u.email, u.first_name, u.last_name,
+              ${sqlAvatarUrl("u")} AS avatar
          FROM project_members m
          JOIN users u ON u.id = m.user_id
         WHERE m.project_id IN (${vis})

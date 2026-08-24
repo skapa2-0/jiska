@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { sqlAvatarUrl } from "@/lib/media";
 import BottomNav from "../../bottom-nav";
 import Navbar from "../../navbar";
 import ProjetForm from "../projet-form";
@@ -19,7 +20,9 @@ export default async function NouveauProjetPage() {
     avatar: string | null;
     role: string;
   }>(
-    "SELECT id, email, first_name, last_name, avatar, role FROM users ORDER BY last_name, first_name, email",
+    `SELECT id, email, first_name, last_name, role,
+            ${sqlAvatarUrl()} AS avatar
+       FROM users ORDER BY last_name, first_name, email`,
   );
 
   return (

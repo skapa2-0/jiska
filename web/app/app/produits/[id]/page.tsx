@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser, isResponsable } from "@/lib/auth";
 import { chargerImportsEnAttente } from "@/lib/imports";
 import { query } from "@/lib/db";
+import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
 import {
   avancementGlobal,
   CRITICITES,
@@ -79,7 +80,9 @@ export default async function ProjetPage({
       logo: string | null;
       created_at: string;
     }>(
-      "SELECT id, name, description, logo, created_at::date::text AS created_at FROM projects WHERE id = $1",
+      `SELECT id, name, description, ${sqlLogoUrl()} AS logo,
+              created_at::date::text AS created_at
+         FROM projects WHERE id = $1`,
       [id],
     ),
     query<{
@@ -90,7 +93,8 @@ export default async function ProjetPage({
       avatar: string | null;
       is_responsable: boolean;
     }>(
-      `SELECT u.id, u.email, u.first_name, u.last_name, u.avatar, m.is_responsable
+      `SELECT u.id, u.email, u.first_name, u.last_name, m.is_responsable,
+              ${sqlAvatarUrl("u")} AS avatar
          FROM project_members m JOIN users u ON u.id = m.user_id
         WHERE m.project_id = $1
         ORDER BY m.is_responsable DESC, u.email`,
