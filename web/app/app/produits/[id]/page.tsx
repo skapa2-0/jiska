@@ -17,6 +17,8 @@ import BottomNav from "../../bottom-nav";
 import Navbar from "../../navbar";
 import ProjetLogo from "../../projet-logo";
 import DeployableControle from "./deployable-controle";
+import BlocSemaine from "../../semaine";
+import { lireSemaine, sqlSemaine } from "@/lib/semaine";
 import Roue, { tonAvancement } from "../../roue";
 import HistoriqueProjet from "./historique-projet";
 import type { EntreeHistorique } from "./historique-projet";
@@ -81,10 +83,17 @@ export default async function ProjetPage({
       logo: string | null;
       deployable: boolean;
       created_at: string;
+      sem_engages: string;
+      sem_avancement: string | null;
+      sem_termines: string;
+      sem_bloques: string;
+      sem_depuis: string | null;
     }>(
-      `SELECT id, name, description, deployable, ${sqlLogoUrl()} AS logo,
-              created_at::date::text AS created_at
-         FROM projects WHERE id = $1`,
+      `SELECT p.id, p.name, p.description, p.deployable,
+              ${sqlLogoUrl("p")} AS logo,
+              p.created_at::date::text AS created_at,
+              ${sqlSemaine("p")}
+         FROM projects p WHERE p.id = $1`,
       [id],
     ),
     query<{
@@ -306,6 +315,12 @@ export default async function ProjetPage({
               Voir les sujets
             </a>
           </div>
+        </div>
+
+        {/* La semaine : ce qu'on s'était engagé à faire, et où on en
+            est. À côté de l'avancement du produit, pas à sa place. */}
+        <div className="mt-5">
+          <BlocSemaine semaine={lireSemaine(projet)} />
         </div>
 
         {/* Déployable ou non : la question se pose en clair, la réponse

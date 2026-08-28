@@ -8,12 +8,15 @@ import Avatar, { displayName } from "../avatar";
 import type { ProjectOption } from "../dashboard";
 import FicheSujet from "../fiche-sujet";
 import ProjetLogo from "../projet-logo";
+import BlocSemaine from "../semaine";
+import type { Semaine } from "@/lib/semaine";
 import Roue, { tonAvancement } from "../roue";
 
 export type EtapeRevue = {
   projet: ProjectOption;
   tech: number;
   business: number;
+  semaine: Semaine;
   sujets: SujetRow[];
   termines: number;
   bloques: number;
@@ -119,6 +122,12 @@ export default function Revue({
               ton={tonAvancement(p.avancement)}
               taille="h-12 w-12"
             />
+          </div>
+
+          {/* La question de la réunion, en tête : ce qu'on s'était
+              engagé à faire la semaine dernière, et où on en est. */}
+          <div className="mt-4">
+            <BlocSemaine semaine={etape.semaine} />
           </div>
 
           {/* Axes et signaux */}

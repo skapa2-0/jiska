@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
+import { lireSemaine, sqlSemaine } from "@/lib/semaine";
+import type { SemaineRow } from "@/lib/semaine";
 import type { SujetRow } from "@/lib/sujets";
 import type { ProjectOption } from "../dashboard";
 import Revue from "./revue";
@@ -30,8 +32,9 @@ export default async function ReunionPage() {
       attrib_business: string;
       responsable_id: string | null;
       is_resp: boolean;
-    }>(
+    } & SemaineRow>(
       `SELECT p.id, p.name, ${sqlLogoUrl("p")} AS logo,
+              ${sqlSemaine("p")},
               least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
                 WHERE s.project_id = p.id AND s.type = 'technique'), 0)) AS tech,
               least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
@@ -154,6 +157,7 @@ export default async function ReunionPage() {
       projet,
       tech: Number(p.tech),
       business: Number(p.business),
+      semaine: lireSemaine(p),
       sujets,
       termines: tous.length - sujets.length,
       bloques: sujets.filter((s) => s.etat === "bloque").length,

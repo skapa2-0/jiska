@@ -31,6 +31,10 @@ type Indicateurs = {
   echeances: number;
   retard: number;
   clotures: number;
+  // Avancement des actions engagées cette semaine (lib/semaine.ts).
+  // 0 engagement n'est pas 0 % : l'indicateur le dit autrement.
+  semEngages: number;
+  semAvancement: number;
 };
 
 const FILTRES = [
@@ -413,6 +417,30 @@ export default function Dashboard({
           icone={<IconeListe />}
           onClick={() => choisirFiltre("tous")}
           classe="order-4 sm:order-2"
+        />
+        <Indicateur
+          valeur={
+            indicateurs.semEngages === 0
+              ? "-"
+              : `${indicateurs.semAvancement} %`
+          }
+          label={
+            indicateurs.semEngages === 0
+              ? "Rien d'engagé cette semaine"
+              : `Semaine · ${indicateurs.semEngages} action${indicateurs.semEngages > 1 ? "s" : ""}`
+          }
+          tint="bg-brand/10 text-brand"
+          icone={<IconeTendance />}
+          ton={
+            indicateurs.semEngages === 0
+              ? undefined
+              : indicateurs.semAvancement >= 75
+                ? "text-success"
+                : indicateurs.semAvancement >= 40
+                  ? "text-warn"
+                  : "text-ink"
+          }
+          classe="order-3 sm:order-4"
         />
         <Indicateur
           valeur={`${indicateurs.avancement} %`}

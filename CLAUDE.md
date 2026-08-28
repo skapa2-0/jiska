@@ -22,6 +22,8 @@ Outil de **pilotage hebdomadaire** des produits (PRD de Matthieu). Accueil `/app
 
 - Rôles : `dirigeant` (voit tout, gère comptes et projets) / `collaborateur` ; un responsable par projet (crée des sujets de son projet, pas de projets).
 - Sujets : typés `technique` ou `business`, avec un **poids en %** du projet et un **porteur d'action** optionnel (membre du projet, peut éditer son sujet). Avancement d'un axe = somme des poids crédités (terminé = 100 % du poids, en validation = 50 %), plafonnée à 100 ; global = technique × 60 % + business × 40 %. Objectif : 100 % attribués par axe (budget affiché à la saisie, alerte si dépassement). Historique conservé en base (`sujet_history`), non affiché.
+- **Deux mesures distinctes, qui ne se remplacent pas** (`lib/semaine.ts`) : l'avancement produit ci-dessus répond « où en est ce produit », l'**avancement de la semaine** répond « a-t-on fait ce qu'on avait dit ». Périmètre de la semaine = sujets portant une action de la semaine (`action <> ''`) ; échelle propre (à faire 0, en cours 33, bloqué 0 et signalé, en validation 66, terminé 100), volontairement différente de `CREDIT_ETAT`. Aucune saisie supplémentaire : la mesure se déduit des états. Zéro engagement ≠ 0 % : l'afficher comme tel est un contresens.
+- **Déployable** : état affirmé d'un produit (annonce explicite en réunion validée à l'import, ou marquage sur la fiche). Jamais déduit de l'avancement. Marquage ouvert aux dirigeants et au responsable du produit.
 
 ## Git
 

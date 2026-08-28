@@ -6,6 +6,8 @@ import Avatar, { displayName } from "../avatar";
 import type { Personne } from "../avatar";
 import ProjetLogo from "../projet-logo";
 import BadgeDeployable from "../deployable";
+import { SemaineLigne } from "../semaine";
+import type { Semaine } from "@/lib/semaine";
 import Roue, { tonAvancement } from "../roue";
 import Select from "../select";
 
@@ -15,6 +17,7 @@ export type CarteProjet = {
   description: string;
   logo: string | null;
   deployable: boolean;
+  semaine: Semaine;
   avancement: number;
   jalonTech: number;
   jalonBusiness: number;
@@ -220,6 +223,11 @@ function Carte({ p, today }: { p: CarteProjet; today: string }) {
           <Barre nom="Bus." valeur={p.jalonBusiness} />
           {/* Signal discret : l'orange plein est réservé aux vraies
               alertes (bloqués, retards). */}
+          {/* La semaine se lit sous les axes : le produit d'un côté,
+              l'engagement tenu de l'autre. */}
+          <div className="border-t border-hairline pt-2">
+            <SemaineLigne semaine={p.semaine} />
+          </div>
           {(p.attribTech < 100 || p.attribBusiness < 100) && (
             <p className="flex items-center gap-1.5 text-[11px] font-medium text-stone">
               <span

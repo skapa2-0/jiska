@@ -29,6 +29,8 @@ export default async function ActionsPage() {
       retard: string;
       echeances: string;
       clotures: string;
+      sem_engages: string;
+      sem_avancement: string | null;
     }>(
       `WITH s AS (SELECT * FROM sujets WHERE project_id IN (${vis}))
        SELECT
@@ -49,7 +51,16 @@ export default async function ActionsPage() {
             JOIN sujets su ON su.id = h.sujet_id
            WHERE su.project_id IN (${vis}) AND h.field = 'etat'
              AND h.new_value = 'termine'
-             AND h.changed_at > now() - interval '7 days')            AS clotures`,
+             AND h.changed_at > now() - interval '7 days')            AS clotures,
+         (SELECT count(*) FROM s WHERE action <> '')                  AS sem_engages,
+         -- Avancement des actions engagées, tous produits visibles
+         -- confondus (voir lib/semaine.ts pour l'échelle).
+         (SELECT round(avg(CASE etat
+                             WHEN 'termine' THEN 100
+                             WHEN 'en_validation' THEN 66
+                             WHEN 'en_cours' THEN 33
+                             ELSE 0 END))
+            FROM s WHERE action <> '')                                AS sem_avancement`,
       visParams,
     ),
     query<SujetRow & { is_proj_resp: boolean }>(
@@ -162,6 +173,8 @@ export default async function ActionsPage() {
           echeances: Number(ind.echeances),
           retard: Number(ind.retard),
           clotures: Number(ind.clotures),
+          semEngages: Number(ind.sem_engages),
+          semAvancement: Number(ind.sem_avancement ?? 0),
         }}
       />
       <BottomNav onglet="actions" canCreate={canCreateSujet} />

@@ -3,6 +3,8 @@ import { getSessionUser, isResponsable } from "@/lib/auth";
 import { chargerImportsEnAttente } from "@/lib/imports";
 import { query } from "@/lib/db";
 import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
+import { lireSemaine, sqlSemaine } from "@/lib/semaine";
+import type { SemaineRow } from "@/lib/semaine";
 import BottomNav from "./bottom-nav";
 import Navbar from "./navbar";
 import ListeProjets from "./produits/liste-projets";
@@ -40,8 +42,9 @@ export default async function AppPage() {
       derniere: string | null;
       echeance: string | null;
       responsable_id: string | null;
-    }>(
+    } & SemaineRow>(
       `SELECT p.id, p.name, p.description, p.deployable,
+              ${sqlSemaine("p")},
               ${sqlLogoUrl("p")} AS logo,
               least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
                 WHERE s.project_id = p.id AND s.type = 'technique'), 0)) AS tech,
@@ -100,6 +103,7 @@ export default async function AppPage() {
     description: p.description,
     logo: p.logo,
     deployable: p.deployable,
+    semaine: lireSemaine(p),
     avancement: Math.round(Number(p.tech) * 0.6 + Number(p.business) * 0.4),
     jalonTech: Number(p.tech),
     jalonBusiness: Number(p.business),
