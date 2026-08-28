@@ -5,7 +5,7 @@
 // ces fonctions permettent de les retrouver.
 
 import { query } from "./db";
-import type { Proposition } from "./extraction";
+import type { Proposition, PropositionDeploiement } from "./extraction";
 
 export type ImportEnAttente = {
   id: string;
@@ -20,6 +20,7 @@ export type ImportRepris = {
   dateReunion: string;
   propositions: Proposition[];
   ecartes: string[];
+  deploiements: PropositionDeploiement[];
 };
 
 // project_id NULL et une valeur ne se comparent pas avec « = » : le
@@ -41,7 +42,8 @@ export async function chargerImportsEnAttente(
             to_char(i.created_at, 'DD/MM à HH24:MI') AS cree_le,
             COALESCE(NULLIF(trim(u.first_name || ' ' || u.last_name), ''),
                      split_part(u.email, '@', 1)) AS auteur,
-            jsonb_array_length(i.propositions) AS nb
+            jsonb_array_length(i.propositions)
+              + jsonb_array_length(i.deploiements) AS nb
        FROM reunion_imports i
        LEFT JOIN users u ON u.id = i.created_by
       WHERE i.statut = 'a_verifier' AND i.${PORTEE}
@@ -67,8 +69,10 @@ export async function chargerImport(
     date_reunion: string;
     propositions: Proposition[];
     ecartes: string[];
+    deploiements: PropositionDeploiement[];
   }>(
-    `SELECT id, date_reunion::text AS date_reunion, propositions, ecartes
+    `SELECT id, date_reunion::text AS date_reunion, propositions, ecartes,
+            deploiements
        FROM reunion_imports
       WHERE id = $2 AND statut = 'a_verifier' AND ${PORTEE}`,
     [projectId, id],
@@ -80,6 +84,7 @@ export async function chargerImport(
         dateReunion: r.date_reunion,
         propositions: r.propositions ?? [],
         ecartes: r.ecartes ?? [],
+        deploiements: r.deploiements ?? [],
       }
     : null;
 }

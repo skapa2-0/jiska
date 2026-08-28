@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { canManageSujets, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
-import type { Proposition } from "@/lib/extraction";
+import type { Proposition, PropositionDeploiement } from "@/lib/extraction";
 import {
   appliquerPatch,
   chargerSujet,
@@ -13,6 +13,11 @@ import {
 type Retenue = Pick<
   Proposition,
   "ref" | "projectId" | "sujetId" | "titre" | "champs"
+>;
+
+type DeploiementRetenu = Pick<
+  PropositionDeploiement,
+  "ref" | "projectId" | "deployable"
 >;
 
 // Les corrections de l'utilisateur alimentent le lexique : c'est ce qui
@@ -65,9 +70,11 @@ export async function POST(
   const imports = await query<{
     project_id: string | null;
     propositions: Proposition[];
+    deploiements: PropositionDeploiement[];
     statut: string;
   }>(
-    "SELECT project_id, propositions, statut FROM reunion_imports WHERE id = $1",
+    `SELECT project_id, propositions, deploiements, statut
+       FROM reunion_imports WHERE id = $1`,
     [id],
   );
   const imp = imports[0];
@@ -89,7 +96,7 @@ export async function POST(
     return NextResponse.json({ error: "Accès refusé." }, { status: 403 });
   }
 
-  let body: { retenues?: Retenue[] };
+  let body: { retenues?: Retenue[]; deploiementsRetenus?: DeploiementRetenu[] };
   try {
     body = await request.json();
   } catch {
@@ -101,6 +108,7 @@ export async function POST(
   const source = `reunion:${id}`;
   let majs = 0;
   let creations = 0;
+  let deploiements = 0;
   const erreurs: { ref: string; message: string }[] = [];
 
   for (const r of retenues) {
@@ -149,10 +157,42 @@ export async function POST(
     await apprendre(me.id, origine, r);
   }
 
+  // Déployabilité : le client ne peut que confirmer une annonce relevée à
+  // l'analyse. La valeur écrite vient de l'import stocké, pas du corps de la
+  // requête, qui ne sert qu'à désigner les annonces retenues.
+  const annonces = new Map((imp.deploiements ?? []).map((d) => [d.ref, d]));
+  const retenusDeploiement = Array.isArray(body.deploiementsRetenus)
+    ? body.deploiementsRetenus
+    : [];
+  const traites = new Set<string>();
+
+  for (const r of retenusDeploiement) {
+    const annonce = annonces.get(r.ref);
+    if (!annonce) {
+      erreurs.push({ ref: r.ref, message: "Annonce inconnue." });
+      continue;
+    }
+    if (traites.has(annonce.projectId)) continue;
+    if (imp.project_id !== null && annonce.projectId !== imp.project_id) {
+      erreurs.push({ ref: r.ref, message: "Hors de la portée de l'import." });
+      continue;
+    }
+    if (!(await canManageSujets(me, annonce.projectId))) {
+      erreurs.push({ ref: r.ref, message: "Droits insuffisants sur ce produit." });
+      continue;
+    }
+    await query("UPDATE projects SET deployable = $1 WHERE id = $2", [
+      annonce.deployable,
+      annonce.projectId,
+    ]);
+    traites.add(annonce.projectId);
+    deploiements += 1;
+  }
+
   await query(
     "UPDATE reunion_imports SET statut = 'applique', applied_at = now() WHERE id = $1",
     [id],
   );
 
-  return NextResponse.json({ ok: true, majs, creations, erreurs });
+  return NextResponse.json({ ok: true, majs, creations, deploiements, erreurs });
 }

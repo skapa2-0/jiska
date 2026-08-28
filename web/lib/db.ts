@@ -56,6 +56,11 @@ function ensureSchema(): Promise<void> {
        -- terminés : plus de jalons stockés sur le projet.
        ALTER TABLE projects DROP COLUMN IF EXISTS jalon_tech;
        ALTER TABLE projects DROP COLUMN IF EXISTS jalon_business;
+       -- Déployable : information affirmée, jamais devinée. Ni l'analyse de
+       -- réunion ni l'avancement ne la déduisent ; elle vient d'une annonce
+       -- explicite en réunion (validée à l'import) ou d'un clic sur la fiche.
+       ALTER TABLE projects ADD COLUMN IF NOT EXISTS deployable boolean NOT NULL
+         DEFAULT false;
        CREATE TABLE IF NOT EXISTS project_members (
          project_id     bigint NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
          user_id        bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -116,6 +121,7 @@ function ensureSchema(): Promise<void> {
          transcript   text NOT NULL,
          propositions jsonb NOT NULL DEFAULT '[]'::jsonb,
          ecartes      jsonb NOT NULL DEFAULT '[]'::jsonb,
+         deploiements jsonb NOT NULL DEFAULT '[]'::jsonb,
          statut       text NOT NULL DEFAULT 'a_verifier'
            CHECK (statut IN ('a_verifier', 'applique', 'abandonne')),
          created_by   bigint REFERENCES users(id) ON DELETE SET NULL,
@@ -124,6 +130,10 @@ function ensureSchema(): Promise<void> {
        );
        CREATE INDEX IF NOT EXISTS reunion_imports_statut_idx
          ON reunion_imports (statut, project_id);
+       -- Annonces de déployabilité relevées dans un compte rendu, en attente
+       -- de validation humaine (table créée avant l'ajout de la colonne).
+       ALTER TABLE reunion_imports ADD COLUMN IF NOT EXISTS deploiements jsonb
+         NOT NULL DEFAULT '[]'::jsonb;
        -- Lexique : un terme entendu en réunion vers un produit ou un sujet.
        -- Alimenté quand l'utilisateur corrige la cible d'une proposition.
        CREATE TABLE IF NOT EXISTS lexique (

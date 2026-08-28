@@ -27,6 +27,7 @@ export default async function AppPage() {
       name: string;
       description: string;
       logo: string | null;
+      deployable: boolean;
       tech: string;
       business: string;
       attrib_tech: string;
@@ -40,7 +41,8 @@ export default async function AppPage() {
       echeance: string | null;
       responsable_id: string | null;
     }>(
-      `SELECT p.id, p.name, p.description, ${sqlLogoUrl("p")} AS logo,
+      `SELECT p.id, p.name, p.description, p.deployable,
+              ${sqlLogoUrl("p")} AS logo,
               least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
                 WHERE s.project_id = p.id AND s.type = 'technique'), 0)) AS tech,
               least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
@@ -97,6 +99,7 @@ export default async function AppPage() {
     name: p.name,
     description: p.description,
     logo: p.logo,
+    deployable: p.deployable,
     avancement: Math.round(Number(p.tech) * 0.6 + Number(p.business) * 0.4),
     jalonTech: Number(p.tech),
     jalonBusiness: Number(p.business),

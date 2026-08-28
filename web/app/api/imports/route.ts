@@ -85,14 +85,16 @@ export async function POST(request: Request) {
 
   const rows = await query<{ id: string }>(
     `INSERT INTO reunion_imports
-       (project_id, date_reunion, transcript, propositions, ecartes, created_by)
-     VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6) RETURNING id`,
+       (project_id, date_reunion, transcript, propositions, ecartes,
+        deploiements, created_by)
+     VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7) RETURNING id`,
     [
       projectId,
       dateReunion,
       transcript,
       JSON.stringify(resultat.propositions),
       JSON.stringify(resultat.ecartes),
+      JSON.stringify(resultat.deploiements),
       me.id,
     ],
   );

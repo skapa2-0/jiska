@@ -35,10 +35,33 @@ export type Proposition = {
   confiance: "haute" | "moyenne" | "faible";
 };
 
-export type Resultat = { propositions: Proposition[]; ecartes: string[] };
+// Annonce de déployabilité relevée dans le compte rendu. Volontairement
+// pauvre : un produit, un booléen, la phrase qui le dit. Aucun champ de
+// nuance, parce qu'il n'y a rien à nuancer : soit ça a été annoncé, soit
+// ça ne l'a pas été.
+export type PropositionDeploiement = {
+  ref: string;
+  projectId: string;
+  deployable: boolean;
+  avant: boolean;
+  citation: string;
+  horodatage: string;
+};
+
+export type Resultat = {
+  propositions: Proposition[];
+  ecartes: string[];
+  deploiements: PropositionDeploiement[];
+};
 
 export type Membre = { id: string; nom: string };
-export type ProduitCat = { id: string; name: string; description: string; membres: Membre[] };
+export type ProduitCat = {
+  id: string;
+  name: string;
+  description: string;
+  deployable: boolean;
+  membres: Membre[];
+};
 export type SujetCat = {
   id: string;
   projectId: string;
@@ -69,8 +92,9 @@ export async function chargerCatalogue(
   const args = projectId ? [projectId] : [];
 
   const [produits, membres, sujets, lexique, locuteurs] = await Promise.all([
-    query<{ id: string; name: string; description: string }>(
-      `SELECT p.id, p.name, p.description FROM projects p ${filtre} ORDER BY p.name`,
+    query<{ id: string; name: string; description: string; deployable: boolean }>(
+      `SELECT p.id, p.name, p.description, p.deployable
+         FROM projects p ${filtre} ORDER BY p.name`,
       args,
     ),
     query<{
@@ -119,6 +143,7 @@ export async function chargerCatalogue(
       id: p.id,
       name: p.name,
       description: p.description,
+      deployable: p.deployable,
       membres: membres
         .filter((m) => m.project_id === p.id)
         .map((m) => ({ id: m.id, nom: nomDe(m) })),
@@ -172,7 +197,7 @@ function construireSchema(cat: Catalogue) {
   return {
     type: "object",
     additionalProperties: false,
-    required: ["propositions", "ecartes"],
+    required: ["propositions", "ecartes", "deploiements"],
     properties: {
       propositions: {
         type: "array",
@@ -184,6 +209,20 @@ function construireSchema(cat: Catalogue) {
         },
       },
       ecartes: { type: "array", items: { type: "string" } },
+      deploiements: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["project_id", "deployable", "citation", "horodatage"],
+          properties: {
+            project_id: { type: "string", enum: cat.produits.map((p) => p.id) },
+            deployable: { type: "boolean" },
+            citation: { type: "string" },
+            horodatage: { type: "string" },
+          },
+        },
+      },
     },
   };
 }
@@ -201,13 +240,21 @@ Règles absolues :
 - Attribue un porteur uniquement si la personne est identifiable parmi les membres du produit visé. Renseigne aussi porteur_nom avec le nom tel qu'il apparaît dans le document, même si tu n'as pas su l'associer à un membre.
 - Les dates relatives ("cette semaine", "lundi prochain") se résolvent depuis la date de réunion fournie, au format AAAA-MM-JJ.
 
-Niveau de confiance : "haute" quand la citation énonce le changement sans ambiguïté, "moyenne" quand il faut interpréter, "faible" quand le rattachement au sujet est incertain.`;
+Niveau de confiance : "haute" quand la citation énonce le changement sans ambiguïté, "moyenne" quand il faut interpréter, "faible" quand le rattachement au sujet est incertain.
+
+Déployabilité d'un produit (champ "deploiements", indépendant des sujets) :
+- Tu ne remplis "deploiements" que si le compte rendu ANNONCE le produit comme déployable, ou annonce explicitement qu'il ne l'est pas ou ne l'est plus. Une annonce, c'est une phrase qui le dit : "c'est déployable", "on peut le mettre en production", "c'est prêt à partir en prod", "on ne peut pas déployer", "ce n'est plus déployable".
+- Tu ne le déduis JAMAIS d'autre chose : ni d'un avancement élevé, ni de sujets terminés, ni d'un développement fini, ni d'une recette passée, ni d'une démo réussie, ni d'une livraison de fonctionnalité, ni de l'enthousiasme de la réunion. Aucun de ces éléments n'est une annonce de déployabilité.
+- Une intention future ("il faudra déployer", "on visera la prod en mars", "il reste deux bugs avant de pouvoir déployer") n'est pas une annonce : n'émets rien.
+- Dans le moindre doute, n'émets rien. Ne rien détecter est le comportement attendu et sans conséquence : les utilisateurs marquent eux-mêmes le produit sur la plateforme. Annoncer déployable un produit qui ne l'est pas est une faute grave.
+- Une entrée porte la citation littérale de l'annonce et son horodatage. Sans citation qui contient l'annonce elle-même, pas d'entrée.`;
 
 function contexte(cat: Catalogue, dateReunion: string, transcript: string) {
   const produits = cat.produits.map((p) => ({
     id: p.id,
     nom: p.name,
     description: p.description,
+    deployable: p.deployable,
     membres: p.membres,
   }));
   return [
@@ -252,6 +299,13 @@ type Brut = {
   confiance: "haute" | "moyenne" | "faible";
 };
 
+type BrutDeploiement = {
+  project_id: string;
+  deployable: boolean;
+  citation: string;
+  horodatage: string;
+};
+
 export async function extraire(
   cat: Catalogue,
   dateReunion: string,
@@ -288,6 +342,7 @@ export async function extraire(
   const donnees = JSON.parse(bloc.text) as {
     propositions: Brut[];
     ecartes: string[];
+    deploiements: BrutDeploiement[];
   };
   const parId = new Map(cat.sujets.map((s) => [s.id, s]));
 
@@ -337,5 +392,31 @@ export async function extraire(
     ];
   });
 
-  return { propositions, ecartes: donnees.ecartes ?? [] };
+  // Une annonce qui confirme l'état déjà enregistré n'a rien à proposer :
+  // elle ferait une décision à prendre pour un changement nul.
+  const produitsParId = new Map(cat.produits.map((p) => [p.id, p]));
+  const vus = new Set<string>();
+  const deploiements = (donnees.deploiements ?? []).flatMap<PropositionDeploiement>(
+    (d, i) => {
+      const produit = produitsParId.get(d.project_id);
+      if (!produit || typeof d.deployable !== "boolean") return [];
+      if (d.deployable === produit.deployable) return [];
+      // Deux annonces contradictoires sur le même produit : on garde la
+      // première et on laisse l'humain trancher plutôt que d'empiler.
+      if (vus.has(d.project_id)) return [];
+      vus.add(d.project_id);
+      return [
+        {
+          ref: `d${i}`,
+          projectId: d.project_id,
+          deployable: d.deployable,
+          avant: produit.deployable,
+          citation: d.citation,
+          horodatage: d.horodatage,
+        },
+      ];
+    },
+  );
+
+  return { propositions, ecartes: donnees.ecartes ?? [], deploiements };
 }

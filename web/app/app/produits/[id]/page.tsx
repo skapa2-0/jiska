@@ -16,6 +16,7 @@ import Avatar, { displayName } from "../../avatar";
 import BottomNav from "../../bottom-nav";
 import Navbar from "../../navbar";
 import ProjetLogo from "../../projet-logo";
+import DeployableControle from "./deployable-controle";
 import Roue, { tonAvancement } from "../../roue";
 import HistoriqueProjet from "./historique-projet";
 import type { EntreeHistorique } from "./historique-projet";
@@ -78,9 +79,10 @@ export default async function ProjetPage({
       name: string;
       description: string;
       logo: string | null;
+      deployable: boolean;
       created_at: string;
     }>(
-      `SELECT id, name, description, ${sqlLogoUrl()} AS logo,
+      `SELECT id, name, description, deployable, ${sqlLogoUrl()} AS logo,
               created_at::date::text AS created_at
          FROM projects WHERE id = $1`,
       [id],
@@ -274,6 +276,13 @@ export default async function ProjetPage({
             <p className="mt-1 text-xs text-stone">
               Créé le {projet.created_at.split("-").reverse().join("/")}
             </p>
+            <div className="mt-2.5">
+              <DeployableControle
+                projetId={projet.id}
+                initial={projet.deployable}
+                peutMarquer={canManage}
+              />
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {canManage && (

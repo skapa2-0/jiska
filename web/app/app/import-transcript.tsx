@@ -3,7 +3,12 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
-import type { ChampsProposes, Proposition } from "@/lib/extraction";
+import type {
+  ChampsProposes,
+  Proposition,
+  PropositionDeploiement,
+} from "@/lib/extraction";
+import BadgeDeployable from "./deployable";
 import Avatar, { displayName } from "./avatar";
 import type { Personne } from "./avatar";
 import DatePicker from "./date-picker";
@@ -27,6 +32,7 @@ export type Reprise = {
   dateReunion: string;
   propositions: Proposition[];
   ecartes: string[];
+  deploiements: PropositionDeploiement[];
 };
 
 const LIBELLES: Record<keyof ChampsProposes, string> = {
@@ -70,9 +76,17 @@ export default function ImportTranscript({
     reprise?.propositions ?? [],
   );
   const [ecartes, setEcartes] = useState<string[]>(reprise?.ecartes ?? []);
+  // Les annonces de déployabilité portent des références distinctes (« d0 »
+  // contre « p0 ») : un seul registre de statuts suffit pour les deux.
+  const [deploiements, setDeploiements] = useState<PropositionDeploiement[]>(
+    reprise?.deploiements ?? [],
+  );
   const [statuts, setStatuts] = useState<Record<string, Statut>>(() =>
     Object.fromEntries(
-      (reprise?.propositions ?? []).map((p) => [p.ref, "attente" as Statut]),
+      [
+        ...(reprise?.propositions ?? []),
+        ...(reprise?.deploiements ?? []),
+      ].map((p) => [p.ref, "attente" as Statut]),
     ),
   );
   const [retouches, setRetouches] = useState<Record<string, boolean>>({});
@@ -107,9 +121,13 @@ export default function ImportTranscript({
       setImportId(data.id);
       setPropositions(data.propositions);
       setEcartes(data.ecartes ?? []);
+      setDeploiements(data.deploiements ?? []);
       setStatuts(
         Object.fromEntries(
-          (data.propositions as Proposition[]).map((p) => [p.ref, "attente"]),
+          [
+            ...(data.propositions as Proposition[]),
+            ...((data.deploiements ?? []) as PropositionDeploiement[]),
+          ].map((p) => [p.ref, "attente"]),
         ),
       );
     } catch {
@@ -152,11 +170,14 @@ export default function ImportTranscript({
         titre,
         champs,
       }));
+    const deploiementsRetenus = deploiements
+      .filter((d) => statuts[d.ref] === "accepte")
+      .map(({ ref, projectId, deployable }) => ({ ref, projectId, deployable }));
     try {
       const res = await fetch(`/api/imports/${importId}/appliquer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ retenues }),
+        body: JSON.stringify({ retenues, deploiementsRetenus }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -167,8 +188,14 @@ export default function ImportTranscript({
         `${data.majs} mise${data.majs > 1 ? "s" : ""} à jour`,
         `${data.creations} création${data.creations > 1 ? "s" : ""}`,
       ];
+      if (data.deploiements > 0) {
+        parts.push(
+          `${data.deploiements} produit${data.deploiements > 1 ? "s" : ""} marqué${data.deploiements > 1 ? "s" : ""}`,
+        );
+      }
+      const total = data.majs + data.creations + (data.deploiements ?? 0);
       setBilan(
-        `${parts.join(" et ")} appliquée${data.majs + data.creations > 1 ? "s" : ""}.` +
+        `${parts.join(", ")} : ${total} changement${total > 1 ? "s" : ""} appliqué${total > 1 ? "s" : ""}.` +
           (data.erreurs?.length ? ` ${data.erreurs.length} échec(s).` : ""),
       );
       router.refresh();
@@ -287,8 +314,9 @@ export default function ImportTranscript({
   // ---------- Vérification ----------
   const majs = propositions.filter((p) => p.sujetId);
   const creations = propositions.filter((p) => !p.sujetId);
-  const retenus = propositions.filter((p) => statuts[p.ref] === "accepte").length;
-  const restants = propositions.filter((p) => statuts[p.ref] === "attente").length;
+  const aDecider = [...propositions, ...deploiements];
+  const retenus = aDecider.filter((p) => statuts[p.ref] === "accepte").length;
+  const restants = aDecider.filter((p) => statuts[p.ref] === "attente").length;
 
   function Carte({ p }: { p: Proposition }) {
     const produit = parId.get(p.projectId);
@@ -571,22 +599,98 @@ export default function ImportTranscript({
     );
   }
 
+  // Une annonce de déployabilité ne se corrige pas : soit la réunion l'a
+  // dite, soit elle ne l'a pas dite. On la retient ou on la rejette.
+  function CarteDeploiement({ d }: { d: PropositionDeploiement }) {
+    const produit = parId.get(d.projectId);
+    const statut = statuts[d.ref];
+
+    return (
+      <li
+        className={`rounded-lg bg-white p-5 shadow-card transition ${
+          statut === "rejete" ? "opacity-45" : ""
+        } ${statut === "accepte" ? "ring-1 ring-success" : ""}`}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          {produit && (
+            <span className="flex items-center gap-1.5 rounded-md bg-surface px-2 py-1 text-xs font-semibold text-mute">
+              <ProjetLogo
+                name={produit.name}
+                logo={produit.logo}
+                taille="h-4 w-4 text-[9px]"
+              />
+              {produit.name}
+            </span>
+          )}
+          <span className="ml-auto font-mono text-xs text-stone">
+            {d.horodatage}
+          </span>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <BadgeDeployable deployable={d.avant} />
+          <span aria-hidden="true" className="text-stone">
+            →
+          </span>
+          <BadgeDeployable deployable={d.deployable} />
+        </div>
+
+        <p className="mt-3 border-l-2 border-hairline pl-3 text-sm italic text-mute">
+          « {d.citation} »
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              setStatuts((s) => ({
+                ...s,
+                [d.ref]: s[d.ref] === "accepte" ? "attente" : "accepte",
+              }))
+            }
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              statut === "accepte"
+                ? "bg-success text-white"
+                : "bg-ink text-white hover:opacity-85"
+            }`}
+          >
+            {statut === "accepte" ? "Retenue" : "Accepter"}
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              setStatuts((s) => ({
+                ...s,
+                [d.ref]: s[d.ref] === "rejete" ? "attente" : "rejete",
+              }))
+            }
+            className="rounded-lg border border-hairline px-4 py-2 text-sm font-medium text-mute transition hover:bg-surface"
+          >
+            {statut === "rejete" ? "Rejetée" : "Rejeter"}
+          </button>
+        </div>
+      </li>
+    );
+  }
+
   return (
     <div className="mt-8">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg bg-white px-5 py-4 shadow-card">
         <p className="font-display text-lg font-semibold text-ink">
-          {propositions.length} proposition{propositions.length > 1 ? "s" : ""}
+          {aDecider.length} proposition{aDecider.length > 1 ? "s" : ""}
         </p>
         <p className="text-sm text-mute">
           {majs.length} mise{majs.length > 1 ? "s" : ""} à jour ·{" "}
           {creations.length} création{creations.length > 1 ? "s" : ""}
+          {deploiements.length > 0 &&
+            ` · ${deploiements.length} déployabilité${deploiements.length > 1 ? "s" : ""}`}
         </p>
         {restants > 0 && (
           <p className="text-sm text-warn">{restants} en attente de décision</p>
         )}
       </div>
 
-      {propositions.length === 0 && (
+      {aDecider.length === 0 && (
         <p className="mt-10 text-center text-[15px] text-stone">
           Aucun changement détecté dans ce compte rendu.
         </p>
@@ -603,6 +707,14 @@ export default function ImportTranscript({
         <Section titre="Nouveaux sujets">
           {creations.map((p) => (
             <Carte key={p.ref} p={p} />
+          ))}
+        </Section>
+      )}
+
+      {deploiements.length > 0 && (
+        <Section titre="Déployabilité annoncée en réunion">
+          {deploiements.map((d) => (
+            <CarteDeploiement key={d.ref} d={d} />
           ))}
         </Section>
       )}
@@ -628,7 +740,7 @@ export default function ImportTranscript({
         </p>
       )}
 
-      {propositions.length > 0 && (
+      {aDecider.length > 0 && (
         <div className="sticky bottom-0 z-10 mt-8 flex flex-wrap items-center gap-3 border-t border-hairline bg-white/95 py-4 backdrop-blur">
           <button
             type="button"

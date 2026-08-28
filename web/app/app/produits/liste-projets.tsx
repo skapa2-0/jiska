@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Avatar, { displayName } from "../avatar";
 import type { Personne } from "../avatar";
 import ProjetLogo from "../projet-logo";
+import BadgeDeployable from "../deployable";
 import Roue, { tonAvancement } from "../roue";
 import Select from "../select";
 
@@ -13,6 +14,7 @@ export type CarteProjet = {
   name: string;
   description: string;
   logo: string | null;
+  deployable: boolean;
   avancement: number;
   jalonTech: number;
   jalonBusiness: number;
@@ -206,6 +208,11 @@ function Carte({ p, today }: { p: CarteProjet; today: string }) {
         <h2 className="mt-3 line-clamp-1 font-display text-lg font-semibold text-ink">
           {p.name}
         </h2>
+        {p.deployable && (
+          <p className="mt-1.5">
+            <BadgeDeployable deployable taille="text-[11px]" />
+          </p>
+        )}
         <p className="mt-0.5 line-clamp-1 text-xs text-stone">
           {p.description || "Aucune description"}
         </p>
