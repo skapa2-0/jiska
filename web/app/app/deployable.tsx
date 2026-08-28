@@ -3,37 +3,54 @@
 // déduit de l'avancement : un produit à 100 % n'est pas déployable pour
 // autant, et l'inverse est vrai aussi.
 
-// Sur une grille de produits, seul l'état positif porte une information :
-// afficher « non déployable » partout ferait un mur de mentions inutiles.
-// La fiche du produit, elle, répond explicitement dans les deux sens.
+// L'état se lit dans les deux sens, partout : sur une grille de produits,
+// « non déployable » n'est pas du bruit, c'est la réponse à la question
+// qu'on vient poser. Le vert plein signale les produits livrables d'un
+// coup d'œil ; l'état négatif reste neutre et cerné, jamais alarmant :
+// ne pas être déployable est ordinaire, ce n'est pas une anomalie.
+const TONS = {
+  oui: "bg-success text-white",
+  non: "bg-surface text-mute ring-1 ring-hairline",
+};
+
+const TAILLES = {
+  sm: { boite: "gap-1.5 rounded-md px-2.5 py-1 text-xs", icone: "h-3.5 w-3.5" },
+  md: { boite: "gap-2 rounded-lg px-3.5 py-2 text-sm", icone: "h-4 w-4" },
+};
+
 export default function BadgeDeployable({
   deployable,
-  taille = "text-xs",
+  taille = "sm",
 }: {
   deployable: boolean;
-  taille?: string;
+  taille?: keyof typeof TAILLES;
 }) {
-  const ton = deployable
-    ? "bg-success-soft text-success"
-    : "bg-surface text-stone";
+  const t = TAILLES[taille];
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-0.5 font-semibold ${ton} ${taille}`}
+      className={`inline-flex shrink-0 items-center font-semibold ${
+        deployable ? TONS.oui : TONS.non
+      } ${t.boite}`}
     >
       <svg
         aria-hidden="true"
         viewBox="0 0 24 24"
-        className="h-3.5 w-3.5 shrink-0"
+        className={`${t.icone} shrink-0`}
         fill="none"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="2.2"
         strokeLinecap="round"
         strokeLinejoin="round"
       >
+        {/* Coche pour l'état livrable, cercle barré pour l'état neutre :
+            surtout pas de triangle d'alerte, qui ferait lire une panne. */}
         {deployable ? (
           <path d="m5 13 4 4L19 7" />
         ) : (
-          <path d="M12 8v5m0 3.5v.5M12 3l9 16H3l9-16Z" />
+          <>
+            <circle cx="12" cy="12" r="8.5" />
+            <path d="M6 18 18 6" />
+          </>
         )}
       </svg>
       {deployable ? "Déployable" : "Non déployable"}

@@ -276,13 +276,6 @@ export default async function ProjetPage({
             <p className="mt-1 text-xs text-stone">
               Créé le {projet.created_at.split("-").reverse().join("/")}
             </p>
-            <div className="mt-2.5">
-              <DeployableControle
-                projetId={projet.id}
-                initial={projet.deployable}
-                peutMarquer={canManage}
-              />
-            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {canManage && (
@@ -313,6 +306,17 @@ export default async function ProjetPage({
               Voir les sujets
             </a>
           </div>
+        </div>
+
+        {/* Déployable ou non : la question se pose en clair, la réponse
+            aussi. Ligne dédiée pour qu'elle ne se lise pas comme une
+            mention accessoire de l'en-tête. */}
+        <div className="mt-5">
+          <DeployableControle
+            projetId={projet.id}
+            initial={projet.deployable}
+            peutMarquer={canManage}
+          />
         </div>
 
         {/* Indicateurs du projet */}

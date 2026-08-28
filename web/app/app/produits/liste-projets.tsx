@@ -208,13 +208,11 @@ function Carte({ p, today }: { p: CarteProjet; today: string }) {
         <h2 className="mt-3 line-clamp-1 font-display text-lg font-semibold text-ink">
           {p.name}
         </h2>
-        {p.deployable && (
-          <p className="mt-1.5">
-            <BadgeDeployable deployable taille="text-[11px]" />
-          </p>
-        )}
         <p className="mt-0.5 line-clamp-1 text-xs text-stone">
           {p.description || "Aucune description"}
+        </p>
+        <p className="mt-2.5">
+          <BadgeDeployable deployable={p.deployable} />
         </p>
 
         <div className="mt-3 space-y-2">

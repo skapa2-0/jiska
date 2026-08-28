@@ -45,28 +45,28 @@ export default function DeployableControle({
     }
   }
 
-  if (!peutMarquer) return <BadgeDeployable deployable={deployable} />;
-
   return (
-    <span className="inline-flex flex-wrap items-center gap-2">
-      <BadgeDeployable deployable={deployable} />
-      <button
-        type="button"
-        onClick={basculer}
-        disabled={chargement}
-        className="rounded-md px-2 py-0.5 text-xs font-semibold text-brand transition hover:bg-brand/5 disabled:opacity-50"
-      >
-        {chargement
-          ? "…"
-          : deployable
-            ? "Retirer la mention"
-            : "Marquer déployable"}
-      </button>
+    <div className="flex flex-wrap items-center gap-3">
+      <BadgeDeployable deployable={deployable} taille="md" />
+      {peutMarquer && (
+        <button
+          type="button"
+          onClick={basculer}
+          disabled={chargement}
+          className="rounded-lg border border-hairline px-3.5 py-2 text-sm font-semibold text-ink transition hover:bg-surface disabled:opacity-50"
+        >
+          {chargement
+            ? "Enregistrement…"
+            : deployable
+              ? "Retirer la mention"
+              : "Marquer déployable"}
+        </button>
+      )}
       {erreur && (
-        <span role="alert" className="text-xs text-danger">
+        <span role="alert" className="text-sm text-danger">
           {erreur}
         </span>
       )}
-    </span>
+    </div>
   );
 }
