@@ -16,7 +16,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
   }
 
-  const res = await creerSujet(me, String(body.projectId ?? ""), body);
+  // null explicite = sujet transverse. Une valeur absente ou vide reste
+  // une erreur : on ne crée pas hors produit par accident.
+  const projectId =
+    body.projectId === null ? null : String(body.projectId ?? "");
+  const res = await creerSujet(me, projectId, body);
   if (estEchec(res)) {
     return NextResponse.json({ error: res.error }, { status: res.status });
   }

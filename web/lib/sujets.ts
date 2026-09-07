@@ -90,9 +90,14 @@ export const TYPES_SUJET = {
 } as const;
 export type TypeSujet = keyof typeof TYPES_SUJET;
 
+// Sujet transverse : project_id null, project_name porte le libellé de
+// la section pour que tri, recherche et regroupement fonctionnent sans
+// cas particulier (voir NOM_TRANSVERSE).
+export const NOM_TRANSVERSE = "Sujet transverse";
+
 export type SujetRow = {
   id: string;
-  project_id: string;
+  project_id: string | null;
   project_name: string;
   project_logo: string | null;
   title: string;

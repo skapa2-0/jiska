@@ -70,7 +70,11 @@ function ensureSchema(): Promise<void> {
        );
        CREATE TABLE IF NOT EXISTS sujets (
          id             bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-         project_id     bigint NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+         -- NULL = sujet transverse : une tâche ou une mission qui ne relève
+         -- d'aucun produit. Elle ne pèse sur aucun axe (les requêtes
+         -- d'avancement filtrent sur project_id = p.id) et se lit dans sa
+         -- propre section.
+         project_id     bigint REFERENCES projects(id) ON DELETE CASCADE,
          title          text NOT NULL,
          action         text NOT NULL DEFAULT '',
          due_date       date,
@@ -87,6 +91,9 @@ function ensureSchema(): Promise<void> {
          updated_at     timestamptz NOT NULL DEFAULT now()
        );
        CREATE INDEX IF NOT EXISTS sujets_project_idx ON sujets (project_id);
+       -- Bases existantes : la colonne était obligatoire avant les sujets
+       -- transverses.
+       ALTER TABLE sujets ALTER COLUMN project_id DROP NOT NULL;
        -- Le responsable est porté par le projet, pas par le sujet.
        ALTER TABLE sujets DROP COLUMN IF EXISTS responsable_id;
        -- Chaque sujet est typé et pèse un pourcentage du projet.

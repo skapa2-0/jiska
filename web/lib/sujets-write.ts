@@ -10,7 +10,8 @@ import { CRITICITES, ETATS, TYPES_SUJET } from "./sujets";
 
 export type SujetDb = {
   id: string;
-  project_id: string;
+  // NULL = sujet transverse (voir lib/db.ts).
+  project_id: string | null;
   title: string;
   action: string;
   due_date: string | null;
@@ -54,11 +55,13 @@ export async function chargerSujet(id: string): Promise<SujetDb | null> {
 }
 
 // Peut modifier : dirigeant, responsable du projet, ou porteur du sujet.
+// Un sujet transverse n'a pas de responsable : dirigeant ou porteur.
 export async function peutEditer(
   me: SessionUser,
   sujet: SujetDb,
 ): Promise<boolean> {
   if (sujet.porteur_id === me.id) return true;
+  if (sujet.project_id === null) return me.role === "dirigeant";
   return canManageSujets(me, sujet.project_id);
 }
 
@@ -139,7 +142,9 @@ export async function appliquerPatch(
 ): Promise<Echec | { ok: true }> {
   const patch = champsValides(body);
 
-  if (typeof patch.porteur_id === "string") {
+  // Sujet transverse : aucun produit, donc aucune appartenance à vérifier.
+  // Le porteur peut être n'importe quel compte.
+  if (typeof patch.porteur_id === "string" && sujet.project_id !== null) {
     if (await porteurHorsProduit(sujet.project_id, patch.porteur_id)) {
       return { error: "Le porteur doit être membre du produit.", status: 400 };
     }
@@ -171,17 +176,29 @@ export async function appliquerPatch(
   return { ok: true };
 }
 
+// projectId null = sujet transverse : réservé aux dirigeants, personne
+// d'autre n'a de titre à créer une tâche hors produit.
 export async function creerSujet(
   me: SessionUser,
-  projectId: string,
+  projectId: string | null,
   body: CorpsSujet,
   source = "manuel",
 ): Promise<Echec | { ok: true; id: string }> {
   const title = typeof body.title === "string" ? body.title.trim() : "";
-  if (!/^\d+$/.test(projectId) || !title) {
-    return { error: "Produit et sujet sont requis.", status: 400 };
+  if (!title) {
+    return { error: "L'intitulé du sujet est requis.", status: 400 };
   }
-  if (!(await canManageSujets(me, projectId))) {
+  if (projectId !== null && !/^\d+$/.test(projectId)) {
+    return { error: "Produit invalide.", status: 400 };
+  }
+  if (projectId === null) {
+    if (me.role !== "dirigeant") {
+      return {
+        error: "Seuls les dirigeants peuvent créer un sujet transverse.",
+        status: 403,
+      };
+    }
+  } else if (!(await canManageSujets(me, projectId))) {
     return {
       error:
         "Seuls les dirigeants et le responsable du produit peuvent créer un sujet.",
@@ -192,6 +209,7 @@ export async function creerSujet(
   const patch = champsValides(body);
   if (
     typeof patch.porteur_id === "string" &&
+    projectId !== null &&
     (await porteurHorsProduit(projectId, patch.porteur_id))
   ) {
     return { error: "Le porteur doit être membre du produit.", status: 400 };

@@ -3,11 +3,15 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
+import { NOM_TRANSVERSE } from "@/lib/sujets";
 import type {
   ChampsProposes,
   Proposition,
   PropositionDeploiement,
 } from "@/lib/extraction";
+
+// Valeur du sélecteur pour « aucun produit » : projectId vaut null.
+const TRANSVERSE = "transverse";
 import BadgeDeployable from "./deployable";
 import Avatar, { displayName } from "./avatar";
 import type { Personne } from "./avatar";
@@ -319,10 +323,14 @@ export default function ImportTranscript({
   const restants = aDecider.filter((p) => statuts[p.ref] === "attente").length;
 
   function Carte({ p }: { p: Proposition }) {
-    const produit = parId.get(p.projectId);
+    const produit = p.projectId ? parId.get(p.projectId) : undefined;
     const statut = statuts[p.ref];
     const enEdition = edition === p.ref;
-    const membres = produit?.membres ?? [];
+    // Un sujet transverse n'a pas d'équipe : ses porteurs possibles sont
+    // les membres de tous les produits.
+    const membres = p.projectId
+      ? (produit?.membres ?? [])
+      : [...new Map(produits.flatMap((x) => x.membres).map((m) => [m.id, m])).values()];
 
     return (
       <li
@@ -331,7 +339,7 @@ export default function ImportTranscript({
         } ${statut === "accepte" ? "ring-1 ring-success" : ""}`}
       >
         <div className="flex flex-wrap items-center gap-2">
-          {produit && (
+          {produit ? (
             <span className="flex items-center gap-1.5 rounded-md bg-surface px-2 py-1 text-xs font-semibold text-mute">
               <ProjetLogo
                 name={produit.name}
@@ -339,6 +347,10 @@ export default function ImportTranscript({
                 taille="h-4 w-4 text-[9px]"
               />
               {produit.name}
+            </span>
+          ) : (
+            <span className="rounded-md bg-surface px-2 py-1 text-xs font-semibold text-mute">
+              {NOM_TRANSVERSE}
             </span>
           )}
           <span
@@ -400,11 +412,18 @@ export default function ImportTranscript({
                   ariaLabel="Produit visé"
                   placeholder="Choisir un produit"
                   variante="champ"
-                  value={p.projectId}
+                  value={p.projectId ?? TRANSVERSE}
                   onChange={(v) =>
-                    v && modifier(p.ref, { projectId: v, sujetId: null })
+                    v &&
+                    modifier(p.ref, {
+                      projectId: v === TRANSVERSE ? null : v,
+                      sujetId: null,
+                    })
                   }
-                  options={produits.map((x) => ({ value: x.id, label: x.name }))}
+                  options={[
+                    ...produits.map((x) => ({ value: x.id, label: x.name })),
+                    { value: TRANSVERSE, label: NOM_TRANSVERSE },
+                  ]}
                 />
               </div>
             )}

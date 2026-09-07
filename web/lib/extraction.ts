@@ -22,7 +22,8 @@ export type ChampsProposes = {
 export type Proposition = {
   ref: string;
   nature: "maj" | "creation";
-  projectId: string;
+  // null = sujet transverse : la tâche ne relève d'aucun produit.
+  projectId: string | null;
   sujetId: string | null;
   titre: string;
   champs: ChampsProposes;
@@ -64,7 +65,7 @@ export type ProduitCat = {
 };
 export type SujetCat = {
   id: string;
-  projectId: string;
+  projectId: string | null;
   titre: string;
   etat: string;
   criticite: string;
@@ -75,6 +76,9 @@ export type SujetCat = {
   porteurId: string | null;
 };
 export type Catalogue = {
+  // Un import scopé produit ne peut rien écrire ailleurs : le transverse
+  // n'est proposable que sur une réunion de portée portefeuille.
+  transverseAutorise: boolean;
   produits: ProduitCat[];
   sujets: SujetCat[];
   lexique: { terme: string; cible: string }[];
@@ -112,7 +116,7 @@ export async function chargerCatalogue(
     ),
     query<{
       id: string;
-      project_id: string;
+      project_id: string | null;
       title: string;
       etat: string;
       criticite: string;
@@ -124,8 +128,9 @@ export async function chargerCatalogue(
     }>(
       `SELECT s.id, s.project_id, s.title, s.etat, s.criticite, s.type,
               s.action, s.commentaire, s.due_date::text AS due_date, s.porteur_id
-         FROM sujets s JOIN projects p ON p.id = s.project_id ${filtre}
-        ORDER BY s.project_id, s.id`,
+         FROM sujets s LEFT JOIN projects p ON p.id = s.project_id
+        ${projectId ? "WHERE s.project_id = $1" : ""}
+        ORDER BY s.project_id NULLS FIRST, s.id`,
       args,
     ),
     query<{ terme: string; cible: string }>(
@@ -139,6 +144,7 @@ export async function chargerCatalogue(
   ]);
 
   return {
+    transverseAutorise: projectId === null,
     produits: produits.map((p) => ({
       id: p.id,
       name: p.name,
@@ -176,7 +182,9 @@ const texteOuNull = { anyOf: [{ type: "string" }, { type: "null" }] };
 function construireSchema(cat: Catalogue) {
   const champ = {
     nature: { type: "string", enum: ["maj", "creation"] },
-    project_id: { type: "string", enum: cat.produits.map((p) => p.id) },
+    project_id: cat.transverseAutorise
+      ? enumOuNull(cat.produits.map((p) => p.id))
+      : { type: "string", enum: cat.produits.map((p) => p.id) },
     sujet_id: enumOuNull(cat.sujets.map((s) => s.id)),
     titre: { type: "string" },
     etat: enumOuNull(Object.keys(ETATS)),
@@ -233,7 +241,9 @@ Règles absolues :
 - Tu ne proposes que ce qui est explicitement dit dans le document. Aucune déduction, aucune extrapolation, aucun comblement de trou.
 - Chaque proposition porte une citation littérale du document et l'horodatage le plus proche. Sans citation possible, pas de proposition.
 - Tu ne décides jamais du poids d'un sujet : c'est une décision de pilotage humaine, elle ne s'extrait pas d'une conversation.
-- Un passage qui ne se rattache à aucun produit du catalogue part dans « ecartes », avec une phrase décrivant ce qui a été laissé de côté. Ne force jamais un rattachement approximatif.
+- Un passage qui ne se rattache à aucun produit du catalogue, mais qui décrit bel et bien une tâche ou une mission à suivre (chantier d'organisation, sujet RH, démarche administrative, outillage interne…), devient un sujet transverse : project_id vaut null. Ne force jamais un rattachement approximatif à un produit pour éviter le transverse.
+- « ecartes » ne garde que ce qui n'est ni un produit du catalogue ni une tâche à suivre : bavardage, contexte, décisions sans suite. Une phrase y décrit ce qui a été laissé de côté.
+- Un sujet transverse existant est au catalogue avec project_id null : vise-le par son identifiant plutôt que d'en recréer un.
 - Tu vises un sujet existant par son identifiant. Si le sujet évoqué n'existe pas au catalogue, nature vaut "creation" et sujet_id vaut null.
 - Pour une mise à jour, ne renseigne un champ que si sa valeur diffère réellement de celle du catalogue. Tous les autres champs valent null.
 - Le lexique donne des correspondances entre termes entendus et vraies cibles : les transcriptions comportent des erreurs sur les noms propres et les noms de produits. Applique-le.
@@ -283,7 +293,7 @@ function contexte(cat: Catalogue, dateReunion: string, transcript: string) {
 
 type Brut = {
   nature: "maj" | "creation";
-  project_id: string;
+  project_id: string | null;
   sujet_id: string | null;
   titre: string;
   etat: string | null;

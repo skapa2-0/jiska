@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
+import { CRITICITES, ETATS, NOM_TRANSVERSE, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import type { ProjectOption } from "./dashboard";
 import Avatar, { displayName } from "./avatar";
@@ -13,20 +13,33 @@ import Select from "./select";
 
 // Création / mise à jour d'un sujet, sans quitter la page (PRD : une
 // seule page, la réunion met à jour l'application en direct).
+// Valeur du sélecteur pour « aucun produit ». Le champ project_id vaut
+// null en base ; ce jeton ne vit que dans le formulaire.
+const TRANSVERSE = "transverse";
+
 export default function SujetModal({
   mode,
   sujet,
   projects,
+  peutTransverse,
+  transverseParDefaut = false,
   onClose,
 }: {
   mode: "create" | "edit";
   sujet?: SujetRow;
   projects: ProjectOption[];
+  // Créer hors produit est réservé aux dirigeants.
+  peutTransverse: boolean;
+  transverseParDefaut?: boolean;
   onClose: (refresh: boolean) => void;
 }) {
   const creatable = projects.filter((p) => p.canManage);
   const [projectId, setProjectId] = useState(
-    sujet?.project_id ?? creatable[0]?.id ?? "",
+    mode === "edit"
+      ? (sujet?.project_id ?? TRANSVERSE)
+      : transverseParDefaut && peutTransverse
+        ? TRANSVERSE
+        : (creatable[0]?.id ?? (peutTransverse ? TRANSVERSE : "")),
   );
   const [title, setTitle] = useState(sujet?.title ?? "");
   const [action, setAction] = useState(sujet?.action ?? "");
@@ -46,7 +59,20 @@ export default function SujetModal({
   const [confirmer, setConfirmer] = useState(false);
 
   const readOnly = mode === "edit" && !sujet?.can_edit;
+  const transverse = projectId === TRANSVERSE;
   const projet = projects.find((p) => p.id === projectId);
+  // Un sujet transverse n'a pas d'équipe : ses porteurs possibles sont
+  // les membres de tous les produits visibles.
+  const porteursPossibles = transverse
+    ? [...new Map(projects.flatMap((p) => p.members).map((m) => [m.id, m])).values()]
+    : (projet?.members ?? []);
+  // Choix de produit à offrir, « Transverse » compris quand le droit existe.
+  const optionsProduit = [
+    ...creatable.map((p) => ({ value: p.id, label: p.name })),
+    ...(peutTransverse
+      ? [{ value: TRANSVERSE, label: NOM_TRANSVERSE }]
+      : []),
+  ];
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -61,12 +87,15 @@ export default function SujetModal({
     setLoading(true);
     setMessage("");
     const payload = {
-      projectId,
+      projectId: transverse ? null : projectId,
       title,
       action,
       dueDate: dueDate || null,
       type,
-      poids: Math.min(100, Math.max(0, Math.round(Number(poids) || 0))),
+      // Hors produit, il n'y a aucun axe à pondérer : le poids reste nul.
+      poids: transverse
+        ? 0
+        : Math.min(100, Math.max(0, Math.round(Number(poids) || 0))),
       porteurId,
       criticite,
       etat,
@@ -156,7 +185,7 @@ export default function SujetModal({
         >
           <div className="grid gap-5 sm:grid-cols-2">
             {mode === "create" && (
-              <div className={creatable.length > 1 ? "" : "hidden"}>
+              <div className={optionsProduit.length > 1 ? "" : "hidden"}>
                 <Etiquette>Produit</Etiquette>
                 <Select
                   ariaLabel="Produit du sujet"
@@ -165,14 +194,17 @@ export default function SujetModal({
                   value={projectId}
                   disabled={loading}
                   onChange={setProjectId}
-                  options={creatable.map((p) => ({
-                    value: p.id,
-                    label: p.name,
-                  }))}
+                  options={optionsProduit}
                 />
               </div>
             )}
-            <div className={mode === "create" && creatable.length > 1 ? "" : "sm:col-span-2"}>
+            <div
+              className={
+                mode === "create" && optionsProduit.length > 1
+                  ? ""
+                  : "sm:col-span-2"
+              }
+            >
               <Etiquette libelle="s-titre">Sujet</Etiquette>
               <input
                 id="s-titre"
@@ -251,7 +283,9 @@ export default function SujetModal({
           </div>
 
 
-          <div className="mt-5 grid gap-5 sm:grid-cols-2">
+          <div
+            className={`mt-5 grid gap-5 sm:grid-cols-2 ${transverse ? "hidden" : ""}`}
+          >
             <div>
               <Etiquette>Type de sujet</Etiquette>
               <div className="flex gap-1.5">
@@ -304,7 +338,7 @@ export default function SujetModal({
               <span className="font-normal text-stone">(facultatif)</span>
             </Etiquette>
             <div className="flex flex-wrap gap-1.5">
-              {(projet?.members ?? []).map((m) => {
+              {porteursPossibles.map((m) => {
                 const actif = porteurId === m.id;
                 return (
                   <button

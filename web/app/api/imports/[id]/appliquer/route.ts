@@ -31,10 +31,17 @@ async function apprendre(
     origine.projectId !== retenue.projectId ||
     origine.sujetId !== retenue.sujetId;
 
-  if (cibleChangee && origine.titre.trim()) {
-    const [type, id] = retenue.sujetId
-      ? (["sujet", retenue.sujetId] as const)
-      : (["projet", retenue.projectId] as const);
+  // Le lexique pointe vers un sujet ou un produit. Une correction vers
+  // « transverse » ne désigne ni l'un ni l'autre : il n'y a rien à
+  // apprendre, et cible_id n'accepte pas NULL.
+  const cible = retenue.sujetId
+    ? (["sujet", retenue.sujetId] as const)
+    : retenue.projectId !== null
+      ? (["projet", retenue.projectId] as const)
+      : null;
+
+  if (cibleChangee && origine.titre.trim() && cible) {
+    const [type, id] = cible;
     await query(
       `INSERT INTO lexique (terme, cible_type, cible_id, created_by)
        VALUES ($1, $2, $3, $4)

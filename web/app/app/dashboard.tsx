@@ -81,11 +81,14 @@ function isoDate(d: Date): string {
 
 export default function Dashboard({
   meId,
+  dirigeant,
   sujets,
   projects,
   indicateurs,
 }: {
   meId: string;
+  // Seul un dirigeant crée un sujet hors produit (lib/sujets-write.ts).
+  dirigeant: boolean;
   sujets: SujetRow[];
   projects: ProjectOption[];
   indicateurs: Indicateurs;
@@ -98,7 +101,9 @@ export default function Dashboard({
   const [responsableId, setResponsableId] = useState("");
   const [recherche, setRecherche] = useState("");
   const [modal, setModal] = useState<
-    { mode: "create" } | { mode: "edit"; sujet: SujetRow } | null
+    | { mode: "create"; transverse?: boolean }
+    | { mode: "edit"; sujet: SujetRow }
+    | null
   >(null);
   const [fiche, setFiche] = useState<SujetRow | null>(null);
   const [tri, setTri] = useState<Tri | null>(null);
@@ -138,7 +143,11 @@ export default function Dashboard({
   // la vue projet renvoie vers le tableau filtré avec ?projet=<id>.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("sujet") === "nouveau") setModal({ mode: "create" });
+    // ?sujet=nouveau ouvre la création ; &transverse=1 la préoriente
+    // hors produit (bouton de la section « Sujets transverses »).
+    if (params.get("sujet") === "nouveau") {
+      setModal({ mode: "create", transverse: params.get("transverse") === "1" });
+    }
     const projet = params.get("projet");
     if (projet) setProjetId(projet);
     // Dernier filtre choisi, restauré d'une visite à l'autre ; un
@@ -216,6 +225,14 @@ export default function Dashboard({
     [projects],
   );
 
+  // Toutes les personnes visibles, tous produits confondus : c'est le
+  // vivier des porteurs d'un sujet transverse, qui n'a pas d'équipe.
+  const tousMembres = useMemo(() => {
+    const m = new Map<string, Personne>();
+    for (const p of projects) for (const u of p.members) m.set(u.id, u);
+    return m;
+  }, [projects]);
+
   const visibles = sujets.filter((s) => {
     if (filtre === "miens" && s.porteur_id !== meId) return false;
     if (filtre === "neuf" && s.updated_at < depuis7j) return false;
@@ -233,12 +250,13 @@ export default function Dashboard({
     if (projetId && s.project_id !== projetId) return false;
     if (
       responsableId &&
-      projetDe.get(s.project_id)?.responsableId !== responsableId
+      projetDe.get(s.project_id ?? "")?.responsableId !== responsableId
     )
       return false;
     if (recherche) {
-      const responsable = projetDe.get(s.project_id)?.members.find(
-        (m) => m.id === projetDe.get(s.project_id)?.responsableId,
+      const projet = projetDe.get(s.project_id ?? "");
+      const responsable = projet?.members.find(
+        (m) => m.id === projet?.responsableId,
       );
       const hay =
         `${s.title} ${s.project_name} ${responsable ? displayName(responsable) : ""} ${s.action} ${s.commentaire}`.toLowerCase();
@@ -247,7 +265,12 @@ export default function Dashboard({
     return true;
   });
 
+  // Un sujet transverse n'a pas d'équipe produit où chercher son
+  // porteur : on le retrouve parmi les membres de tous les produits
+  // visibles.
   function porteurDe(s: SujetRow): Personne | undefined {
+    if (!s.porteur_id) return undefined;
+    if (s.project_id === null) return tousMembres.get(s.porteur_id);
     return projetDe
       .get(s.project_id)
       ?.members.find((m) => m.id === s.porteur_id);
@@ -785,6 +808,10 @@ export default function Dashboard({
 
       {modal && (
         <SujetModal
+          peutTransverse={dirigeant}
+          transverseParDefaut={
+            modal.mode === "create" && modal.transverse === true
+          }
           mode={modal.mode}
           sujet={modal.mode === "edit" ? modal.sujet : undefined}
           projects={projects}

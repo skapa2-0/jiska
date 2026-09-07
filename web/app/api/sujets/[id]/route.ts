@@ -50,11 +50,16 @@ export async function DELETE(
   if (!sujet) {
     return NextResponse.json({ error: "Sujet introuvable." }, { status: 404 });
   }
-  if (!(await canManageSujets(me, sujet.project_id))) {
+  const peutSupprimer =
+    sujet.project_id === null
+      ? me.role === "dirigeant"
+      : await canManageSujets(me, sujet.project_id);
+  if (!peutSupprimer) {
     return NextResponse.json(
       {
-        error:
-          "Seuls les dirigeants et le responsable du produit peuvent supprimer un sujet.",
+        error: sujet.project_id === null
+          ? "Seuls les dirigeants peuvent supprimer un sujet transverse."
+          : "Seuls les dirigeants et le responsable du produit peuvent supprimer un sujet.",
       },
       { status: 403 },
     );

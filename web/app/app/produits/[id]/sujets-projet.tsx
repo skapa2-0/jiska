@@ -157,6 +157,7 @@ export default function SujetsProjet({
 
       {modal && (
         <SujetModal
+          peutTransverse={false}
           mode={modal.mode}
           sujet={modal.mode === "edit" ? modal.sujet : undefined}
           projects={[projet]}

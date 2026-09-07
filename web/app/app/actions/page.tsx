@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
+import { NOM_TRANSVERSE } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import BottomNav from "../bottom-nav";
 import Navbar from "../navbar";
@@ -32,7 +33,8 @@ export default async function ActionsPage() {
       sem_engages: string;
       sem_avancement: string | null;
     }>(
-      `WITH s AS (SELECT * FROM sujets WHERE project_id IN (${vis}))
+      `WITH s AS (SELECT * FROM sujets
+                   WHERE project_id IS NULL OR project_id IN (${vis}))
        SELECT
          (SELECT count(*) FROM (${vis}) v)                            AS projets,
          (SELECT count(*) FROM s WHERE etat <> 'termine')             AS ouverts,
@@ -64,7 +66,8 @@ export default async function ActionsPage() {
       visParams,
     ),
     query<SujetRow & { is_proj_resp: boolean }>(
-      `SELECT s.id, s.project_id, p.name AS project_name,
+      `SELECT s.id, s.project_id,
+              COALESCE(p.name, '${NOM_TRANSVERSE}') AS project_name,
               ${sqlLogoUrl("p")} AS project_logo, s.title, s.action,
               s.due_date::text AS due_date, s.type, s.poids,
               s.porteur_id, s.updated_at::date::text AS updated_at,
@@ -74,8 +77,8 @@ export default async function ActionsPage() {
                          AND m.user_id = $${visParams.length + 1}
                          AND m.is_responsable) AS is_proj_resp
          FROM sujets s
-         JOIN projects p ON p.id = s.project_id
-        WHERE s.project_id IN (${vis})
+         LEFT JOIN projects p ON p.id = s.project_id
+        WHERE s.project_id IS NULL OR s.project_id IN (${vis})
         ORDER BY s.due_date NULLS LAST, s.id`,
       [...visParams, user.id],
     ),
@@ -156,13 +159,14 @@ export default async function ActionsPage() {
     can_edit: dirigeant || s.is_proj_resp || s.porteur_id === user.id,
   }));
 
-  const canCreateSujet = projects.some((p) => p.canManage);
+  const canCreateSujet = dirigeant || projects.some((p) => p.canManage);
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-white">
       <Navbar user={user} canCreateSujet={canCreateSujet} onglet="actions" />
       <Dashboard
         meId={user.id}
+        dirigeant={dirigeant}
         sujets={sujets}
         projects={projects}
         indicateurs={{

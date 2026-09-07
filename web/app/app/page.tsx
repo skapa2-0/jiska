@@ -8,6 +8,8 @@ import type { SemaineRow } from "@/lib/semaine";
 import BottomNav from "./bottom-nav";
 import Navbar from "./navbar";
 import ListeProjets from "./produits/liste-projets";
+import SujetsTransverses from "./sujets-transverses";
+import type { SujetTransverse } from "./sujets-transverses";
 import type { CarteProjet } from "./produits/liste-projets";
 
 // Page principale de l'espace : la vue par produit. Un bandeau de
@@ -144,6 +146,50 @@ export default async function AppPage() {
     0,
   );
 
+  // Sujets transverses : aucun produit, donc aucun filtre d'appartenance.
+  // Ils concernent l'entreprise, tout le monde les voit.
+  const transverseRows = await query<{
+    id: string;
+    title: string;
+    action: string;
+    due_date: string | null;
+    etat: string;
+    criticite: string;
+    porteur_id: string | null;
+    porteur_email: string | null;
+    porteur_first_name: string | null;
+    porteur_last_name: string | null;
+    porteur_avatar: string | null;
+  }>(
+    `SELECT s.id, s.title, s.action, s.due_date::text AS due_date,
+            s.etat, s.criticite, s.porteur_id,
+            u.email AS porteur_email,
+            u.first_name AS porteur_first_name,
+            u.last_name AS porteur_last_name,
+            ${sqlAvatarUrl("u")} AS porteur_avatar
+       FROM sujets s
+       LEFT JOIN users u ON u.id = s.porteur_id
+      WHERE s.project_id IS NULL
+      ORDER BY s.etat = 'termine', s.due_date NULLS LAST, s.id`,
+  );
+  const transverses: SujetTransverse[] = transverseRows.map((s) => ({
+    id: s.id,
+    titre: s.title,
+    action: s.action,
+    echeance: s.due_date,
+    etat: s.etat,
+    criticite: s.criticite,
+    porteur: s.porteur_id
+      ? {
+          id: s.porteur_id,
+          email: s.porteur_email ?? "",
+          first_name: s.porteur_first_name,
+          last_name: s.porteur_last_name,
+          avatar: s.porteur_avatar,
+        }
+      : null,
+  }));
+
   const canCreateSujet = dirigeant || (await isResponsable(user.id));
   // Une analyse déjà payée qui dort en base doit se voir depuis l'accueil.
   const enAttente = dirigeant ? await chargerImportsEnAttente(null) : [];
@@ -259,6 +305,15 @@ export default async function AppPage() {
         ) : (
           <ListeProjets projets={projets} today={today} />
         )}
+
+        {/* Ce qui ne relève d'aucun produit se range ici, sous la grille. */}
+        <div className={projets.length === 0 ? "mt-10" : "mt-7"}>
+          <SujetsTransverses
+            sujets={transverses}
+            peutCreer={dirigeant}
+            today={today}
+          />
+        </div>
       </main>
       <BottomNav onglet="produits" canCreate={canCreateSujet} />
     </div>
