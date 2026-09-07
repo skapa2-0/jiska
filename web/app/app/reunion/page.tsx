@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
-import { lireSemaine, sqlSemaine } from "@/lib/semaine";
+import { lireSemaine, semaineDeSujets, sqlSemaine } from "@/lib/semaine";
 import type { SemaineRow } from "@/lib/semaine";
+import { NOM_TRANSVERSE, NOM_TRANSVERSES } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import type { ProjectOption } from "../dashboard";
 import Revue from "./revue";
@@ -21,7 +22,7 @@ export default async function ReunionPage() {
     : "SELECT project_id FROM project_members WHERE user_id = $1";
   const visParams = dirigeant ? [] : [user.id];
 
-  const [projetRows, membres, sujetRows] = await Promise.all([
+  const [projetRows, membres, sujetRows, reunionRows] = await Promise.all([
     query<{
       id: string;
       name: string;
@@ -72,7 +73,7 @@ export default async function ReunionPage() {
     ),
     query<{
       id: string;
-      project_id: string;
+      project_id: string | null;
       title: string;
       action: string;
       due_date: string | null;
@@ -89,10 +90,16 @@ export default async function ReunionPage() {
               s.porteur_id, s.updated_at::date::text AS updated_at,
               s.criticite, s.etat, s.commentaire
          FROM sujets s
-        WHERE s.project_id IN (${vis})
+        WHERE s.project_id IS NULL OR s.project_id IN (${vis})
         ORDER BY (s.etat = 'termine'),
                  s.due_date NULLS LAST, s.id`,
       visParams,
+    ),
+    // Les sujets transverses ne relèvent d'aucun produit : seule une
+    // réunion de portée portefeuille date leur semaine.
+    query<{ depuis: string | null }>(
+      `SELECT max(date_reunion)::text AS depuis FROM reunion_imports
+        WHERE statut = 'applique' AND project_id IS NULL`,
     ),
   ]);
 
@@ -173,6 +180,83 @@ export default async function ReunionPage() {
       b.retards - a.retards ||
       a.projet.name.localeCompare(b.projet.name, "fr"),
   );
+
+  // Les sujets transverses ferment la revue : on passe les produits, puis
+  // ce qui traverse l'entreprise. Étape ajoutée après le tri, sa place ne
+  // dépend pas du risque.
+  const transverseTous = sujetRows
+    .filter((s) => s.project_id === null)
+    .map<SujetRow>((s) => ({
+      id: s.id,
+      project_id: null,
+      project_name: NOM_TRANSVERSE,
+      project_logo: null,
+      title: s.title,
+      action: s.action,
+      due_date: s.due_date,
+      type: s.type,
+      poids: Number(s.poids),
+      porteur_id: s.porteur_id,
+      updated_at: s.updated_at,
+      criticite: s.criticite,
+      etat: s.etat,
+      commentaire: s.commentaire,
+      can_edit: dirigeant || s.porteur_id === user.id,
+      can_manage: dirigeant,
+    }));
+
+  if (transverseTous.length > 0) {
+    const actifs = transverseTous.filter((s) => s.etat !== "termine");
+    actifs.sort((a, b) => {
+      const ra = !!a.due_date && a.due_date < today;
+      const rb = !!b.due_date && b.due_date < today;
+      if (ra !== rb) return ra ? -1 : 1;
+      if (a.due_date !== b.due_date) {
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return a.due_date.localeCompare(b.due_date);
+      }
+      return 0;
+    });
+    // Pas de produit, donc pas d'équipe : le vivier de porteurs est
+    // l'ensemble des membres visibles.
+    const tousMembres = [
+      ...new Map(
+        membres.map((m) => [
+          m.id,
+          {
+            id: m.id,
+            email: m.email,
+            first_name: m.first_name,
+            last_name: m.last_name,
+            avatar: m.avatar,
+          },
+        ]),
+      ).values(),
+    ];
+    etapes.push({
+      transverse: true,
+      projet: {
+        // Identifiant vide : aucun produit ne peut le porter.
+        id: "",
+        name: NOM_TRANSVERSES,
+        logo: null,
+        responsableId: null,
+        avancement: 0,
+        poidsTech: 0,
+        poidsBusiness: 0,
+        canManage: dirigeant,
+        members: tousMembres,
+      },
+      tech: 0,
+      business: 0,
+      semaine: semaineDeSujets(transverseTous, reunionRows[0]?.depuis ?? null),
+      sujets: actifs,
+      termines: transverseTous.length - actifs.length,
+      bloques: actifs.filter((s) => s.etat === "bloque").length,
+      retards: actifs.filter((s) => !!s.due_date && s.due_date < today).length,
+    });
+  }
 
   if (etapes.length === 0) redirect("/app");
 

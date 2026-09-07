@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
+import { CRITICITES, ETATS, NOM_TRANSVERSE, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "./avatar";
 import type { Personne } from "./avatar";
@@ -232,6 +232,24 @@ export default function Dashboard({
     for (const p of projects) for (const u of p.members) m.set(u.id, u);
     return m;
   }, [projects]);
+
+  // Produit d'habillage pour la fiche d'un sujet transverse : il ne sert
+  // qu'à fournir ce vivier. La fiche masque d'elle-même le bloc produit
+  // et le budget d'axe quand le sujet ne relève d'aucun produit.
+  const habillageTransverse: ProjectOption = useMemo(
+    () => ({
+      id: "",
+      name: NOM_TRANSVERSE,
+      logo: null,
+      responsableId: null,
+      avancement: 0,
+      poidsTech: 0,
+      poidsBusiness: 0,
+      canManage: dirigeant,
+      members: [...tousMembres.values()],
+    }),
+    [tousMembres, dirigeant],
+  );
 
   const visibles = sujets.filter((s) => {
     if (filtre === "miens" && s.porteur_id !== meId) return false;
@@ -800,7 +818,11 @@ export default function Dashboard({
       {fiche && (
         <FicheSujet
           sujet={fiche}
-          projet={projects.find((p) => p.id === fiche.project_id)}
+          projet={
+            fiche.project_id === null
+              ? habillageTransverse
+              : projects.find((p) => p.id === fiche.project_id)
+          }
           today={today}
           onClose={() => setFiche(null)}
         />

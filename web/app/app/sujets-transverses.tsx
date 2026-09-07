@@ -1,4 +1,4 @@
-import { CRITICITES, ETATS } from "@/lib/sujets";
+import { CRITICITES, ETATS, NOM_TRANSVERSES } from "@/lib/sujets";
 import Avatar from "./avatar";
 import type { Personne } from "./avatar";
 
@@ -36,7 +36,7 @@ export default function SujetsTransverses({
     <section className="mb-7 last:mb-0">
       <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 className="flex items-baseline gap-2 text-sm font-semibold uppercase tracking-wide text-stone">
-          Sujets transverses
+          {NOM_TRANSVERSES}
           {sujets.length > 0 && (
             <span className="font-medium normal-case tracking-normal">
               {sujets.length}

@@ -362,7 +362,7 @@ export default function FicheSujet({
                     %
                   </label>
                   <BudgetAxe
-                    projet={projet}
+                    projet={sujet.project_id === null ? undefined : projet}
                     type={type}
                     poidsInitial={sujet.type === type ? sujet.poids : 0}
                     poidsActuel={Math.round(Number(poids) || 0)}
@@ -498,8 +498,9 @@ export default function FicheSujet({
             </div>
           )}
 
-          {/* Le produit du sujet, en léger : logo, avancement, équipe. */}
-          {projet && (
+          {/* Le produit du sujet, en léger : logo, avancement, équipe.
+              Rien à montrer quand le sujet ne relève d'aucun produit. */}
+          {projet && sujet.project_id !== null && (
             <a
               href={`/app/produits/${projet.id}`}
               className="block bg-surface/60 px-5 py-4 transition hover:bg-surface sm:px-6"

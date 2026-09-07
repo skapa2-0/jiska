@@ -70,6 +70,27 @@ export function sqlSemaine(alias = "p"): string {
             AS sem_depuis`;
 }
 
+// Même mesure, calculée sur une liste déjà chargée plutôt qu'en SQL :
+// les sujets transverses ne se parcourent pas par produit.
+export function semaineDeSujets(
+  sujets: { etat: string; action: string }[],
+  depuis: string | null,
+): Semaine {
+  const engages = sujets.filter((s) => s.action !== "");
+  return {
+    engages: engages.length,
+    avancement: engages.length
+      ? Math.round(
+          engages.reduce((t, s) => t + (AVANCEMENT_ETAT[s.etat] ?? 0), 0) /
+            engages.length,
+        )
+      : 0,
+    termines: engages.filter((s) => s.etat === "termine").length,
+    bloques: engages.filter((s) => s.etat === "bloque").length,
+    depuis,
+  };
+}
+
 export function lireSemaine(row: SemaineRow): Semaine {
   return {
     engages: Number(row.sem_engages),

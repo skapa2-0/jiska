@@ -94,6 +94,7 @@ export type TypeSujet = keyof typeof TYPES_SUJET;
 // la section pour que tri, recherche et regroupement fonctionnent sans
 // cas particulier (voir NOM_TRANSVERSE).
 export const NOM_TRANSVERSE = "Sujet transverse";
+export const NOM_TRANSVERSES = "Sujets transverses";
 
 export type SujetRow = {
   id: string;

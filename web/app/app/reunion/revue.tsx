@@ -13,6 +13,9 @@ import type { Semaine } from "@/lib/semaine";
 import Roue, { tonAvancement } from "../roue";
 
 export type EtapeRevue = {
+  // Étape des sujets transverses : pas de produit derrière, donc ni roue
+  // d'avancement, ni axes, ni poids. Le projet porté est un habillage.
+  transverse?: boolean;
   projet: ProjectOption;
   tech: number;
   business: number;
@@ -93,35 +96,66 @@ export default function Revue({
         <div className="mx-auto w-full max-w-3xl px-4 py-5 sm:px-6">
           {/* Le produit du moment */}
           <div className="flex items-center gap-4">
-            <ProjetLogo name={p.name} logo={p.logo} taille="h-12 w-12 text-2xl" />
+            {etape.transverse ? (
+              <span
+                aria-hidden="true"
+                className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-surface text-mute"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M4 12h16M12 4v16" />
+                </svg>
+              </span>
+            ) : (
+              <ProjetLogo
+                name={p.name}
+                logo={p.logo}
+                taille="h-12 w-12 text-2xl"
+              />
+            )}
             <div className="min-w-0 flex-1">
               <h1 className="truncate font-display text-2xl font-medium tracking-[-0.02em] text-ink">
                 {p.name}
               </h1>
-              <p className="mt-0.5 flex items-center gap-2 text-xs text-mute">
-                <span className="flex items-center -space-x-1">
-                  {p.members.slice(0, 5).map((m) => (
-                    <Avatar
-                      key={m.id}
-                      personne={m}
-                      taille="h-5 w-5 text-[9px]"
-                      dore={m.id === respId}
-                      classe={m.id === respId ? "" : "border border-white"}
-                    />
-                  ))}
-                </span>
-                {responsable && (
-                  <span className="min-w-0 truncate">
-                    {displayName(responsable)}
+              {etape.transverse ? (
+                <p className="mt-0.5 text-xs text-mute">
+                  Tâches et missions qui ne relèvent d&apos;aucun produit
+                </p>
+              ) : (
+                <p className="mt-0.5 flex items-center gap-2 text-xs text-mute">
+                  <span className="flex items-center -space-x-1">
+                    {p.members.slice(0, 5).map((m) => (
+                      <Avatar
+                        key={m.id}
+                        personne={m}
+                        taille="h-5 w-5 text-[9px]"
+                        dore={m.id === respId}
+                        classe={m.id === respId ? "" : "border border-white"}
+                      />
+                    ))}
                   </span>
-                )}
-              </p>
+                  {responsable && (
+                    <span className="min-w-0 truncate">
+                      {displayName(responsable)}
+                    </span>
+                  )}
+                </p>
+              )}
             </div>
-            <Roue
-              valeur={p.avancement}
-              ton={tonAvancement(p.avancement)}
-              taille="h-12 w-12"
-            />
+            {!etape.transverse && (
+              <Roue
+                valeur={p.avancement}
+                ton={tonAvancement(p.avancement)}
+                taille="h-12 w-12"
+              />
+            )}
           </div>
 
           {/* La question de la réunion, en tête : ce qu'on s'était
@@ -130,11 +164,13 @@ export default function Revue({
             <BlocSemaine semaine={etape.semaine} />
           </div>
 
-          {/* Axes et signaux */}
-          <div className="mt-4 grid gap-x-6 gap-y-2 rounded-lg bg-white p-4 shadow-card sm:grid-cols-2">
-            <BarreAxe nom="Technique · 60 %" valeur={etape.tech} />
-            <BarreAxe nom="Business · 40 %" valeur={etape.business} />
-          </div>
+          {/* Axes et signaux : un sujet transverse ne pèse sur aucun axe. */}
+          {!etape.transverse && (
+            <div className="mt-4 grid gap-x-6 gap-y-2 rounded-lg bg-white p-4 shadow-card sm:grid-cols-2">
+              <BarreAxe nom="Technique · 60 %" valeur={etape.tech} />
+              <BarreAxe nom="Business · 40 %" valeur={etape.business} />
+            </div>
+          )}
 
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-medium">
             <span className="rounded-md bg-surface px-2 py-1 text-mute">
@@ -161,7 +197,9 @@ export default function Revue({
           {/* Les actions à passer en revue */}
           {etape.sujets.length === 0 ? (
             <p className="mt-6 rounded-lg bg-surface px-4 py-8 text-center text-sm text-stone">
-              Aucun sujet actif sur ce produit.
+              {etape.transverse
+                ? "Aucun sujet transverse actif."
+                : "Aucun sujet actif sur ce produit."}
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-hairline rounded-lg bg-white shadow-card">
@@ -184,11 +222,13 @@ export default function Revue({
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
                           {s.title}
                         </span>
-                        <span
-                          className={`hidden rounded-md px-2 py-0.5 text-xs font-semibold sm:inline ${TYPES_SUJET[s.type].chip}`}
-                        >
-                          {TYPES_SUJET[s.type].court} · {s.poids} %
-                        </span>
+                        {!etape.transverse && (
+                          <span
+                            className={`hidden rounded-md px-2 py-0.5 text-xs font-semibold sm:inline ${TYPES_SUJET[s.type].chip}`}
+                          >
+                            {TYPES_SUJET[s.type].court} · {s.poids} %
+                          </span>
+                        )}
                         <span
                           className={`rounded-md px-2 py-0.5 text-xs font-semibold ${CRITICITES[s.criticite].chip}`}
                         >

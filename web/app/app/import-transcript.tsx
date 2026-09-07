@@ -59,11 +59,14 @@ const jolieDate = (v: string) => v.split("-").reverse().join("/");
 
 export default function ImportTranscript({
   produits,
+  sujetsTransverses = [],
   porteeProjetId,
   retour,
   reprise = null,
 }: {
   produits: ProduitImport[];
+  // Sujets transverses existants : cibles possibles d'une correction.
+  sujetsTransverses?: { id: string; titre: string }[];
   porteeProjetId: string | null;
   retour: string;
   reprise?: Reprise | null;
@@ -331,6 +334,9 @@ export default function ImportTranscript({
     const membres = p.projectId
       ? (produit?.membres ?? [])
       : [...new Map(produits.flatMap((x) => x.membres).map((m) => [m.id, m])).values()];
+    // Cibles possibles du « sujet visé » : ceux du produit, ou les
+    // transverses existants quand la proposition ne vise aucun produit.
+    const cibles = p.projectId ? (produit?.sujets ?? []) : sujetsTransverses;
 
     return (
       <li
@@ -439,11 +445,10 @@ export default function ImportTranscript({
                 onChange={(v) =>
                   modifier(p.ref, {
                     sujetId: v || null,
-                    titre:
-                      produit?.sujets.find((s) => s.id === v)?.titre ?? p.titre,
+                    titre: cibles.find((s) => s.id === v)?.titre ?? p.titre,
                   })
                 }
-                options={(produit?.sujets ?? []).map((s) => ({
+                options={cibles.map((s) => ({
                   value: s.id,
                   label: s.titre,
                 }))}

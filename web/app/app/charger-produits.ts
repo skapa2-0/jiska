@@ -2,6 +2,19 @@ import { query } from "@/lib/db";
 import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
 import type { ProduitImport } from "./import-transcript";
 
+// Sujets transverses existants, pour que l'écran de vérification puisse
+// rattacher une proposition à l'un d'eux plutôt que d'en créer un doublon.
+// Portée produit : la liste est vide, le transverse y est interdit.
+export async function chargerSujetsTransverses(
+  projectId: string | null,
+): Promise<{ id: string; titre: string }[]> {
+  if (projectId !== null) return [];
+  const rows = await query<{ id: string; title: string }>(
+    `SELECT id, title FROM sujets WHERE project_id IS NULL ORDER BY title`,
+  );
+  return rows.map((r) => ({ id: r.id, titre: r.title }));
+}
+
 // Produits, membres et sujets nécessaires à l'écran de vérification.
 // projectId non nul = portée produit : la liste est réduite à ce produit,
 // ce qui borne aussi les cibles proposées à la correction.

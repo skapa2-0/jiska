@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { chargerImport, chargerImportsEnAttente } from "@/lib/imports";
 import BottomNav from "../../bottom-nav";
 import Navbar from "../../navbar";
-import { chargerProduits } from "../../charger-produits";
+import { chargerProduits, chargerSujetsTransverses } from "../../charger-produits";
 import ImportsEnAttente from "../../imports-en-attente";
 import ImportTranscript from "../../import-transcript";
 
@@ -20,8 +20,9 @@ export default async function ImportReunionPage({
   if (user.role !== "dirigeant") redirect("/app");
 
   const { reprise: repriseId } = await searchParams;
-  const [produits, enAttente, reprise] = await Promise.all([
+  const [produits, transverses, enAttente, reprise] = await Promise.all([
     chargerProduits(null),
+    chargerSujetsTransverses(null),
     chargerImportsEnAttente(null),
     repriseId ? chargerImport(repriseId, null) : Promise.resolve(null),
   ]);
@@ -53,6 +54,7 @@ export default async function ImportReunionPage({
 
         <ImportTranscript
           produits={produits}
+          sujetsTransverses={transverses}
           porteeProjetId={null}
           retour="/app"
           reprise={reprise}
