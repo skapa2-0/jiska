@@ -160,7 +160,32 @@ function ensureSchema(): Promise<void> {
          user_id    bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
          created_at timestamptz NOT NULL DEFAULT now()
        );
-       CREATE UNIQUE INDEX IF NOT EXISTS locuteurs_nom_idx ON locuteurs (lower(nom));`,
+       CREATE UNIQUE INDEX IF NOT EXISTS locuteurs_nom_idx ON locuteurs (lower(nom));
+       -- Réunion hebdomadaire clôturée. Une réunion se tient souvent sans
+       -- import de transcript : sans cette table, l'avancement de la
+       -- semaine se datait du dernier import, pas de la dernière réunion.
+       CREATE TABLE IF NOT EXISTS reunions (
+         id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+         tenue_le     date NOT NULL DEFAULT current_date,
+         cloturee_par bigint REFERENCES users(id) ON DELETE SET NULL,
+         created_at   timestamptz NOT NULL DEFAULT now()
+       );
+       -- Une seule réunion par jour : reclôturer le même jour corrige la
+       -- précédente au lieu d'en empiler une deuxième.
+       CREATE UNIQUE INDEX IF NOT EXISTS reunions_jour_idx ON reunions (tenue_le);
+       -- Périmètre GELÉ de la semaine : les sujets qui portaient une action
+       -- au moment de la clôture, avec leur état à cet instant. Gelé et non
+       -- recalculé, pour deux raisons : une action oubliée sur un vieux
+       -- sujet n'entre pas dans la semaine, et l'état enregistré donne le
+       -- point de départ auquel comparer la semaine suivante.
+       CREATE TABLE IF NOT EXISTS reunion_engagements (
+         reunion_id bigint NOT NULL REFERENCES reunions(id) ON DELETE CASCADE,
+         sujet_id   bigint NOT NULL REFERENCES sujets(id) ON DELETE CASCADE,
+         project_id bigint REFERENCES projects(id) ON DELETE CASCADE,
+         action     text NOT NULL,
+         etat       text NOT NULL,
+         PRIMARY KEY (reunion_id, sujet_id)
+       );`,
     )
     .then(() => undefined);
   return schemaReady;

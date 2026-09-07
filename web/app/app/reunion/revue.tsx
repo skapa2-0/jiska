@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "../avatar";
+import Confirmation from "../confirmer";
 import type { ProjectOption } from "../dashboard";
 import FicheSujet from "../fiche-sujet";
 import ProjetLogo from "../projet-logo";
@@ -31,13 +32,19 @@ export type EtapeRevue = {
 export default function Revue({
   etapes,
   today,
+  peutCloturer,
 }: {
   etapes: EtapeRevue[];
   today: string;
+  // Clôturer la réunion est un acte de pilotage : dirigeants seuls.
+  peutCloturer: boolean;
 }) {
   const router = useRouter();
   const [idx, setIdx] = useState(0);
   const [fiche, setFiche] = useState<SujetRow | null>(null);
+  const [confirmerCloture, setConfirmerCloture] = useState(false);
+  const [cloture, setCloture] = useState(false);
+  const [erreurCloture, setErreurCloture] = useState("");
   // L'ordre est figé au lancement : les mises à jour en cours de
   // réunion ne réordonnent pas les étapes sous les pieds.
   const ordre = useRef(etapes.map((e) => e.projet.id));
@@ -58,6 +65,25 @@ export default function Revue({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [fiche, dernier, idx]);
+
+  async function cloturer() {
+    setConfirmerCloture(false);
+    setCloture(true);
+    setErreurCloture("");
+    try {
+      const res = await fetch("/api/reunions", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setErreurCloture(data.error ?? "Échec de la clôture.");
+        setCloture(false);
+        return;
+      }
+      router.push("/app");
+    } catch {
+      setErreurCloture("Impossible de joindre le serveur.");
+      setCloture(false);
+    }
+  }
 
   if (!etape) return null;
   const p = etape.projet;
@@ -287,10 +313,17 @@ export default function Revue({
         {dernier ? (
           <button
             type="button"
-            onClick={() => router.push("/app")}
-            className="rounded-lg bg-success px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-85"
+            onClick={() =>
+              peutCloturer ? setConfirmerCloture(true) : router.push("/app")
+            }
+            disabled={cloture}
+            className="rounded-lg bg-success px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-85 disabled:opacity-50"
           >
-            Terminer la revue
+            {cloture
+              ? "Clôture…"
+              : peutCloturer
+                ? "Clôturer la réunion"
+                : "Terminer la revue"}
           </button>
         ) : (
           <button
@@ -302,6 +335,25 @@ export default function Revue({
           </button>
         )}
       </footer>
+
+      {erreurCloture && (
+        <p
+          role="alert"
+          className="border-t border-hairline bg-danger-soft px-4 py-2 text-sm text-danger sm:px-6"
+        >
+          {erreurCloture}
+        </p>
+      )}
+
+      {confirmerCloture && (
+        <Confirmation
+          titre="Clôturer la réunion ?"
+          message="La date d'aujourd'hui devient le point de départ de la semaine, et les actions de la semaine actuellement posées deviennent l'engagement à tenir. Rien n'est effacé : c'est à partir d'elles que se mesurera l'avancement de la semaine qui commence."
+          action="Clôturer"
+          onConfirm={cloturer}
+          onCancel={() => setConfirmerCloture(false)}
+        />
+      )}
 
       {fiche && (
         <FicheSujet

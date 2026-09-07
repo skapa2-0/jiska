@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
+import { lireSemaine, sqlSemainePortefeuille } from "@/lib/semaine";
+import type { SemaineRow } from "@/lib/semaine";
 import { NOM_TRANSVERSE } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import BottomNav from "../bottom-nav";
@@ -39,9 +41,7 @@ export default async function ActionsPage({
       retard: string;
       echeances: string;
       clotures: string;
-      sem_engages: string;
-      sem_avancement: string | null;
-    }>(
+    } & SemaineRow>(
       `WITH s AS (SELECT * FROM sujets
                    WHERE project_id IS NULL OR project_id IN (${vis}))
        SELECT
@@ -63,15 +63,9 @@ export default async function ActionsPage({
            WHERE su.project_id IN (${vis}) AND h.field = 'etat'
              AND h.new_value = 'termine'
              AND h.changed_at > now() - interval '7 days')            AS clotures,
-         (SELECT count(*) FROM s WHERE action <> '')                  AS sem_engages,
-         -- Avancement des actions engagées, tous produits visibles
-         -- confondus (voir lib/semaine.ts pour l'échelle).
-         (SELECT round(avg(CASE etat
-                             WHEN 'termine' THEN 100
-                             WHEN 'en_validation' THEN 66
-                             WHEN 'en_cours' THEN 33
-                             ELSE 0 END))
-            FROM s WHERE action <> '')                                AS sem_avancement`,
+         -- Engagements de la semaine, tous produits visibles confondus,
+         -- transverses compris (voir lib/semaine.ts).
+         ${sqlSemainePortefeuille(vis)}`,
       visParams,
     ),
     query<SujetRow & { is_proj_resp: boolean }>(
@@ -187,8 +181,7 @@ export default async function ActionsPage({
           echeances: Number(ind.echeances),
           retard: Number(ind.retard),
           clotures: Number(ind.clotures),
-          semEngages: Number(ind.sem_engages),
-          semAvancement: Number(ind.sem_avancement ?? 0),
+          semaine: lireSemaine(ind),
         }}
       />
       <BottomNav onglet="actions" canCreate={canCreateSujet} />

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
-import { lireSemaine, semaineDeSujets, sqlSemaine } from "@/lib/semaine";
+import { lireSemaine, sqlSemaine, sqlSemaineTransverse } from "@/lib/semaine";
 import type { SemaineRow } from "@/lib/semaine";
 import { NOM_TRANSVERSE, NOM_TRANSVERSES } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
@@ -22,7 +22,8 @@ export default async function ReunionPage() {
     : "SELECT project_id FROM project_members WHERE user_id = $1";
   const visParams = dirigeant ? [] : [user.id];
 
-  const [projetRows, membres, sujetRows, reunionRows] = await Promise.all([
+  const [projetRows, membres, sujetRows, semaineTransverseRows] =
+    await Promise.all([
     query<{
       id: string;
       name: string;
@@ -95,12 +96,9 @@ export default async function ReunionPage() {
                  s.due_date NULLS LAST, s.id`,
       visParams,
     ),
-    // Les sujets transverses ne relèvent d'aucun produit : seule une
-    // réunion de portée portefeuille date leur semaine.
-    query<{ depuis: string | null }>(
-      `SELECT max(date_reunion)::text AS depuis FROM reunion_imports
-        WHERE statut = 'applique' AND project_id IS NULL`,
-    ),
+    // Les sujets transverses ne relèvent d'aucun produit : leur semaine
+    // se mesure sur le même périmètre gelé, portée transverse.
+    query<SemaineRow>(`SELECT ${sqlSemaineTransverse()}`),
   ]);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -250,7 +248,7 @@ export default async function ReunionPage() {
       },
       tech: 0,
       business: 0,
-      semaine: semaineDeSujets(transverseTous, reunionRows[0]?.depuis ?? null),
+      semaine: lireSemaine(semaineTransverseRows[0]),
       sujets: actifs,
       termines: transverseTous.length - actifs.length,
       bloques: actifs.filter((s) => s.etat === "bloque").length,
@@ -260,5 +258,5 @@ export default async function ReunionPage() {
 
   if (etapes.length === 0) redirect("/app");
 
-  return <Revue etapes={etapes} today={today} />;
+  return <Revue etapes={etapes} today={today} peutCloturer={dirigeant} />;
 }

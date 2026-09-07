@@ -73,11 +73,21 @@ export default function BlocSemaine({ semaine }: { semaine: Semaine }) {
             <span className="font-display text-2xl font-medium text-ink">
               {semaine.avancement} %
             </span>
-            <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-surface">
+            <div className="relative h-2 min-w-0 flex-1 rounded-full bg-surface">
               <div
                 className={`h-full rounded-full ${ton(semaine.avancement)}`}
                 style={{ width: `${semaine.avancement}%` }}
               />
+              {/* Repère du point de départ : où en était ce même périmètre
+                  quand la réunion a été clôturée. Le chemin parcouru se
+                  lit d'un coup d'œil, sans lire le chiffre. */}
+              {semaine.depart !== null && semaine.depart > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute top-[-3px] h-[14px] w-px bg-ink/45"
+                  style={{ left: `${semaine.depart}%` }}
+                />
+              )}
             </div>
           </div>
           <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium">
@@ -85,6 +95,23 @@ export default function BlocSemaine({ semaine }: { semaine: Semaine }) {
               {semaine.termines} terminée{semaine.termines > 1 ? "s" : ""} sur{" "}
               {semaine.engages} engagée{semaine.engages > 1 ? "s" : ""}
             </span>
+            {/* Le mouvement depuis la clôture : c'est lui qui répond
+                vraiment « a-t-on avancé cette semaine ». */}
+            {semaine.depart !== null && (
+              <span
+                className={
+                  semaine.avancement > semaine.depart
+                    ? "text-success"
+                    : semaine.avancement < semaine.depart
+                      ? "text-danger"
+                      : "text-stone"
+                }
+              >
+                {semaine.avancement === semaine.depart
+                  ? "aucun mouvement depuis la réunion"
+                  : `${semaine.avancement > semaine.depart ? "+" : ""}${semaine.avancement - semaine.depart} points depuis la réunion`}
+              </span>
+            )}
             {semaine.bloques > 0 && (
               <span className="rounded-md bg-danger-soft px-2 py-0.5 text-danger">
                 {semaine.bloques} bloquée{semaine.bloques > 1 ? "s" : ""}

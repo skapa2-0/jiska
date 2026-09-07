@@ -5,8 +5,14 @@
 // engagements hebdomadaires sans que le produit avance beaucoup, et
 // inversement.
 //
-// Périmètre : les sujets portant une action de la semaine. C'est le champ
-// qui porte l'engagement dans les faits, et il est nommé pour ça.
+// Périmètre : les sujets qui portaient une action de la semaine au moment
+// où la dernière réunion a été clôturée (table reunion_engagements). Gelé
+// à la clôture, donc insensible aux actions oubliées sur de vieux sujets,
+// et porteur de l'état de départ auquel comparer.
+//
+// Tant qu'aucune réunion n'a été clôturée, on retombe sur les sujets
+// portant une action aujourd'hui, datés du dernier import appliqué : la
+// mesure reste juste avant la première clôture.
 //
 // Rien à saisir en plus : la mesure se déduit des états que la réunion
 // fait bouger de toute façon.
@@ -27,11 +33,15 @@ export const AVANCEMENT_ETAT: Record<string, number> = {
   termine: 100,
 };
 
-const SQL_ETAT = `CASE s.etat
+const bareme = (colonne: string) => `CASE ${colonne}
   WHEN 'termine' THEN 100
   WHEN 'en_validation' THEN 66
   WHEN 'en_cours' THEN 33
   ELSE 0 END`;
+
+// Dernière réunion clôturée. NULL tant qu'il n'y en a aucune, ce qui fait
+// basculer le périmètre sur la solution de repli.
+const DERNIERE = "(SELECT max(id) FROM reunions)";
 
 export type Semaine = {
   // 0 engagement = pas de semaine à mesurer. Le distinguer d'un 0 % est
@@ -41,9 +51,13 @@ export type Semaine = {
   avancement: number;
   termines: number;
   bloques: number;
-  // Date de la dernière réunion importée qui couvre le produit, quand il
-  // y en a une : sert à dater la mesure, pas à la calculer.
+  // Date de la dernière réunion clôturée, à défaut du dernier import
+  // appliqué qui couvre le produit.
   depuis: string | null;
+  // Avancement du même périmètre au moment de la clôture : le « avant »
+  // auquel comparer. NULL tant qu'aucune réunion n'a été clôturée, faute
+  // de point de départ enregistré.
+  depart: number | null;
 };
 
 export type SemaineRow = {
@@ -52,43 +66,68 @@ export type SemaineRow = {
   sem_termines: string;
   sem_bloques: string;
   sem_depuis: string | null;
+  sem_depart: string | null;
 };
 
-// Colonnes à ajouter à une requête qui parcourt `projects` sous l'alias
-// donné. La portée portefeuille (project_id NULL) couvre tous les
-// produits : une réunion générale date la semaine de chacun.
-export function sqlSemaine(alias = "p"): string {
-  const perimetre = `FROM sujets s
-      WHERE s.project_id = ${alias}.id AND s.action <> ''`;
-  return `(SELECT count(*) ${perimetre}) AS sem_engages,
-          (SELECT round(avg(${SQL_ETAT})) ${perimetre}) AS sem_avancement,
-          (SELECT count(*) ${perimetre} AND s.etat = 'termine') AS sem_termines,
-          (SELECT count(*) ${perimetre} AND s.etat = 'bloque') AS sem_bloques,
-          (SELECT max(i.date_reunion)::text FROM reunion_imports i
-            WHERE i.statut = 'applique'
-              AND (i.project_id = ${alias}.id OR i.project_id IS NULL))
-            AS sem_depuis`;
+// Le périmètre, exprimé une seule fois : les engagements gelés de la
+// dernière réunion, ou les actions du jour tant qu'il n'y a pas eu de
+// clôture. `portee` compare le produit de l'engagement à celui voulu.
+function perimetre(porteeGelee: string, porteeVive: string): string {
+  return `FROM sujets s
+      WHERE (${DERNIERE} IS NULL AND ${porteeVive} AND s.action <> '')
+         OR s.id IN (SELECT e.sujet_id FROM reunion_engagements e
+                      WHERE e.reunion_id = ${DERNIERE} AND ${porteeGelee})`;
 }
 
-// Même mesure, calculée sur une liste déjà chargée plutôt qu'en SQL :
-// les sujets transverses ne se parcourent pas par produit.
-export function semaineDeSujets(
-  sujets: { etat: string; action: string }[],
-  depuis: string | null,
-): Semaine {
-  const engages = sujets.filter((s) => s.action !== "");
-  return {
-    engages: engages.length,
-    avancement: engages.length
-      ? Math.round(
-          engages.reduce((t, s) => t + (AVANCEMENT_ETAT[s.etat] ?? 0), 0) /
-            engages.length,
-        )
-      : 0,
-    termines: engages.filter((s) => s.etat === "termine").length,
-    bloques: engages.filter((s) => s.etat === "bloque").length,
-    depuis,
-  };
+function colonnes(porteeGelee: string, porteeVive: string, depuis: string) {
+  const p = perimetre(porteeGelee, porteeVive);
+  return `(SELECT count(*) ${p}) AS sem_engages,
+          (SELECT round(avg(${bareme("s.etat")})) ${p}) AS sem_avancement,
+          (SELECT count(*) ${p} AND s.etat = 'termine') AS sem_termines,
+          (SELECT count(*) ${p} AND s.etat = 'bloque') AS sem_bloques,
+          ${depuis} AS sem_depuis,
+          (SELECT round(avg(${bareme("e.etat")}))
+             FROM reunion_engagements e
+            WHERE e.reunion_id = ${DERNIERE} AND ${porteeGelee}) AS sem_depart`;
+}
+
+// Colonnes à ajouter à une requête qui parcourt `projects` sous l'alias
+// donné.
+export function sqlSemaine(alias = "p"): string {
+  return colonnes(
+    `e.project_id = ${alias}.id`,
+    `s.project_id = ${alias}.id`,
+    `COALESCE((SELECT max(tenue_le)::text FROM reunions),
+              (SELECT max(i.date_reunion)::text FROM reunion_imports i
+                WHERE i.statut = 'applique'
+                  AND (i.project_id = ${alias}.id OR i.project_id IS NULL)))`,
+  );
+}
+
+// Même mesure pour les sujets transverses, qui ne se parcourent pas par
+// produit. Seule une réunion de portée portefeuille les date.
+export function sqlSemaineTransverse(): string {
+  return colonnes(
+    "e.project_id IS NULL",
+    "s.project_id IS NULL",
+    `COALESCE((SELECT max(tenue_le)::text FROM reunions),
+              (SELECT max(i.date_reunion)::text FROM reunion_imports i
+                WHERE i.statut = 'applique' AND i.project_id IS NULL))`,
+  );
+}
+
+// Agrégat portefeuille : tous les produits visibles, transverses compris.
+// `vis` est la sous-requête de visibilité de l'appelant.
+export function sqlSemainePortefeuille(vis: string): string {
+  const portee = (col: string) =>
+    `(${col} IS NULL OR ${col} IN (${vis}))`;
+  return colonnes(
+    portee("e.project_id"),
+    portee("s.project_id"),
+    `COALESCE((SELECT max(tenue_le)::text FROM reunions),
+              (SELECT max(date_reunion)::text FROM reunion_imports
+                WHERE statut = 'applique'))`,
+  );
 }
 
 export function lireSemaine(row: SemaineRow): Semaine {
@@ -98,5 +137,6 @@ export function lireSemaine(row: SemaineRow): Semaine {
     termines: Number(row.sem_termines),
     bloques: Number(row.sem_bloques),
     depuis: row.sem_depuis,
+    depart: row.sem_depart === null ? null : Number(row.sem_depart),
   };
 }

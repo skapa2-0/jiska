@@ -4,6 +4,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CRITICITES, ETATS, NOM_TRANSVERSE, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
+import type { Semaine } from "@/lib/semaine";
 import Avatar, { displayName } from "./avatar";
 import type { Personne } from "./avatar";
 import FicheSujet, { IconeCommentaire } from "./fiche-sujet";
@@ -31,10 +32,9 @@ type Indicateurs = {
   echeances: number;
   retard: number;
   clotures: number;
-  // Avancement des actions engagées cette semaine (lib/semaine.ts).
-  // 0 engagement n'est pas 0 % : l'indicateur le dit autrement.
-  semEngages: number;
-  semAvancement: number;
+  // Engagements de la semaine (lib/semaine.ts). 0 engagement n'est pas
+  // 0 % : l'indicateur le dit autrement.
+  semaine: Semaine;
 };
 
 const FILTRES = [
@@ -468,23 +468,23 @@ export default function Dashboard({
         />
         <Indicateur
           valeur={
-            indicateurs.semEngages === 0
+            indicateurs.semaine.engages === 0
               ? "-"
-              : `${indicateurs.semAvancement} %`
+              : `${indicateurs.semaine.avancement} %`
           }
           label={
-            indicateurs.semEngages === 0
+            indicateurs.semaine.engages === 0
               ? "Rien d'engagé cette semaine"
-              : `Semaine · ${indicateurs.semEngages} action${indicateurs.semEngages > 1 ? "s" : ""}`
+              : `Semaine · ${indicateurs.semaine.engages} action${indicateurs.semaine.engages > 1 ? "s" : ""}`
           }
           tint="bg-brand/10 text-brand"
           icone={<IconeTendance />}
           ton={
-            indicateurs.semEngages === 0
+            indicateurs.semaine.engages === 0
               ? undefined
-              : indicateurs.semAvancement >= 75
+              : indicateurs.semaine.avancement >= 75
                 ? "text-success"
-                : indicateurs.semAvancement >= 40
+                : indicateurs.semaine.avancement >= 40
                   ? "text-warn"
                   : "text-ink"
           }

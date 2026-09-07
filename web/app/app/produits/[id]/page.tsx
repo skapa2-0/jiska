@@ -88,6 +88,7 @@ export default async function ProjetPage({
       sem_termines: string;
       sem_bloques: string;
       sem_depuis: string | null;
+      sem_depart: string | null;
     }>(
       `SELECT p.id, p.name, p.description, p.deployable,
               ${sqlLogoUrl("p")} AS logo,
