@@ -85,6 +85,7 @@ export default function Dashboard({
   sujets,
   projects,
   indicateurs,
+  sujetOuvertId,
 }: {
   meId: string;
   // Seul un dirigeant crée un sujet hors produit (lib/sujets-write.ts).
@@ -92,6 +93,10 @@ export default function Dashboard({
   sujets: SujetRow[];
   projects: ProjectOption[];
   indicateurs: Indicateurs;
+  // Fiche à ouvrir d'emblée, désignée par ?sujet=<id> et résolue côté
+  // serveur : l'état part avec la bonne valeur, sans effet ni décalage
+  // d'hydratation.
+  sujetOuvertId?: string;
 }) {
   const router = useRouter();
   const [filtre, setFiltre] = useState<FiltreKey>("tous");
@@ -105,7 +110,9 @@ export default function Dashboard({
     | { mode: "edit"; sujet: SujetRow }
     | null
   >(null);
-  const [fiche, setFiche] = useState<SujetRow | null>(null);
+  const [fiche, setFiche] = useState<SujetRow | null>(
+    () => sujets.find((s) => s.id === sujetOuvertId) ?? null,
+  );
   const [tri, setTri] = useState<Tri | null>(null);
   const zoneRef = useRef<HTMLElement>(null);
   // 11 lignes remplissent exactement la zone visible ; au-delà, on scrolle.

@@ -10,9 +10,18 @@ import Dashboard from "../dashboard";
 
 // Page Actions : le tableau de pilotage hebdomadaire (PRD), une ligne
 // par sujet. Dirigeants : tous les projets. Collaborateurs : les leurs.
-export default async function ActionsPage() {
+export default async function ActionsPage({
+  searchParams,
+}: {
+  // ?sujet=<id> ouvre directement la fiche : c'est le lien des lignes de
+  // la section « Sujets transverses » de l'accueil. « nouveau » est traité
+  // côté client, il n'ouvre pas une fiche mais la modale de création.
+  searchParams: Promise<{ sujet?: string }>;
+}) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
+
+  const { sujet: sujetOuvertId } = await searchParams;
 
   const dirigeant = user.role === "dirigeant";
   // Filtre de visibilité injecté dans chaque requête ($1 = user id).
@@ -167,6 +176,7 @@ export default async function ActionsPage() {
       <Dashboard
         meId={user.id}
         dirigeant={dirigeant}
+        sujetOuvertId={sujetOuvertId}
         sujets={sujets}
         projects={projects}
         indicateurs={{

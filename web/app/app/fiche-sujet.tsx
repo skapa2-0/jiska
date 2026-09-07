@@ -333,48 +333,52 @@ export default function FicheSujet({
                 )}
               </div>
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {editable ? (
-                <>
-                  {Object.entries(TYPES_SUJET).map(([k, t]) => (
-                    <Pastille
-                      key={k}
-                      actif={type === k}
-                      classe={t.chip}
-                      onClick={() => changerChip("type", k)}
-                    >
-                      {t.label}
-                    </Pastille>
-                  ))}
-                  <label className="ml-1 flex items-center gap-1.5 text-xs font-medium text-mute">
-                    Poids
-                    <input
-                      type="number"
-                      aria-label="Poids dans le produit (%)"
-                      min={0}
-                      max={100}
-                      step={5}
-                      value={poids}
-                      onChange={(e) => setPoids(e.target.value)}
-                      onBlur={blurPoids}
-                      className="w-16 rounded-lg bg-surface px-2 py-1 text-xs font-semibold text-ink outline-none transition focus:bg-white focus:ring-2 focus:ring-brand"
+            {/* Type et poids ne veulent rien dire sans produit : aucun axe
+                à pondérer, aucun budget à tenir. */}
+            {sujet.project_id !== null && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {editable ? (
+                  <>
+                    {Object.entries(TYPES_SUJET).map(([k, t]) => (
+                      <Pastille
+                        key={k}
+                        actif={type === k}
+                        classe={t.chip}
+                        onClick={() => changerChip("type", k)}
+                      >
+                        {t.label}
+                      </Pastille>
+                    ))}
+                    <label className="ml-1 flex items-center gap-1.5 text-xs font-medium text-mute">
+                      Poids
+                      <input
+                        type="number"
+                        aria-label="Poids dans le produit (%)"
+                        min={0}
+                        max={100}
+                        step={5}
+                        value={poids}
+                        onChange={(e) => setPoids(e.target.value)}
+                        onBlur={blurPoids}
+                        className="w-16 rounded-lg bg-surface px-2 py-1 text-xs font-semibold text-ink outline-none transition focus:bg-white focus:ring-2 focus:ring-brand"
+                      />
+                      %
+                    </label>
+                    <BudgetAxe
+                      projet={projet}
+                      type={type}
+                      poidsInitial={sujet.type === type ? sujet.poids : 0}
+                      poidsActuel={Math.round(Number(poids) || 0)}
                     />
-                    %
-                  </label>
-                  <BudgetAxe
-                    projet={sujet.project_id === null ? undefined : projet}
-                    type={type}
-                    poidsInitial={sujet.type === type ? sujet.poids : 0}
-                    poidsActuel={Math.round(Number(poids) || 0)}
-                  />
-                </>
-              ) : (
-                <Chip classe={TYPES_SUJET[type as keyof typeof TYPES_SUJET].chip}>
-                  {TYPES_SUJET[type as keyof typeof TYPES_SUJET].label} ·{" "}
-                  {poids} %
-                </Chip>
-              )}
-            </div>
+                  </>
+                ) : (
+                  <Chip classe={TYPES_SUJET[type as keyof typeof TYPES_SUJET].chip}>
+                    {TYPES_SUJET[type as keyof typeof TYPES_SUJET].label} ·{" "}
+                    {poids} %
+                  </Chip>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-5 px-5 py-5 sm:px-6">
