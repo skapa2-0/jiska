@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useClerk } from "@clerk/nextjs";
 import Avatar, { displayName } from "./avatar";
 import type { SessionUser } from "@/lib/auth";
 
 // Menu profil de la navbar : pastille cliquable (photo si renseignée),
 // fermeture au clic extérieur et à Échap.
 export default function UserMenu({ user }: { user: SessionUser }) {
+  const { signOut } = useClerk();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -27,12 +29,10 @@ export default function UserMenu({ user }: { user: SessionUser }) {
     };
   }, [open]);
 
+  // La session appartient à Clerk : c'est lui qui la termine, ici et sur
+  // ses autres onglets ouverts.
   async function handleLogout() {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } finally {
-      window.location.href = "/login";
-    }
+    await signOut({ redirectUrl: "/login" });
   }
 
   return (

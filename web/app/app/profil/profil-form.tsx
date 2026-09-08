@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import type { FormEvent } from "react";
 import { FORMATS_IMAGE, reduireImage } from "@/lib/image";
 import Avatar from "../avatar";
@@ -23,12 +24,6 @@ export default function ProfilForm({ user }: { user: User }) {
   // Seul ce second cas est envoyé à l'API.
   const [photoModifiee, setPhotoModifiee] = useState(false);
   const [infoMsg, setInfoMsg] = useState<{ ok: boolean; text: string } | null>(
-    null,
-  );
-  const [mdpActuel, setMdpActuel] = useState("");
-  const [mdpNouveau, setMdpNouveau] = useState("");
-  const [mdpConfirm, setMdpConfirm] = useState("");
-  const [mdpMsg, setMdpMsg] = useState<{ ok: boolean; text: string } | null>(
     null,
   );
   const [loading, setLoading] = useState(false);
@@ -78,35 +73,6 @@ export default function ProfilForm({ user }: { user: User }) {
     }
   }
 
-  async function changerMdp(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (mdpNouveau !== mdpConfirm) {
-      setMdpMsg({ ok: false, text: "Les deux mots de passe ne correspondent pas." });
-      return;
-    }
-    setLoading(true);
-    setMdpMsg(null);
-    try {
-      const res = await fetch("/api/me/password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ current: mdpActuel, next: mdpNouveau }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setMdpMsg({ ok: false, text: data.error ?? "Échec du changement." });
-        return;
-      }
-      setMdpActuel("");
-      setMdpNouveau("");
-      setMdpConfirm("");
-      setMdpMsg({ ok: true, text: "Mot de passe mis à jour." });
-    } catch {
-      setMdpMsg({ ok: false, text: "Impossible de joindre le serveur." });
-    } finally {
-      setLoading(false);
-    }
-  }
 
   const champ =
     "w-full rounded-lg bg-surface px-4 py-3 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60";
@@ -233,79 +199,24 @@ export default function ProfilForm({ user }: { user: User }) {
         </button>
       </form>
 
-      {/* Mot de passe */}
-      <form
-        onSubmit={changerMdp}
-        className="mt-6 rounded-lg bg-white p-6 shadow-card"
-      >
-        <h2 className="text-sm font-semibold text-ink">Changer le mot de passe</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <div>
-            <label htmlFor="p-actuel" className={etiquette}>
-              Actuel
-            </label>
-            <input
-              id="p-actuel"
-              type="password"
-              autoComplete="current-password"
-              value={mdpActuel}
-              onChange={(e) => setMdpActuel(e.target.value)}
-              required
-              disabled={loading}
-              className={champ}
-            />
-          </div>
-          <div>
-            <label htmlFor="p-nouveau" className={etiquette}>
-              Nouveau
-            </label>
-            <input
-              id="p-nouveau"
-              type="password"
-              autoComplete="new-password"
-              placeholder="8 caractères min."
-              value={mdpNouveau}
-              onChange={(e) => setMdpNouveau(e.target.value)}
-              required
-              minLength={8}
-              disabled={loading}
-              className={champ}
-            />
-          </div>
-          <div>
-            <label htmlFor="p-confirm" className={etiquette}>
-              Confirmation
-            </label>
-            <input
-              id="p-confirm"
-              type="password"
-              autoComplete="new-password"
-              value={mdpConfirm}
-              onChange={(e) => setMdpConfirm(e.target.value)}
-              required
-              disabled={loading}
-              className={champ}
-            />
-          </div>
-        </div>
-
-        {mdpMsg && (
-          <p
-            role="alert"
-            className={`mt-4 text-sm ${mdpMsg.ok ? "text-success" : "text-danger"}`}
-          >
-            {mdpMsg.text}
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading || !mdpActuel || !mdpNouveau || !mdpConfirm}
-          className="mt-6 rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+      {/* Mot de passe, e-mail et connexion : gérés par Clerk, qui détient
+          l'identité. Un lien vaut mieux qu'un formulaire qui appellerait
+          une API que Jiska n'a plus. */}
+      <section className="mt-6 rounded-lg bg-white p-6 shadow-card">
+        <h2 className="text-sm font-semibold text-ink">
+          Mot de passe et connexion
+        </h2>
+        <p className="mt-2 text-sm text-mute">
+          Votre mot de passe, votre adresse de connexion et vos appareils
+          sont gérés dans votre compte sécurisé.
+        </p>
+        <Link
+          href="/app/compte"
+          className="mt-4 inline-block rounded-lg border border-hairline px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface"
         >
-          Mettre à jour
-        </button>
-      </form>
+          Gérer mon compte
+        </Link>
+      </section>
     </>
   );
 }

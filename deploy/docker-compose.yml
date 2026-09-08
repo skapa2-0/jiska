@@ -11,12 +11,21 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
     container_name: jiska-app
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://jiska:${POSTGRES_PASSWORD}@jiska-db:5432/jiska
       # Analyse des comptes rendus de réunion (import de transcript).
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      # Clerk porte l'identité ; Jiska garde les rôles et les droits.
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: /login
+      NEXT_PUBLIC_CLERK_SIGN_UP_URL: /register
+      NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL: /app
+      NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL: /app
     depends_on:
       jiska-db:
         condition: service_healthy

@@ -23,7 +23,6 @@ export default function TeamManager({
   selfId: string;
 }) {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [role, setRole] = useState("collaborateur");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -37,11 +36,17 @@ export default function TeamManager({
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role }),
+        body: JSON.stringify({ email, role }),
       });
       const data = await res.json();
       if (!res.ok) {
         setMessage(data.error ?? "Échec de la création du compte.");
+        return;
+      }
+      // Le compte peut exister sans que l'invitation soit partie : il
+      // faut le dire plutôt que recharger comme si tout allait bien.
+      if (data.avertissement) {
+        setMessage(data.avertissement);
         return;
       }
       window.location.reload();
@@ -107,18 +112,11 @@ export default function TeamManager({
             disabled={loading}
             className="w-full rounded-lg bg-surface px-4 py-3 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand"
           />
-          <input
-            type="password"
-            aria-label="Mot de passe provisoire"
-            placeholder="Mot de passe provisoire (8 min.)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-            disabled={loading}
-            className="w-full rounded-lg bg-surface px-4 py-3 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand"
-          />
         </div>
+        <p className="mt-2 text-xs text-stone">
+          Une invitation part par e-mail : la personne choisit son mot de
+          passe elle-même, vous n&apos;avez pas à en inventer un.
+        </p>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           {/* Choix du rôle en pastilles maison (règle : pas de radio
               au style natif). */}
@@ -147,10 +145,10 @@ export default function TeamManager({
           </div>
           <button
             type="submit"
-            disabled={loading || !email || !password}
+            disabled={loading || !email}
             className="rounded-lg bg-ink px-5 py-2 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {loading ? "Création…" : "Créer le compte"}
+            {loading ? "Envoi…" : "Créer et inviter"}
           </button>
         </div>
         {message && (

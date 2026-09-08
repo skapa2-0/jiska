@@ -33,6 +33,17 @@ function ensureSchema(): Promise<void> {
        END $$;
        -- Photo de profil : data URL (image réduite côté client), NULL sinon.
        ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar text;
+       -- Identifiant du compte chez Clerk, qui porte désormais l'identité
+       -- (mot de passe, session, connexion). La table users reste l'autorité
+       -- sur QUI a le droit d'entrer et avec quel rôle : un compte Clerk sans
+       -- ligne ici est refusé. Le lien se fait par e-mail à la première
+       -- connexion, pour que les comptes existants soient repris sans perdre
+       -- leurs produits, leurs sujets ni leur historique.
+       ALTER TABLE users ADD COLUMN IF NOT EXISTS clerk_id text;
+       CREATE UNIQUE INDEX IF NOT EXISTS users_clerk_id_idx ON users (clerk_id);
+       -- Le mot de passe n'est plus stocké ici : Clerk s'en charge. La
+       -- colonne reste le temps de la bascule, sans plus être alimentée.
+       ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
        CREATE TABLE IF NOT EXISTS sessions (
          token_hash text PRIMARY KEY,
          user_id    bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -1,12 +1,12 @@
-import { createHash, randomBytes } from "node:crypto";
-import { cookies } from "next/headers";
-import bcrypt from "bcryptjs";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { query } from "./db";
 import { sqlAvatarUrl } from "./media";
 
-const SESSION_COOKIE = "jiska_session";
-const SESSION_DAYS = 1;
-const SESSION_DAYS_REMEMBER = 30;
+// Partage des rôles entre Clerk et Jiska : Clerk répond « qui es-tu »
+// (mot de passe, session, connexion), Jiska répond « à quoi as-tu droit »
+// (rôle, produits, sujets). Les deux ne se mélangent pas : la table users
+// reste l'autorité sur qui entre, et un compte Clerk sans ligne locale est
+// refusé, même authentifié.
 
 export type Role = "dirigeant" | "collaborateur";
 export type SessionUser = {
@@ -18,65 +18,36 @@ export type SessionUser = {
   role: Role;
 };
 
-export function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 12);
-}
-
-export function verifyPassword(
-  password: string,
-  passwordHash: string,
-): Promise<boolean> {
-  return bcrypt.compare(password, passwordHash);
-}
-
-// Seule l'empreinte du jeton est stockée : un dump de la table ne
-// permet pas de rejouer les sessions.
-function hashToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
-}
-
-export async function createSession(
-  userId: string,
-  remember: boolean,
-): Promise<void> {
-  const token = randomBytes(32).toString("base64url");
-  const days = remember ? SESSION_DAYS_REMEMBER : SESSION_DAYS;
-  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-
-  await query(
-    "INSERT INTO sessions (token_hash, user_id, expires_at) VALUES ($1, $2, $3)",
-    [hashToken(token), userId, expiresAt],
-  );
-
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    // Sans « rester connecté », cookie de session navigateur (pas de maxAge).
-    ...(remember ? { maxAge: days * 24 * 60 * 60 } : {}),
-  });
-}
+const CHAMPS = `id, email, first_name, last_name, role,
+                ${sqlAvatarUrl()} AS avatar`;
 
 export async function getSessionUser(): Promise<SessionUser | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
+  const { userId: clerkId } = await auth();
+  if (!clerkId) return null;
 
-  const rows = await query<SessionUser>(
-    `SELECT u.id, u.email, u.first_name, u.last_name, u.role,
-            ${sqlAvatarUrl("u")} AS avatar
-       FROM sessions s
-       JOIN users u ON u.id = s.user_id
-      WHERE s.token_hash = $1 AND s.expires_at > now()`,
-    [hashToken(token)],
+  const connus = await query<SessionUser>(
+    `SELECT ${CHAMPS} FROM users WHERE clerk_id = $1`,
+    [clerkId],
   );
-  return rows[0] ?? null;
+  if (connus[0]) return connus[0];
+
+  // Première connexion d'un compte créé avant la bascule, ou créé par un
+  // dirigeant puis invité : on rapproche par e-mail et on lie une fois
+  // pour toutes. Sans compte local correspondant, l'accès est refusé.
+  const client = await clerkClient();
+  const compte = await client.users.getUser(clerkId);
+  const email = compte.primaryEmailAddress?.emailAddress?.trim().toLowerCase();
+  if (!email) return null;
+
+  const lies = await query<SessionUser>(
+    `UPDATE users SET clerk_id = $1
+      WHERE lower(email) = $2 AND clerk_id IS NULL
+      RETURNING ${CHAMPS}`,
+    [clerkId, email],
+  );
+  return lies[0] ?? null;
 }
 
-// Vrai si l'utilisateur est responsable d'au moins un projet (les
-// responsables peuvent créer des sujets, pas des projets).
 export async function isResponsable(userId: string): Promise<boolean> {
   const rows = await query(
     "SELECT 1 FROM project_members WHERE user_id = $1 AND is_responsable LIMIT 1",
@@ -97,15 +68,4 @@ export async function canManageSujets(
     [projectId, user.id],
   );
   return rows.length > 0;
-}
-
-export async function destroySession(): Promise<void> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (token) {
-    await query("DELETE FROM sessions WHERE token_hash = $1", [
-      hashToken(token),
-    ]);
-  }
-  cookieStore.set(SESSION_COOKIE, "", { maxAge: 0, path: "/" });
 }

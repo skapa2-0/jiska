@@ -1,3 +1,5 @@
+import { ClerkProvider } from "@clerk/nextjs";
+import { frFR } from "@clerk/localizations";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
@@ -39,7 +41,17 @@ export default function RootLayout({
       lang="fr"
       className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      {/* ClerkProvider vit dans <body>, pas autour de <html>. La clé
+          publique est passée explicitement : lue à l'exécution, elle n'a
+          pas besoin d'être figée dans le bundle au moment du build. */}
+      <body className="min-h-full flex flex-col">
+        <ClerkProvider
+          localization={frFR}
+          publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        >
+          {children}
+        </ClerkProvider>
+      </body>
     </html>
   );
 }

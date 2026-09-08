@@ -6,6 +6,14 @@ WORKDIR /app
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ ./
+# Les variables NEXT_PUBLIC_* sont figées dans le bundle au moment du
+# build : elles doivent exister ici, pas seulement à l'exécution.
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login
+ENV NEXT_PUBLIC_CLERK_SIGN_UP_URL=/register
+ENV NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/app
+ENV NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/app
 RUN npm run build
 
 FROM node:24-alpine
