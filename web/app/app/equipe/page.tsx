@@ -20,9 +20,11 @@ export default async function EquipePage() {
     avatar: string | null;
     role: string;
     created_at: string;
+    active: boolean;
   }>(
     `SELECT id, email, first_name, last_name, role,
             created_at::date::text AS created_at,
+            clerk_id IS NOT NULL AS active,
             ${sqlAvatarUrl()} AS avatar
        FROM users ORDER BY created_at, id`,
   );
