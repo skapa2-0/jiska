@@ -80,7 +80,7 @@ export default function UserMenu({ user }: { user: SessionUser }) {
             href="/app/profil"
             className="block px-4 py-2 text-sm font-medium text-ink transition hover:bg-surface"
           >
-            Mon profil
+            Paramètres
           </a>
           {user.role === "dirigeant" && (
             <a

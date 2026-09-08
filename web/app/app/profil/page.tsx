@@ -4,7 +4,9 @@ import BottomNav from "../bottom-nav";
 import Navbar from "../navbar";
 import ProfilForm from "./profil-form";
 
-// Page profil : chacun modifie ses informations et sa photo.
+// Paramètres du compte : profil (photo, identité, adresse) et sécurité
+// (mot de passe). Deux volets, tout en Jiska ; aucune interface tierce
+// encastrée, la donnée ne vit qu'à un seul endroit.
 export default async function ProfilPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
@@ -14,11 +16,10 @@ export default async function ProfilPage() {
       <Navbar user={user} canCreateSujet={false} />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
         <h1 className="font-display text-2xl font-medium tracking-[-0.02em] text-ink">
-          Mon profil
+          Paramètres
         </h1>
         <p className="mt-2 text-sm text-stone">
-          {user.role === "dirigeant" ? "Dirigeant" : "Collaborateur"} de la
-          plateforme.
+          Votre profil et la sécurité de votre accès.
         </p>
         <ProfilForm user={user} />
       </main>

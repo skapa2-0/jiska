@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { useUser } from "@clerk/nextjs";
 import { FORMATS_IMAGE, reduireImage } from "@/lib/image";
 import Avatar from "../avatar";
@@ -12,10 +12,36 @@ type User = {
   first_name: string;
   last_name: string;
   avatar: string | null;
+  role: string;
 };
+
+// Paramètres du compte, en deux volets comme on s'y attend : ce qu'on
+// montre aux autres, et ce qui protège l'accès. Tout est en Jiska ; Clerk
+// travaille derrière pour le seul mot de passe (voir CLAUDE.md : une
+// donnée, un endroit).
+type Onglet = "profil" | "securite";
+
+const ONGLETS: { cle: Onglet; label: string; icone: ReactNode }[] = [
+  {
+    cle: "profil",
+    label: "Profil",
+    icone: (
+      <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-3.6 0-6.5 2-6.5 4.5V20h13v-1.5C18.5 16 15.6 14 12 14Z" />
+    ),
+  },
+  {
+    cle: "securite",
+    label: "Sécurité",
+    icone: (
+      <path d="M12 3 5 6v5.5c0 4 3 7.7 7 8.5 4-.8 7-4.5 7-8.5V6l-7-3Zm0 6a1.6 1.6 0 0 1 .8 3v2.2a.8.8 0 0 1-1.6 0V12A1.6 1.6 0 0 1 12 9Z" />
+    ),
+  },
+];
 
 export default function ProfilForm({ user }: { user: User }) {
   const { user: compteClerk } = useUser();
+  const [onglet, setOnglet] = useState<Onglet>("profil");
+
   const [prenom, setPrenom] = useState(user.first_name);
   const [nom, setNom] = useState(user.last_name);
   const [email, setEmail] = useState(user.email);
@@ -27,12 +53,14 @@ export default function ProfilForm({ user }: { user: User }) {
   const [infoMsg, setInfoMsg] = useState<{ ok: boolean; text: string } | null>(
     null,
   );
+
   const [mdpActuel, setMdpActuel] = useState("");
   const [mdpNouveau, setMdpNouveau] = useState("");
   const [mdpConfirm, setMdpConfirm] = useState("");
   const [mdpMsg, setMdpMsg] = useState<{ ok: boolean; text: string } | null>(
     null,
   );
+
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -48,41 +76,6 @@ export default function ProfilForm({ user }: { user: User }) {
       setInfoMsg(null);
     } catch {
       setInfoMsg({ ok: false, text: "Impossible de lire cette image." });
-    }
-  }
-
-  // Le mot de passe appartient à Clerk, mais l'écran appartient à Jiska :
-  // pas d'interface tierce encastrée, et un seul endroit pour la photo,
-  // le nom et l'adresse, qui restent gérés par la plateforme.
-  async function changerMdp(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (mdpNouveau !== mdpConfirm) {
-      setMdpMsg({ ok: false, text: "Les deux mots de passe ne correspondent pas." });
-      return;
-    }
-    setLoading(true);
-    setMdpMsg(null);
-    try {
-      await compteClerk?.updatePassword({
-        currentPassword: mdpActuel,
-        newPassword: mdpNouveau,
-        // Un mot de passe changé doit fermer les sessions ouvertes
-        // ailleurs : c'est souvent la raison même du changement.
-        signOutOfOtherSessions: true,
-      });
-      setMdpActuel("");
-      setMdpNouveau("");
-      setMdpConfirm("");
-      setMdpMsg({ ok: true, text: "Mot de passe mis à jour." });
-    } catch (err) {
-      const message = (err as { errors?: { longMessage?: string; message?: string }[] })
-        ?.errors?.[0];
-      setMdpMsg({
-        ok: false,
-        text: message?.longMessage ?? message?.message ?? "Échec du changement.",
-      });
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -106,7 +99,7 @@ export default function ProfilForm({ user }: { user: User }) {
         setInfoMsg({ ok: false, text: data.error ?? "Échec de l'enregistrement." });
         return;
       }
-      // Recharge pour rafraîchir la navbar (avatar, nom) partout.
+      // Recharge pour rafraîchir la navbar (photo, nom) partout.
       window.location.reload();
     } catch {
       setInfoMsg({ ok: false, text: "Impossible de joindre le serveur." });
@@ -115,205 +108,316 @@ export default function ProfilForm({ user }: { user: User }) {
     }
   }
 
+  // Le mot de passe appartient à Clerk, l'écran appartient à Jiska.
+  async function changerMdp(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (mdpNouveau !== mdpConfirm) {
+      setMdpMsg({ ok: false, text: "Les deux mots de passe ne correspondent pas." });
+      return;
+    }
+    setLoading(true);
+    setMdpMsg(null);
+    try {
+      await compteClerk?.updatePassword({
+        currentPassword: mdpActuel,
+        newPassword: mdpNouveau,
+        // Changer son mot de passe doit fermer les sessions ouvertes
+        // ailleurs : c'est souvent la raison même du changement.
+        signOutOfOtherSessions: true,
+      });
+      setMdpActuel("");
+      setMdpNouveau("");
+      setMdpConfirm("");
+      setMdpMsg({
+        ok: true,
+        text: "Mot de passe mis à jour. Vos autres sessions ont été fermées.",
+      });
+    } catch (err) {
+      const e0 = (err as { errors?: { longMessage?: string; message?: string }[] })
+        ?.errors?.[0];
+      setMdpMsg({
+        ok: false,
+        text: e0?.longMessage ?? e0?.message ?? "Échec du changement.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const champ =
     "w-full rounded-lg bg-surface px-4 py-3 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60";
   const etiquette = "mb-1.5 block text-sm font-medium text-ink";
 
   return (
-    <>
-      {/* Photo + informations */}
-      <form
-        onSubmit={enregistrerInfos}
-        className="mt-8 rounded-lg bg-white p-6 shadow-card"
+    <div className="mt-8 gap-8 lg:flex">
+      {/* Navigation des volets : colonne à gauche sur grand écran,
+          onglets en ligne sur téléphone. */}
+      <nav
+        aria-label="Sections des paramètres"
+        className="flex gap-1 overflow-x-auto border-b border-hairline pb-2 lg:w-52 lg:shrink-0 lg:flex-col lg:border-b-0 lg:pb-0"
       >
-        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5">
-          <Avatar
-            personne={{
-              id: user.id,
-              email,
-              first_name: prenom,
-              last_name: nom,
-              avatar,
-            }}
-            taille="h-20 w-20 text-2xl"
-          />
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                disabled={loading}
-                className="rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface"
-              >
-                {avatar ? "Changer la photo" : "Ajouter une photo"}
-              </button>
-              {avatar && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAvatar(null);
-                    setPhotoModifiee(true);
+        {ONGLETS.map((o) => (
+          <button
+            key={o.cle}
+            type="button"
+            aria-current={onglet === o.cle ? "page" : undefined}
+            onClick={() => setOnglet(o.cle)}
+            className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition ${
+              onglet === o.cle
+                ? "bg-brand/5 text-brand"
+                : "text-mute hover:bg-surface hover:text-ink"
+            }`}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4 shrink-0"
+              fill="currentColor"
+            >
+              {o.icone}
+            </svg>
+            {o.label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="mt-6 min-w-0 flex-1 lg:mt-0">
+        {onglet === "profil" ? (
+          <form onSubmit={enregistrerInfos}>
+            <Bloc
+              titre="Photo"
+              detail="Visible par votre équipe dans les tableaux et les réunions."
+            >
+              <div className="flex flex-wrap items-center gap-5">
+                <Avatar
+                  personne={{
+                    id: user.id,
+                    email,
+                    first_name: prenom,
+                    last_name: nom,
+                    avatar,
                   }}
-                  disabled={loading}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-danger transition hover:bg-danger-soft"
+                  taille="h-20 w-20 text-2xl"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={loading}
+                    className="rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink transition hover:bg-surface"
+                  >
+                    {avatar ? "Changer" : "Ajouter une photo"}
+                  </button>
+                  {avatar && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAvatar(null);
+                        setPhotoModifiee(true);
+                      }}
+                      disabled={loading}
+                      className="rounded-lg px-3 py-2 text-sm font-medium text-danger transition hover:bg-danger-soft"
+                    >
+                      Retirer
+                    </button>
+                  )}
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-stone">
+                JPEG, PNG ou WebP : recadrée en carré et réduite
+                automatiquement.
+              </p>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => choisirPhoto(e.target.files?.[0])}
+              />
+            </Bloc>
+
+            <Bloc titre="Identité" detail="Le nom sous lequel on vous reconnaît.">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="p-prenom" className={etiquette}>
+                    Prénom
+                  </label>
+                  <input
+                    id="p-prenom"
+                    type="text"
+                    autoComplete="given-name"
+                    placeholder="Camille"
+                    value={prenom}
+                    onChange={(e) => setPrenom(e.target.value)}
+                    disabled={loading}
+                    className={champ}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="p-nom" className={etiquette}>
+                    Nom
+                  </label>
+                  <input
+                    id="p-nom"
+                    type="text"
+                    autoComplete="family-name"
+                    placeholder="Durand"
+                    value={nom}
+                    onChange={(e) => setNom(e.target.value)}
+                    disabled={loading}
+                    className={champ}
+                  />
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-stone">
+                C&apos;est aussi ce nom que l&apos;analyse d&apos;un compte
+                rendu cherche pour vous attribuer une action.
+              </p>
+            </Bloc>
+
+            <Bloc
+              titre="Adresse e-mail"
+              detail="Sert à vous identifier à la connexion."
+            >
+              <input
+                id="p-email"
+                type="email"
+                aria-label="Adresse e-mail"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
+                className={champ}
+              />
+            </Bloc>
+
+            {infoMsg && (
+              <p
+                role="alert"
+                className={`mt-4 text-sm ${infoMsg.ok ? "text-success" : "text-danger"}`}
+              >
+                {infoMsg.text}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading || !email}
+              className="mt-6 rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Enregistrer les modifications
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={changerMdp}>
+            <Bloc
+              titre="Mot de passe"
+              detail="Le modifier fermera vos sessions ouvertes sur d'autres appareils."
+            >
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <label htmlFor="p-actuel" className={etiquette}>
+                    Actuel
+                  </label>
+                  <input
+                    id="p-actuel"
+                    type="password"
+                    autoComplete="current-password"
+                    value={mdpActuel}
+                    onChange={(e) => setMdpActuel(e.target.value)}
+                    required
+                    disabled={loading}
+                    className={champ}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="p-nouveau" className={etiquette}>
+                    Nouveau
+                  </label>
+                  <input
+                    id="p-nouveau"
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder="8 caractères min."
+                    value={mdpNouveau}
+                    onChange={(e) => setMdpNouveau(e.target.value)}
+                    required
+                    minLength={8}
+                    disabled={loading}
+                    className={champ}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="p-confirm" className={etiquette}>
+                    Confirmation
+                  </label>
+                  <input
+                    id="p-confirm"
+                    type="password"
+                    autoComplete="new-password"
+                    value={mdpConfirm}
+                    onChange={(e) => setMdpConfirm(e.target.value)}
+                    required
+                    disabled={loading}
+                    className={champ}
+                  />
+                </div>
+              </div>
+
+              {mdpMsg && (
+                <p
+                  role="alert"
+                  className={`mt-4 text-sm ${mdpMsg.ok ? "text-success" : "text-danger"}`}
                 >
-                  Retirer
-                </button>
+                  {mdpMsg.text}
+                </p>
               )}
-            </div>
-            <p className="text-xs text-stone">
-              JPEG, PNG ou WebP : recadrée en carré et réduite automatiquement.
-            </p>
-          </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={(e) => choisirPhoto(e.target.files?.[0])}
-          />
-        </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <div>
-            <label htmlFor="p-prenom" className={etiquette}>
-              Prénom
-            </label>
-            <input
-              id="p-prenom"
-              type="text"
-              autoComplete="given-name"
-              placeholder="Camille"
-              value={prenom}
-              onChange={(e) => setPrenom(e.target.value)}
-              disabled={loading}
-              className={champ}
-            />
-          </div>
-          <div>
-            <label htmlFor="p-nom" className={etiquette}>
-              Nom
-            </label>
-            <input
-              id="p-nom"
-              type="text"
-              autoComplete="family-name"
-              placeholder="Durand"
-              value={nom}
-              onChange={(e) => setNom(e.target.value)}
-              disabled={loading}
-              className={champ}
-            />
-          </div>
-          <div>
-            <label htmlFor="p-email" className={etiquette}>
-              Adresse e-mail
-            </label>
-            <input
-              id="p-email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={loading}
-              className={champ}
-            />
-          </div>
-        </div>
+              <button
+                type="submit"
+                disabled={loading || !mdpActuel || !mdpNouveau || !mdpConfirm}
+                className="mt-5 rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Mettre à jour le mot de passe
+              </button>
+            </Bloc>
 
-        {infoMsg && (
-          <p
-            role="alert"
-            className={`mt-4 text-sm ${infoMsg.ok ? "text-success" : "text-danger"}`}
-          >
-            {infoMsg.text}
-          </p>
+            <Bloc
+              titre="Rôle"
+              detail="Défini par un dirigeant, il décide de ce que vous voyez."
+            >
+              <p className="text-sm font-medium text-ink">
+                {user.role === "dirigeant" ? "Dirigeant" : "Collaborateur"}
+              </p>
+              <p className="mt-1 text-xs text-stone">
+                {user.role === "dirigeant"
+                  ? "Vous voyez tous les produits et gérez les comptes."
+                  : "Vous voyez les produits dont vous êtes membre."}
+              </p>
+            </Bloc>
+          </form>
         )}
+      </div>
+    </div>
+  );
+}
 
-        <button
-          type="submit"
-          disabled={loading || !email}
-          className="mt-6 rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Enregistrer
-        </button>
-      </form>
-
-      {/* Mot de passe */}
-      <form
-        onSubmit={changerMdp}
-        className="mt-6 rounded-lg bg-white p-6 shadow-card"
-      >
-        <h2 className="text-sm font-semibold text-ink">Changer le mot de passe</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <div>
-            <label htmlFor="p-actuel" className={etiquette}>
-              Actuel
-            </label>
-            <input
-              id="p-actuel"
-              type="password"
-              autoComplete="current-password"
-              value={mdpActuel}
-              onChange={(e) => setMdpActuel(e.target.value)}
-              required
-              disabled={loading}
-              className={champ}
-            />
-          </div>
-          <div>
-            <label htmlFor="p-nouveau" className={etiquette}>
-              Nouveau
-            </label>
-            <input
-              id="p-nouveau"
-              type="password"
-              autoComplete="new-password"
-              placeholder="8 caractères min."
-              value={mdpNouveau}
-              onChange={(e) => setMdpNouveau(e.target.value)}
-              required
-              minLength={8}
-              disabled={loading}
-              className={champ}
-            />
-          </div>
-          <div>
-            <label htmlFor="p-confirm" className={etiquette}>
-              Confirmation
-            </label>
-            <input
-              id="p-confirm"
-              type="password"
-              autoComplete="new-password"
-              value={mdpConfirm}
-              onChange={(e) => setMdpConfirm(e.target.value)}
-              required
-              disabled={loading}
-              className={champ}
-            />
-          </div>
-        </div>
-
-        {mdpMsg && (
-          <p
-            role="alert"
-            className={`mt-4 text-sm ${mdpMsg.ok ? "text-success" : "text-danger"}`}
-          >
-            {mdpMsg.text}
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading || !mdpActuel || !mdpNouveau || !mdpConfirm}
-          className="mt-6 rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Mettre à jour
-        </button>
-      </form>
-    </>
+function Bloc({
+  titre,
+  detail,
+  children,
+}: {
+  titre: string;
+  detail?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="mb-4 rounded-lg bg-white p-6 shadow-card last:mb-0">
+      <h2 className="text-sm font-semibold text-ink">{titre}</h2>
+      {detail && <p className="mt-1 mb-4 text-xs text-stone">{detail}</p>}
+      {!detail && <div className="mb-4" />}
+      {children}
+    </section>
   );
 }
