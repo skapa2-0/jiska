@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
 import type { FormEvent } from "react";
+import { useUser } from "@clerk/nextjs";
 import { FORMATS_IMAGE, reduireImage } from "@/lib/image";
 import Avatar from "../avatar";
 
@@ -15,6 +15,7 @@ type User = {
 };
 
 export default function ProfilForm({ user }: { user: User }) {
+  const { user: compteClerk } = useUser();
   const [prenom, setPrenom] = useState(user.first_name);
   const [nom, setNom] = useState(user.last_name);
   const [email, setEmail] = useState(user.email);
@@ -24,6 +25,12 @@ export default function ProfilForm({ user }: { user: User }) {
   // Seul ce second cas est envoyé à l'API.
   const [photoModifiee, setPhotoModifiee] = useState(false);
   const [infoMsg, setInfoMsg] = useState<{ ok: boolean; text: string } | null>(
+    null,
+  );
+  const [mdpActuel, setMdpActuel] = useState("");
+  const [mdpNouveau, setMdpNouveau] = useState("");
+  const [mdpConfirm, setMdpConfirm] = useState("");
+  const [mdpMsg, setMdpMsg] = useState<{ ok: boolean; text: string } | null>(
     null,
   );
   const [loading, setLoading] = useState(false);
@@ -41,6 +48,41 @@ export default function ProfilForm({ user }: { user: User }) {
       setInfoMsg(null);
     } catch {
       setInfoMsg({ ok: false, text: "Impossible de lire cette image." });
+    }
+  }
+
+  // Le mot de passe appartient à Clerk, mais l'écran appartient à Jiska :
+  // pas d'interface tierce encastrée, et un seul endroit pour la photo,
+  // le nom et l'adresse, qui restent gérés par la plateforme.
+  async function changerMdp(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (mdpNouveau !== mdpConfirm) {
+      setMdpMsg({ ok: false, text: "Les deux mots de passe ne correspondent pas." });
+      return;
+    }
+    setLoading(true);
+    setMdpMsg(null);
+    try {
+      await compteClerk?.updatePassword({
+        currentPassword: mdpActuel,
+        newPassword: mdpNouveau,
+        // Un mot de passe changé doit fermer les sessions ouvertes
+        // ailleurs : c'est souvent la raison même du changement.
+        signOutOfOtherSessions: true,
+      });
+      setMdpActuel("");
+      setMdpNouveau("");
+      setMdpConfirm("");
+      setMdpMsg({ ok: true, text: "Mot de passe mis à jour." });
+    } catch (err) {
+      const message = (err as { errors?: { longMessage?: string; message?: string }[] })
+        ?.errors?.[0];
+      setMdpMsg({
+        ok: false,
+        text: message?.longMessage ?? message?.message ?? "Échec du changement.",
+      });
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -199,24 +241,79 @@ export default function ProfilForm({ user }: { user: User }) {
         </button>
       </form>
 
-      {/* Mot de passe, e-mail et connexion : gérés par Clerk, qui détient
-          l'identité. Un lien vaut mieux qu'un formulaire qui appellerait
-          une API que Jiska n'a plus. */}
-      <section className="mt-6 rounded-lg bg-white p-6 shadow-card">
-        <h2 className="text-sm font-semibold text-ink">
-          Mot de passe et connexion
-        </h2>
-        <p className="mt-2 text-sm text-mute">
-          Votre mot de passe, votre adresse de connexion et vos appareils
-          sont gérés dans votre compte sécurisé.
-        </p>
-        <Link
-          href="/app/compte"
-          className="mt-4 inline-block rounded-lg border border-hairline px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-surface"
+      {/* Mot de passe */}
+      <form
+        onSubmit={changerMdp}
+        className="mt-6 rounded-lg bg-white p-6 shadow-card"
+      >
+        <h2 className="text-sm font-semibold text-ink">Changer le mot de passe</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="p-actuel" className={etiquette}>
+              Actuel
+            </label>
+            <input
+              id="p-actuel"
+              type="password"
+              autoComplete="current-password"
+              value={mdpActuel}
+              onChange={(e) => setMdpActuel(e.target.value)}
+              required
+              disabled={loading}
+              className={champ}
+            />
+          </div>
+          <div>
+            <label htmlFor="p-nouveau" className={etiquette}>
+              Nouveau
+            </label>
+            <input
+              id="p-nouveau"
+              type="password"
+              autoComplete="new-password"
+              placeholder="8 caractères min."
+              value={mdpNouveau}
+              onChange={(e) => setMdpNouveau(e.target.value)}
+              required
+              minLength={8}
+              disabled={loading}
+              className={champ}
+            />
+          </div>
+          <div>
+            <label htmlFor="p-confirm" className={etiquette}>
+              Confirmation
+            </label>
+            <input
+              id="p-confirm"
+              type="password"
+              autoComplete="new-password"
+              value={mdpConfirm}
+              onChange={(e) => setMdpConfirm(e.target.value)}
+              required
+              disabled={loading}
+              className={champ}
+            />
+          </div>
+        </div>
+
+        {mdpMsg && (
+          <p
+            role="alert"
+            className={`mt-4 text-sm ${mdpMsg.ok ? "text-success" : "text-danger"}`}
+          >
+            {mdpMsg.text}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading || !mdpActuel || !mdpNouveau || !mdpConfirm}
+          className="mt-6 rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Gérer mon compte
-        </Link>
-      </section>
+          Mettre à jour
+        </button>
+      </form>
     </>
   );
 }
