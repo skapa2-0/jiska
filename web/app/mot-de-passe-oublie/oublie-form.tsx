@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSignIn } from "@clerk/nextjs";
+import { useClerk, useSignIn, useUser } from "@clerk/nextjs";
 
 // Deux étapes : demander le code, puis le saisir avec le nouveau mot de
 // passe. Clerk envoie un code à six chiffres, pas un lien : un code expire
@@ -14,6 +14,11 @@ export default function OublieForm() {
   // API « future » de Clerk : useSignIn renvoie la ressource, et les
   // méthodes ne lèvent pas d'exception, elles renvoient { error }.
   const { signIn } = useSignIn();
+  // Clerk refuse d'ouvrir un parcours de connexion tant qu'une session est
+  // active (« You're already signed in »). Plutôt que de laisser l'écran
+  // dans une impasse, on propose la seule action qui débloque.
+  const { isSignedIn } = useUser();
+  const { signOut } = useClerk();
 
   const [etape, setEtape] = useState<"demande" | "code">("demande");
   const [email, setEmail] = useState("");
@@ -98,6 +103,37 @@ export default function OublieForm() {
   const etiquette = "mb-2 block text-sm font-medium text-ink";
   const bouton =
     "mt-6 w-full rounded-lg bg-ink py-3 text-[15px] font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40";
+
+  if (isSignedIn) {
+    return (
+      <section className="w-full max-w-sm rounded-lg bg-white p-7 text-center shadow-card">
+        <p className="text-[15px] text-mute">
+          Vous êtes connecté. Pour recevoir un code par e-mail, il faut
+          d&apos;abord vous déconnecter : c&apos;est la même sécurité qui
+          empêche quelqu&apos;un de changer votre mot de passe depuis une
+          session laissée ouverte.
+        </p>
+        <button
+          type="button"
+          onClick={() => signOut({ redirectUrl: "/mot-de-passe-oublie" })}
+          className="mt-6 w-full rounded-lg bg-ink py-3 text-[15px] font-semibold text-white transition hover:opacity-85"
+        >
+          Se déconnecter et recevoir un code
+        </button>
+        <p className="mt-5 border-t border-hairline pt-5 text-sm text-stone">
+          Si vous connaissez votre mot de passe actuel, changez-le sans vous
+          déconnecter depuis{" "}
+          <Link
+            href="/app/profil"
+            className="font-semibold text-brand transition hover:text-brand-deep"
+          >
+            Paramètres, onglet Sécurité
+          </Link>
+          .
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="w-full max-w-sm rounded-lg bg-white p-7 shadow-card">
