@@ -154,7 +154,7 @@ export default function ProfilForm({ user }: { user: User }) {
           onglets en ligne sur téléphone. */}
       <nav
         aria-label="Sections des paramètres"
-        className="flex gap-1 overflow-x-auto border-b border-hairline pb-2 lg:w-52 lg:shrink-0 lg:flex-col lg:border-b-0 lg:pb-0"
+        className="flex gap-1 overflow-x-auto border-b border-hairline pb-2 lg:w-56 lg:shrink-0 lg:flex-col lg:border-b-0 lg:pb-0"
       >
         {ONGLETS.map((o) => (
           <button
@@ -374,13 +374,23 @@ export default function ProfilForm({ user }: { user: User }) {
                 </p>
               )}
 
-              <button
-                type="submit"
-                disabled={loading || !mdpActuel || !mdpNouveau || !mdpConfirm}
-                className="mt-5 rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Mettre à jour le mot de passe
-              </button>
+              <div className="mt-5 flex flex-wrap items-center gap-4">
+                <button
+                  type="submit"
+                  disabled={loading || !mdpActuel || !mdpNouveau || !mdpConfirm}
+                  className="rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Mettre à jour le mot de passe
+                </button>
+                {/* Sans son mot de passe actuel, le formulaire ci-dessus est
+                    inutilisable : le code par e-mail est la seule sortie. */}
+                <a
+                  href="/mot-de-passe-oublie"
+                  className="text-sm font-medium text-brand transition hover:text-brand-deep"
+                >
+                  Je ne connais plus mon mot de passe
+                </a>
+              </div>
             </Bloc>
 
             <Bloc

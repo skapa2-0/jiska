@@ -37,7 +37,15 @@ export default async function LoginPage() {
         </p>
       </header>
       {refuse === false ? (
-        <SignIn appearance={apparenceClerk} />
+        <>
+          <SignIn appearance={apparenceClerk} />
+          <a
+            href="/mot-de-passe-oublie"
+            className="text-sm font-medium text-mute transition hover:text-ink"
+          >
+            Mot de passe oublié ?
+          </a>
+        </>
       ) : (
         <AccesRefuse email={refuse} />
       )}
