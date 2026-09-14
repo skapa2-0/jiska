@@ -45,11 +45,15 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - jiska-db-data:/var/lib/postgresql/data
+    # Check toutes les 60 s (chaque exec coûte cher en CPU sur ce VPS) ;
+    # start_interval garde un démarrage rapide pour le depends_on de l'app.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U jiska -d jiska"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
     mem_limit: 512m
     pids_limit: 256
     networks:
