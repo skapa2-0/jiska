@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 import Avatar, { displayName } from "../avatar";
 import Confirmation from "../confirmer";
@@ -30,32 +30,27 @@ export default function TeamManager({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [aSupprimer, setASupprimer] = useState<Member | null>(null);
-  // Invitation en cours de saisie : l'adresse est modifiable, parce que la
-  // personne se connectera peut-être avec une autre boîte que celle
-  // enregistrée à la création de son compte.
-  const [invite, setInvite] = useState<{ id: string; email: string } | null>(
-    null,
-  );
+  // Un envoi d'invitation en cours : sert à désactiver uniquement le
+  // bouton concerné, pas toute la page.
+  const [envoiId, setEnvoiId] = useState<string | null>(null);
   const [inviteMsg, setInviteMsg] = useState<{ ok: boolean; text: string } | null>(
     null,
   );
 
-  async function envoyerInvitation() {
-    if (!invite) return;
-    setLoading(true);
+  async function envoyerInvitation(id: string, adresse: string) {
+    setEnvoiId(id);
     setInviteMsg(null);
     try {
-      const res = await fetch(`/api/users/${invite.id}/inviter`, {
+      const res = await fetch(`/api/users/${id}/inviter`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: invite.email }),
+        body: JSON.stringify({ email: adresse }),
       });
       const data = await res.json();
       if (!res.ok) {
         setInviteMsg({ ok: false, text: data.error ?? "Échec de l'envoi." });
         return;
       }
-      setInvite(null);
       setInviteMsg({
         ok: true,
         text: `Invitation envoyée à ${data.email}.`,
@@ -63,7 +58,7 @@ export default function TeamManager({
     } catch {
       setInviteMsg({ ok: false, text: "Impossible de joindre le serveur." });
     } finally {
-      setLoading(false);
+      setEnvoiId(null);
     }
   }
 
@@ -123,10 +118,7 @@ export default function TeamManager({
 
       <ul className="mt-8 divide-y divide-hairline rounded-lg bg-white shadow-card">
         {members.map((m) => (
-          // Deux <li> par personne : la ligne, et le formulaire
-          // d'invitation quand il est déplié sous elle.
-          <Fragment key={m.id}>
-          <li className="flex items-center gap-3 px-5 py-3.5">
+          <li key={m.id} className="flex items-center gap-3 px-5 py-3.5">
             <Avatar personne={m} taille="h-8 w-8 text-sm" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-ink">
@@ -144,15 +136,11 @@ export default function TeamManager({
             {!m.active && (
               <button
                 type="button"
-                onClick={() => {
-                  setInviteMsg(null);
-                  setInvite(
-                    invite?.id === m.id ? null : { id: m.id, email: m.email },
-                  );
-                }}
-                className="rounded-md px-3 py-1 text-xs font-semibold text-brand transition hover:bg-brand/5"
+                onClick={() => envoyerInvitation(m.id, m.email)}
+                disabled={envoiId === m.id}
+                className="rounded-md px-3 py-1 text-xs font-semibold text-brand transition hover:bg-brand/5 disabled:opacity-40"
               >
-                {invite?.id === m.id ? "Annuler" : "Inviter"}
+                {envoiId === m.id ? "Envoi…" : "Inviter"}
               </button>
             )}
             {m.id !== selfId && (
@@ -165,38 +153,6 @@ export default function TeamManager({
               </button>
             )}
           </li>
-          {invite?.id === m.id && (
-            <li className="bg-surface px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-stone">
-                Adresse qui recevra l&apos;invitation
-              </p>
-              <p className="mt-1 text-xs text-mute">
-                C&apos;est la seule avec laquelle cette personne pourra se
-                connecter. Modifiez-la si elle utilise une autre boîte.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <input
-                  type="email"
-                  aria-label="Adresse d'invitation"
-                  value={invite.email}
-                  onChange={(e) =>
-                    setInvite({ id: m.id, email: e.target.value })
-                  }
-                  disabled={loading}
-                  className="min-w-0 flex-1 rounded-lg bg-white px-4 py-2.5 text-sm text-ink outline-none transition focus:ring-2 focus:ring-brand"
-                />
-                <button
-                  type="button"
-                  onClick={envoyerInvitation}
-                  disabled={loading || !invite.email}
-                  className="rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-85 disabled:opacity-40"
-                >
-                  {loading ? "Envoi…" : "Envoyer l'invitation"}
-                </button>
-              </div>
-            </li>
-          )}
-          </Fragment>
         ))}
       </ul>
 
