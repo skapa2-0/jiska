@@ -57,6 +57,28 @@ const CONFIANCE: Record<string, string> = {
 
 const jolieDate = (v: string) => v.split("-").reverse().join("/");
 
+const CHAMP_CLASSE =
+  "w-full rounded-lg bg-surface px-3.5 py-2.5 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand";
+
+// Fige la liste des champs proposés pour chaque proposition dès son
+// arrivée : sert de source de vérité pour l'affichage du formulaire de
+// correction, indépendamment de l'état courant. Si l'utilisateur vide un
+// champ (ce qui supprime la clé pour « ne pas surcharger »), l'input
+// reste visible et il peut ressaisir sans replier / rouvrir la carte.
+function figerChamps(
+  props: Proposition[],
+): Record<string, Set<keyof ChampsProposes>> {
+  return Object.fromEntries(
+    props.map(
+      (p) =>
+        [
+          p.ref,
+          new Set(Object.keys(p.champs) as (keyof ChampsProposes)[]),
+        ] as const,
+    ),
+  );
+}
+
 export default function ImportTranscript({
   produits,
   sujetsTransverses = [],
@@ -96,6 +118,9 @@ export default function ImportTranscript({
       ].map((p) => [p.ref, "attente" as Statut]),
     ),
   );
+  const [champsInitiaux, setChampsInitiaux] = useState<
+    Record<string, Set<keyof ChampsProposes>>
+  >(() => figerChamps(reprise?.propositions ?? []));
   const [retouches, setRetouches] = useState<Record<string, boolean>>({});
   const [edition, setEdition] = useState<string | null>(null);
   const [bilan, setBilan] = useState<string | null>(null);
@@ -129,6 +154,7 @@ export default function ImportTranscript({
       setPropositions(data.propositions);
       setEcartes(data.ecartes ?? []);
       setDeploiements(data.deploiements ?? []);
+      setChampsInitiaux(figerChamps(data.propositions ?? []));
       setStatuts(
         Object.fromEntries(
           [
@@ -156,12 +182,27 @@ export default function ImportTranscript({
       ps.map((p) => {
         if (p.ref !== ref) return p;
         const champs = { ...p.champs };
+        // Vider un champ = « ne pas surcharger » : on retire la clé du
+        // patch envoyé au serveur, l'ancienne valeur reste. Le formulaire
+        // reste affiché grâce à champsInitiaux, l'utilisateur peut
+        // ressaisir librement.
         if (valeur === "" || valeur === undefined) delete champs[cle];
         else Object.assign(champs, { [cle]: valeur });
         return { ...p, champs };
       }),
     );
     setRetouches((r) => ({ ...r, [ref]: true }));
+  }
+
+  function basculerStatut(ref: string, cible: "accepte" | "rejete") {
+    setStatuts((s) => ({
+      ...s,
+      [ref]: s[ref] === cible ? "attente" : cible,
+    }));
+  }
+
+  function basculerEdition(ref: string) {
+    setEdition((e) => (e === ref ? null : ref));
   }
 
   async function appliquer() {
@@ -221,9 +262,6 @@ export default function ImportTranscript({
     }
     window.location.href = retour;
   }
-
-  const champ =
-    "w-full rounded-lg bg-surface px-3.5 py-2.5 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand";
 
   // ---------- Bilan ----------
   if (bilan) {
@@ -287,7 +325,7 @@ export default function ImportTranscript({
           value={transcript}
           onChange={(e) => setTranscript(e.target.value)}
           disabled={chargement}
-          className={`${champ} resize-y font-mono text-[13px]`}
+          className={`${CHAMP_CLASSE} resize-y font-mono text-[13px]`}
         />
         <p className="mt-1.5 text-xs text-stone">
           {transcript.length.toLocaleString("fr-FR")} caractères. Le résumé donne
@@ -325,378 +363,6 @@ export default function ImportTranscript({
   const retenus = aDecider.filter((p) => statuts[p.ref] === "accepte").length;
   const restants = aDecider.filter((p) => statuts[p.ref] === "attente").length;
 
-  function Carte({ p }: { p: Proposition }) {
-    const produit = p.projectId ? parId.get(p.projectId) : undefined;
-    const statut = statuts[p.ref];
-    const enEdition = edition === p.ref;
-    // Un sujet transverse n'a pas d'équipe : ses porteurs possibles sont
-    // les membres de tous les produits.
-    const membres = p.projectId
-      ? (produit?.membres ?? [])
-      : [...new Map(produits.flatMap((x) => x.membres).map((m) => [m.id, m])).values()];
-    // Cibles possibles du « sujet visé » : ceux du produit, ou les
-    // transverses existants quand la proposition ne vise aucun produit.
-    const cibles = p.projectId ? (produit?.sujets ?? []) : sujetsTransverses;
-
-    return (
-      <li
-        className={`rounded-lg bg-white p-5 shadow-card transition ${
-          statut === "rejete" ? "opacity-45" : ""
-        } ${statut === "accepte" ? "ring-1 ring-success" : ""}`}
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          {produit ? (
-            <span className="flex items-center gap-1.5 rounded-md bg-surface px-2 py-1 text-xs font-semibold text-mute">
-              <ProjetLogo
-                name={produit.name}
-                logo={produit.logo}
-                taille="h-4 w-4 text-[9px]"
-              />
-              {produit.name}
-            </span>
-          ) : (
-            <span className="rounded-md bg-surface px-2 py-1 text-xs font-semibold text-mute">
-              {NOM_TRANSVERSE}
-            </span>
-          )}
-          <span
-            className={`rounded-md px-2 py-1 text-xs font-semibold ${CONFIANCE[p.confiance]}`}
-          >
-            Confiance {p.confiance}
-          </span>
-          {!p.sujetId && (
-            <span className="rounded-md bg-brand/10 px-2 py-1 text-xs font-semibold text-brand">
-              Nouveau sujet
-            </span>
-          )}
-          {retouches[p.ref] && (
-            <span className="rounded-md bg-surface px-2 py-1 text-xs font-semibold text-stone">
-              Retouché
-            </span>
-          )}
-          <span className="ml-auto font-mono text-xs text-stone">
-            {p.horodatage}
-          </span>
-        </div>
-
-        <h3 className="mt-2.5 font-display text-lg font-semibold text-ink">
-          {p.titre}
-        </h3>
-
-        {/* Ce que c'était, ce que ça devient */}
-        <div className="mt-3 space-y-2">
-          {(Object.keys(p.champs) as (keyof ChampsProposes)[]).map((cle) => (
-            <Diff
-              key={cle}
-              cle={cle}
-              avant={p.avant[cle]}
-              apres={p.champs[cle]}
-              creation={!p.sujetId}
-              nomDe={nomDe}
-            />
-          ))}
-          {!p.sujetId && (
-            <p className="text-xs text-warn">
-              Poids à définir : un sujet créé depuis une réunion arrive à 0 %.
-            </p>
-          )}
-        </div>
-
-        <p className="mt-3 border-l-2 border-hairline pl-3 text-sm italic text-mute">
-          « {p.citation} »
-        </p>
-
-        {/* Correction */}
-        {enEdition && (
-          <div className="mt-4 space-y-3 rounded-lg bg-surface p-4">
-            {porteeProjetId === null && (
-              <div>
-                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone">
-                  Produit visé
-                </p>
-                <Select
-                  ariaLabel="Produit visé"
-                  placeholder="Choisir un produit"
-                  variante="champ"
-                  value={p.projectId ?? TRANSVERSE}
-                  onChange={(v) =>
-                    v &&
-                    modifier(p.ref, {
-                      projectId: v === TRANSVERSE ? null : v,
-                      sujetId: null,
-                    })
-                  }
-                  options={[
-                    ...produits.map((x) => ({ value: x.id, label: x.name })),
-                    { value: TRANSVERSE, label: NOM_TRANSVERSE },
-                  ]}
-                />
-              </div>
-            )}
-            <div>
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone">
-                Sujet visé
-              </p>
-              <Select
-                ariaLabel="Sujet visé"
-                placeholder="Créer un nouveau sujet"
-                variante="champ"
-                value={p.sujetId ?? ""}
-                onChange={(v) =>
-                  modifier(p.ref, {
-                    sujetId: v || null,
-                    titre: cibles.find((s) => s.id === v)?.titre ?? p.titre,
-                  })
-                }
-                options={cibles.map((s) => ({
-                  value: s.id,
-                  label: s.titre,
-                }))}
-              />
-            </div>
-            {!p.sujetId && (
-              <div>
-                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone">
-                  Titre du nouveau sujet
-                </p>
-                <input
-                  type="text"
-                  value={p.titre}
-                  onChange={(e) => modifier(p.ref, { titre: e.target.value })}
-                  className={champ}
-                />
-              </div>
-            )}
-
-            {"etat" in p.champs && (
-              <Bloc titre="État">
-                <Select
-                  ariaLabel="État proposé"
-                  placeholder="Ne pas modifier"
-                  variante="champ"
-                  value={p.champs.etat ?? ""}
-                  onChange={(v) => modifierChamp(p.ref, "etat", v)}
-                  options={Object.entries(ETATS).map(([k, e]) => ({
-                    value: k,
-                    label: e.label,
-                  }))}
-                />
-              </Bloc>
-            )}
-            {"criticite" in p.champs && (
-              <Bloc titre="Criticité">
-                <Select
-                  ariaLabel="Criticité proposée"
-                  placeholder="Ne pas modifier"
-                  variante="champ"
-                  value={p.champs.criticite ?? ""}
-                  onChange={(v) => modifierChamp(p.ref, "criticite", v)}
-                  options={Object.entries(CRITICITES).map(([k, c]) => ({
-                    value: k,
-                    label: c.label,
-                  }))}
-                />
-              </Bloc>
-            )}
-            {!p.sujetId && (
-              <Bloc titre="Type">
-                <Select
-                  ariaLabel="Type du sujet"
-                  placeholder="Technique par défaut"
-                  variante="champ"
-                  value={p.champs.type ?? ""}
-                  onChange={(v) => modifierChamp(p.ref, "type", v)}
-                  options={Object.entries(TYPES_SUJET).map(([k, t]) => ({
-                    value: k,
-                    label: t.label,
-                  }))}
-                />
-              </Bloc>
-            )}
-            {"action" in p.champs && (
-              <Bloc titre="Action de la semaine">
-                <input
-                  type="text"
-                  value={p.champs.action ?? ""}
-                  onChange={(e) => modifierChamp(p.ref, "action", e.target.value)}
-                  className={champ}
-                />
-              </Bloc>
-            )}
-            {"commentaire" in p.champs && (
-              <Bloc titre="Commentaire">
-                <textarea
-                  rows={2}
-                  value={p.champs.commentaire ?? ""}
-                  onChange={(e) =>
-                    modifierChamp(p.ref, "commentaire", e.target.value)
-                  }
-                  className={`${champ} resize-none`}
-                />
-              </Bloc>
-            )}
-            {"dueDate" in p.champs && (
-              <Bloc titre="Échéance">
-                <DatePicker
-                  ariaLabel="Échéance proposée"
-                  value={p.champs.dueDate ?? ""}
-                  onChange={(v) => modifierChamp(p.ref, "dueDate", v || null)}
-                />
-              </Bloc>
-            )}
-            {"porteurId" in p.champs && (
-              <Bloc titre="Porteur">
-                <div className="flex flex-wrap gap-1.5">
-                  {membres.map((m) => {
-                    const actif = p.champs.porteurId === m.id;
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        aria-pressed={actif}
-                        onClick={() =>
-                          modifierChamp(p.ref, "porteurId", actif ? "" : m.id)
-                        }
-                        className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-semibold transition ${
-                          actif
-                            ? "border-brand bg-brand/5 text-ink ring-1 ring-brand"
-                            : "border-hairline bg-white text-mute hover:bg-surface"
-                        }`}
-                      >
-                        <Avatar personne={m} taille="h-5 w-5 text-[9px]" />
-                        {displayName(m)}
-                      </button>
-                    );
-                  })}
-                </div>
-              </Bloc>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setEdition(null)}
-              className="w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white transition hover:opacity-85"
-            >
-              Terminer la correction
-            </button>
-          </div>
-        )}
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() =>
-              setStatuts((s) => ({
-                ...s,
-                [p.ref]: s[p.ref] === "accepte" ? "attente" : "accepte",
-              }))
-            }
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-              statut === "accepte"
-                ? "bg-success text-white"
-                : "bg-ink text-white hover:opacity-85"
-            }`}
-          >
-            {statut === "accepte" ? "Retenue" : "Accepter"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setEdition(enEdition ? null : p.ref)}
-            className="rounded-lg border border-brand px-4 py-2 text-sm font-semibold text-brand transition hover:bg-brand/5"
-          >
-            {enEdition ? "Replier" : "Corriger"}
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              setStatuts((s) => ({
-                ...s,
-                [p.ref]: s[p.ref] === "rejete" ? "attente" : "rejete",
-              }))
-            }
-            className="rounded-lg border border-hairline px-4 py-2 text-sm font-medium text-mute transition hover:bg-surface"
-          >
-            {statut === "rejete" ? "Rejetée" : "Rejeter"}
-          </button>
-        </div>
-      </li>
-    );
-  }
-
-  // Une annonce de déployabilité ne se corrige pas : soit la réunion l'a
-  // dite, soit elle ne l'a pas dite. On la retient ou on la rejette.
-  function CarteDeploiement({ d }: { d: PropositionDeploiement }) {
-    const produit = parId.get(d.projectId);
-    const statut = statuts[d.ref];
-
-    return (
-      <li
-        className={`rounded-lg bg-white p-5 shadow-card transition ${
-          statut === "rejete" ? "opacity-45" : ""
-        } ${statut === "accepte" ? "ring-1 ring-success" : ""}`}
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          {produit && (
-            <span className="flex items-center gap-1.5 rounded-md bg-surface px-2 py-1 text-xs font-semibold text-mute">
-              <ProjetLogo
-                name={produit.name}
-                logo={produit.logo}
-                taille="h-4 w-4 text-[9px]"
-              />
-              {produit.name}
-            </span>
-          )}
-          <span className="ml-auto font-mono text-xs text-stone">
-            {d.horodatage}
-          </span>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <BadgeDeployable deployable={d.avant} />
-          <span aria-hidden="true" className="text-stone">
-            →
-          </span>
-          <BadgeDeployable deployable={d.deployable} />
-        </div>
-
-        <p className="mt-3 border-l-2 border-hairline pl-3 text-sm italic text-mute">
-          « {d.citation} »
-        </p>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() =>
-              setStatuts((s) => ({
-                ...s,
-                [d.ref]: s[d.ref] === "accepte" ? "attente" : "accepte",
-              }))
-            }
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-              statut === "accepte"
-                ? "bg-success text-white"
-                : "bg-ink text-white hover:opacity-85"
-            }`}
-          >
-            {statut === "accepte" ? "Retenue" : "Accepter"}
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              setStatuts((s) => ({
-                ...s,
-                [d.ref]: s[d.ref] === "rejete" ? "attente" : "rejete",
-              }))
-            }
-            className="rounded-lg border border-hairline px-4 py-2 text-sm font-medium text-mute transition hover:bg-surface"
-          >
-            {statut === "rejete" ? "Rejetée" : "Rejeter"}
-          </button>
-        </div>
-      </li>
-    );
-  }
-
   return (
     <div className="mt-8">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg bg-white px-5 py-4 shadow-card">
@@ -723,14 +389,46 @@ export default function ImportTranscript({
       {majs.length > 0 && (
         <Section titre="Mises à jour">
           {majs.map((p) => (
-            <Carte key={p.ref} p={p} />
+            <Carte
+              key={p.ref}
+              p={p}
+              produits={produits}
+              sujetsTransverses={sujetsTransverses}
+              porteeProjetId={porteeProjetId}
+              parId={parId}
+              nomDe={nomDe}
+              champsProposes={champsInitiaux[p.ref]}
+              statut={statuts[p.ref]}
+              enEdition={edition === p.ref}
+              retouche={!!retouches[p.ref]}
+              onModifier={modifier}
+              onModifierChamp={modifierChamp}
+              onBasculerStatut={basculerStatut}
+              onBasculerEdition={basculerEdition}
+            />
           ))}
         </Section>
       )}
       {creations.length > 0 && (
         <Section titre="Nouveaux sujets">
           {creations.map((p) => (
-            <Carte key={p.ref} p={p} />
+            <Carte
+              key={p.ref}
+              p={p}
+              produits={produits}
+              sujetsTransverses={sujetsTransverses}
+              porteeProjetId={porteeProjetId}
+              parId={parId}
+              nomDe={nomDe}
+              champsProposes={champsInitiaux[p.ref]}
+              statut={statuts[p.ref]}
+              enEdition={edition === p.ref}
+              retouche={!!retouches[p.ref]}
+              onModifier={modifier}
+              onModifierChamp={modifierChamp}
+              onBasculerStatut={basculerStatut}
+              onBasculerEdition={basculerEdition}
+            />
           ))}
         </Section>
       )}
@@ -738,7 +436,13 @@ export default function ImportTranscript({
       {deploiements.length > 0 && (
         <Section titre="Déployabilité annoncée en réunion">
           {deploiements.map((d) => (
-            <CarteDeploiement key={d.ref} d={d} />
+            <CarteDeploiement
+              key={d.ref}
+              d={d}
+              parId={parId}
+              statut={statuts[d.ref]}
+              onBasculerStatut={basculerStatut}
+            />
           ))}
         </Section>
       )}
@@ -787,6 +491,415 @@ export default function ImportTranscript({
         </div>
       )}
     </div>
+  );
+}
+
+// ---------- Carte d'une proposition ----------
+//
+// Définie hors du composant parent : sinon React redéfinit le type de
+// composant à chaque frappe (parce que setPropositions re-rend le
+// parent), démonte l'input édité et fait perdre le focus après chaque
+// caractère.
+function Carte({
+  p,
+  produits,
+  sujetsTransverses,
+  porteeProjetId,
+  parId,
+  nomDe,
+  champsProposes,
+  statut,
+  enEdition,
+  retouche,
+  onModifier,
+  onModifierChamp,
+  onBasculerStatut,
+  onBasculerEdition,
+}: {
+  p: Proposition;
+  produits: ProduitImport[];
+  sujetsTransverses: { id: string; titre: string }[];
+  porteeProjetId: string | null;
+  parId: Map<string, ProduitImport>;
+  nomDe: Map<string, Personne>;
+  champsProposes: Set<keyof ChampsProposes> | undefined;
+  statut: Statut;
+  enEdition: boolean;
+  retouche: boolean;
+  onModifier: (ref: string, maj: Partial<Proposition>) => void;
+  onModifierChamp: (
+    ref: string,
+    cle: keyof ChampsProposes,
+    valeur: unknown,
+  ) => void;
+  onBasculerStatut: (ref: string, cible: "accepte" | "rejete") => void;
+  onBasculerEdition: (ref: string) => void;
+}) {
+  const produit = p.projectId ? parId.get(p.projectId) : undefined;
+  // Un sujet transverse n'a pas d'équipe : ses porteurs possibles sont
+  // les membres de tous les produits.
+  const membres = p.projectId
+    ? (produit?.membres ?? [])
+    : [
+        ...new Map(
+          produits.flatMap((x) => x.membres).map((m) => [m.id, m]),
+        ).values(),
+      ];
+  // Cibles possibles du « sujet visé » : ceux du produit, ou les
+  // transverses existants quand la proposition ne vise aucun produit.
+  const cibles = p.projectId ? (produit?.sujets ?? []) : sujetsTransverses;
+  // Le formulaire reste basé sur les champs proposés à l'origine :
+  // effacer un champ n'efface pas son input, seulement sa valeur.
+  const propose = (cle: keyof ChampsProposes) =>
+    champsProposes ? champsProposes.has(cle) : cle in p.champs;
+
+  return (
+    <li
+      className={`rounded-lg bg-white p-5 shadow-card transition ${
+        statut === "rejete" ? "opacity-45" : ""
+      } ${statut === "accepte" ? "ring-1 ring-success" : ""}`}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        {produit ? (
+          <span className="flex items-center gap-1.5 rounded-md bg-surface px-2 py-1 text-xs font-semibold text-mute">
+            <ProjetLogo
+              name={produit.name}
+              logo={produit.logo}
+              taille="h-4 w-4 text-[9px]"
+            />
+            {produit.name}
+          </span>
+        ) : (
+          <span className="rounded-md bg-surface px-2 py-1 text-xs font-semibold text-mute">
+            {NOM_TRANSVERSE}
+          </span>
+        )}
+        <span
+          className={`rounded-md px-2 py-1 text-xs font-semibold ${CONFIANCE[p.confiance]}`}
+        >
+          Confiance {p.confiance}
+        </span>
+        {!p.sujetId && (
+          <span className="rounded-md bg-brand/10 px-2 py-1 text-xs font-semibold text-brand">
+            Nouveau sujet
+          </span>
+        )}
+        {retouche && (
+          <span className="rounded-md bg-surface px-2 py-1 text-xs font-semibold text-stone">
+            Retouché
+          </span>
+        )}
+        <span className="ml-auto font-mono text-xs text-stone">
+          {p.horodatage}
+        </span>
+      </div>
+
+      <h3 className="mt-2.5 font-display text-lg font-semibold text-ink">
+        {p.titre}
+      </h3>
+
+      {/* Ce que c'était, ce que ça devient */}
+      <div className="mt-3 space-y-2">
+        {(Object.keys(p.champs) as (keyof ChampsProposes)[]).map((cle) => (
+          <Diff
+            key={cle}
+            cle={cle}
+            avant={p.avant[cle]}
+            apres={p.champs[cle]}
+            creation={!p.sujetId}
+            nomDe={nomDe}
+          />
+        ))}
+        {!p.sujetId && (
+          <p className="text-xs text-warn">
+            Poids à définir : un sujet créé depuis une réunion arrive à 0 %.
+          </p>
+        )}
+      </div>
+
+      <p className="mt-3 border-l-2 border-hairline pl-3 text-sm italic text-mute">
+        « {p.citation} »
+      </p>
+
+      {/* Correction */}
+      {enEdition && (
+        <div className="mt-4 space-y-3 rounded-lg bg-surface p-4">
+          {porteeProjetId === null && (
+            <div>
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone">
+                Produit visé
+              </p>
+              <Select
+                ariaLabel="Produit visé"
+                placeholder="Choisir un produit"
+                variante="champ"
+                value={p.projectId ?? TRANSVERSE}
+                onChange={(v) =>
+                  v &&
+                  onModifier(p.ref, {
+                    projectId: v === TRANSVERSE ? null : v,
+                    sujetId: null,
+                  })
+                }
+                options={[
+                  ...produits.map((x) => ({ value: x.id, label: x.name })),
+                  { value: TRANSVERSE, label: NOM_TRANSVERSE },
+                ]}
+              />
+            </div>
+          )}
+          <div>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone">
+              Sujet visé
+            </p>
+            <Select
+              ariaLabel="Sujet visé"
+              placeholder="Créer un nouveau sujet"
+              variante="champ"
+              value={p.sujetId ?? ""}
+              onChange={(v) =>
+                onModifier(p.ref, {
+                  sujetId: v || null,
+                  titre: cibles.find((s) => s.id === v)?.titre ?? p.titre,
+                })
+              }
+              options={cibles.map((s) => ({
+                value: s.id,
+                label: s.titre,
+              }))}
+            />
+          </div>
+          {!p.sujetId && (
+            <div>
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone">
+                Titre du nouveau sujet
+              </p>
+              <input
+                type="text"
+                value={p.titre}
+                onChange={(e) => onModifier(p.ref, { titre: e.target.value })}
+                className={CHAMP_CLASSE}
+              />
+            </div>
+          )}
+
+          {propose("etat") && (
+            <Bloc titre="État">
+              <Select
+                ariaLabel="État proposé"
+                placeholder="Ne pas modifier"
+                variante="champ"
+                value={p.champs.etat ?? ""}
+                onChange={(v) => onModifierChamp(p.ref, "etat", v)}
+                options={Object.entries(ETATS).map(([k, e]) => ({
+                  value: k,
+                  label: e.label,
+                }))}
+              />
+            </Bloc>
+          )}
+          {propose("criticite") && (
+            <Bloc titre="Criticité">
+              <Select
+                ariaLabel="Criticité proposée"
+                placeholder="Ne pas modifier"
+                variante="champ"
+                value={p.champs.criticite ?? ""}
+                onChange={(v) => onModifierChamp(p.ref, "criticite", v)}
+                options={Object.entries(CRITICITES).map(([k, c]) => ({
+                  value: k,
+                  label: c.label,
+                }))}
+              />
+            </Bloc>
+          )}
+          {!p.sujetId && (
+            <Bloc titre="Type">
+              <Select
+                ariaLabel="Type du sujet"
+                placeholder="Technique par défaut"
+                variante="champ"
+                value={p.champs.type ?? ""}
+                onChange={(v) => onModifierChamp(p.ref, "type", v)}
+                options={Object.entries(TYPES_SUJET).map(([k, t]) => ({
+                  value: k,
+                  label: t.label,
+                }))}
+              />
+            </Bloc>
+          )}
+          {propose("action") && (
+            <Bloc titre="Action de la semaine">
+              <input
+                type="text"
+                value={p.champs.action ?? ""}
+                onChange={(e) =>
+                  onModifierChamp(p.ref, "action", e.target.value)
+                }
+                className={CHAMP_CLASSE}
+              />
+            </Bloc>
+          )}
+          {propose("commentaire") && (
+            <Bloc titre="Commentaire">
+              <textarea
+                rows={2}
+                value={p.champs.commentaire ?? ""}
+                onChange={(e) =>
+                  onModifierChamp(p.ref, "commentaire", e.target.value)
+                }
+                className={`${CHAMP_CLASSE} resize-none`}
+              />
+            </Bloc>
+          )}
+          {propose("dueDate") && (
+            <Bloc titre="Échéance">
+              <DatePicker
+                ariaLabel="Échéance proposée"
+                value={p.champs.dueDate ?? ""}
+                onChange={(v) => onModifierChamp(p.ref, "dueDate", v || null)}
+              />
+            </Bloc>
+          )}
+          {propose("porteurId") && (
+            <Bloc titre="Porteur">
+              <div className="flex flex-wrap gap-1.5">
+                {membres.map((m) => {
+                  const actif = p.champs.porteurId === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      aria-pressed={actif}
+                      onClick={() =>
+                        onModifierChamp(p.ref, "porteurId", actif ? "" : m.id)
+                      }
+                      className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-semibold transition ${
+                        actif
+                          ? "border-brand bg-brand/5 text-ink ring-1 ring-brand"
+                          : "border-hairline bg-white text-mute hover:bg-surface"
+                      }`}
+                    >
+                      <Avatar personne={m} taille="h-5 w-5 text-[9px]" />
+                      {displayName(m)}
+                    </button>
+                  );
+                })}
+              </div>
+            </Bloc>
+          )}
+
+          <button
+            type="button"
+            onClick={() => onBasculerEdition(p.ref)}
+            className="w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white transition hover:opacity-85"
+          >
+            Terminer la correction
+          </button>
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => onBasculerStatut(p.ref, "accepte")}
+          className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+            statut === "accepte"
+              ? "bg-success text-white"
+              : "bg-ink text-white hover:opacity-85"
+          }`}
+        >
+          {statut === "accepte" ? "Retenue" : "Accepter"}
+        </button>
+        <button
+          type="button"
+          onClick={() => onBasculerEdition(p.ref)}
+          className="rounded-lg border border-brand px-4 py-2 text-sm font-semibold text-brand transition hover:bg-brand/5"
+        >
+          {enEdition ? "Replier" : "Corriger"}
+        </button>
+        <button
+          type="button"
+          onClick={() => onBasculerStatut(p.ref, "rejete")}
+          className="rounded-lg border border-hairline px-4 py-2 text-sm font-medium text-mute transition hover:bg-surface"
+        >
+          {statut === "rejete" ? "Rejetée" : "Rejeter"}
+        </button>
+      </div>
+    </li>
+  );
+}
+
+// Une annonce de déployabilité ne se corrige pas : soit la réunion l'a
+// dite, soit elle ne l'a pas dite. On la retient ou on la rejette.
+function CarteDeploiement({
+  d,
+  parId,
+  statut,
+  onBasculerStatut,
+}: {
+  d: PropositionDeploiement;
+  parId: Map<string, ProduitImport>;
+  statut: Statut;
+  onBasculerStatut: (ref: string, cible: "accepte" | "rejete") => void;
+}) {
+  const produit = parId.get(d.projectId);
+
+  return (
+    <li
+      className={`rounded-lg bg-white p-5 shadow-card transition ${
+        statut === "rejete" ? "opacity-45" : ""
+      } ${statut === "accepte" ? "ring-1 ring-success" : ""}`}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        {produit && (
+          <span className="flex items-center gap-1.5 rounded-md bg-surface px-2 py-1 text-xs font-semibold text-mute">
+            <ProjetLogo
+              name={produit.name}
+              logo={produit.logo}
+              taille="h-4 w-4 text-[9px]"
+            />
+            {produit.name}
+          </span>
+        )}
+        <span className="ml-auto font-mono text-xs text-stone">
+          {d.horodatage}
+        </span>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <BadgeDeployable deployable={d.avant} />
+        <span aria-hidden="true" className="text-stone">
+          →
+        </span>
+        <BadgeDeployable deployable={d.deployable} />
+      </div>
+
+      <p className="mt-3 border-l-2 border-hairline pl-3 text-sm italic text-mute">
+        « {d.citation} »
+      </p>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => onBasculerStatut(d.ref, "accepte")}
+          className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+            statut === "accepte"
+              ? "bg-success text-white"
+              : "bg-ink text-white hover:opacity-85"
+          }`}
+        >
+          {statut === "accepte" ? "Retenue" : "Accepter"}
+        </button>
+        <button
+          type="button"
+          onClick={() => onBasculerStatut(d.ref, "rejete")}
+          className="rounded-lg border border-hairline px-4 py-2 text-sm font-medium text-mute transition hover:bg-surface"
+        >
+          {statut === "rejete" ? "Rejetée" : "Rejeter"}
+        </button>
+      </div>
+    </li>
   );
 }
 
