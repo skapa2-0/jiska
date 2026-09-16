@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { origineRequete } from "@/lib/http";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -73,6 +74,10 @@ export async function POST(
     const client = await clerkClient();
     await client.invitations.createInvitation({
       emailAddress: email,
+      // Renvoyer l'invité vers /register de Jiska pour qu'il choisisse
+      // son mot de passe sur l'écran maison et arrive directement
+      // connecté, plutôt que sur la page hébergée par Clerk.
+      redirectUrl: `${origineRequete(request)}/register`,
       ignoreExisting: true,
     });
   } catch {

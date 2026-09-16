@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { origineRequete } from "@/lib/http";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -57,6 +58,13 @@ export async function POST(request: Request) {
     const client = await clerkClient();
     await client.invitations.createInvitation({
       emailAddress: email,
+      // Sans redirectUrl, Clerk expose sa page hébergée « accounts.dev »
+      // pour choisir le mot de passe : hors design Jiska et sur un autre
+      // domaine, donc pas de session partagée. En passant l'URL de la
+      // page /register de Jiska, l'invité y atterrit, choisit son mot
+      // de passe sur l'écran maison, et se retrouve connecté à /app
+      // sans étape intermédiaire.
+      redirectUrl: `${origineRequete(request)}/register`,
       ignoreExisting: true,
     });
   } catch {
