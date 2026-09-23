@@ -160,11 +160,12 @@ export default function ProfilForm({ user }: { user: User }) {
 
   return (
     <div className="mt-8 gap-8 lg:flex">
-      {/* Sidebar : colonne à gauche sur desktop, bande d'onglets scrollable
-          sur mobile. */}
+      {/* Sidebar : vrai panneau gris à gauche sur desktop, tab-switcher
+          au même look en haut sur mobile. L'onglet actif « pop » en blanc
+          pour se détacher du fond. */}
       <nav
         aria-label="Sections des paramètres"
-        className="flex gap-1 overflow-x-auto border-b border-hairline pb-2 lg:w-60 lg:shrink-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:border-b-0 lg:pb-0"
+        className="flex gap-1 rounded-lg bg-surface p-1.5 lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1 lg:self-start lg:p-3"
       >
         {ONGLETS.map((o) => {
           const actif = onglet === o.cle;
@@ -174,10 +175,10 @@ export default function ProfilForm({ user }: { user: User }) {
               type="button"
               aria-current={actif ? "page" : undefined}
               onClick={() => setOnglet(o.cle)}
-              className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition ${
+              className={`flex flex-1 items-center justify-center gap-2.5 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition lg:flex-none lg:justify-start ${
                 actif
-                  ? "bg-brand/5 text-brand"
-                  : "text-mute hover:bg-surface hover:text-ink"
+                  ? "bg-white text-brand shadow-sm"
+                  : "text-mute hover:bg-white/60 hover:text-ink"
               }`}
             >
               <svg
