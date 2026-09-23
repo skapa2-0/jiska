@@ -16,57 +16,25 @@ type User = {
   role: string;
 };
 
-// Paramètres du compte : sidebar à gauche, un onglet par sujet à droite.
-// Chaque onglet est un formulaire autonome avec son bouton et son propre
-// retour visuel (toast en haut à droite). Tout reste en Jiska ; Clerk
-// travaille derrière pour le seul mot de passe (voir CLAUDE.md : une
-// donnée, un endroit).
-type Onglet = "photo" | "identite" | "email" | "mdp" | "role";
+// Paramètres du compte : sidebar à gauche, deux volets à droite. « Profil »
+// regroupe ce qu'on montre aux autres (photo, identité, e-mail en lecture),
+// « Sécurité » ce qui protège l'accès (mot de passe, rôle). Chaque volet a
+// son bouton et son propre retour visuel (toast en haut à droite). Tout
+// reste en Jiska ; Clerk travaille derrière pour le seul mot de passe (voir
+// CLAUDE.md : une donnée, un endroit).
+type Onglet = "profil" | "securite";
 
-type ItemOnglet = {
-  cle: Onglet;
-  label: string;
-  groupe: "profil" | "compte";
-  icone: ReactNode;
-};
-
-const ONGLETS: ItemOnglet[] = [
+const ONGLETS: { cle: Onglet; label: string; icone: ReactNode }[] = [
   {
-    cle: "photo",
-    label: "Photo",
-    groupe: "profil",
-    icone: (
-      <path d="M9 3h6l1.5 2H20a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h3.5L9 3Zm3 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z" />
-    ),
-  },
-  {
-    cle: "identite",
-    label: "Identité",
-    groupe: "profil",
+    cle: "profil",
+    label: "Profil",
     icone: (
       <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-3.6 0-6.5 2-6.5 4.5V20h13v-1.5C18.5 16 15.6 14 12 14Z" />
     ),
   },
   {
-    cle: "email",
-    label: "Adresse e-mail",
-    groupe: "profil",
-    icone: (
-      <path d="M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm.6 2 7.4 5.1L19.4 8H4.6Z" />
-    ),
-  },
-  {
-    cle: "mdp",
-    label: "Mot de passe",
-    groupe: "compte",
-    icone: (
-      <path d="M12 2a5 5 0 0 1 5 5v3h1a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5Zm3 8V7a3 3 0 1 0-6 0v3h6Z" />
-    ),
-  },
-  {
-    cle: "role",
-    label: "Rôle",
-    groupe: "compte",
+    cle: "securite",
+    label: "Sécurité",
     icone: (
       <path d="M12 3 5 6v5.5c0 4 3 7.7 7 8.5 4-.8 7-4.5 7-8.5V6l-7-3Zm0 6a1.6 1.6 0 0 1 .8 3v2.2a.8.8 0 0 1-1.6 0V12A1.6 1.6 0 0 1 12 9Z" />
     ),
@@ -78,11 +46,10 @@ type Toast = { id: number; ok: boolean; text: string };
 export default function ProfilForm({ user }: { user: User }) {
   const router = useRouter();
   const { user: compteClerk } = useUser();
-  const [onglet, setOnglet] = useState<Onglet>("photo");
+  const [onglet, setOnglet] = useState<Onglet>("profil");
 
   const [prenom, setPrenom] = useState(user.first_name);
   const [nom, setNom] = useState(user.last_name);
-  const [email, setEmail] = useState(user.email);
   const [avatar, setAvatar] = useState<string | null>(user.avatar);
   // `avatar` sert à l'aperçu : au chargement c'est l'URL de la photo
   // servie par /api/avatars, après un choix c'est la nouvelle data URL.
@@ -123,25 +90,26 @@ export default function ProfilForm({ user }: { user: User }) {
     }
   }
 
-  async function envoyerPatch(
-    payload: Record<string, unknown>,
-    messageOk: string,
-    apres?: () => void,
-  ) {
+  async function enregistrerProfil(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setLoading(true);
     try {
       const res = await fetch("/api/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          firstName: prenom,
+          lastName: nom,
+          ...(photoModifiee ? { avatar } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         notifier(false, data.error ?? "Échec de l'enregistrement.");
         return;
       }
-      notifier(true, messageOk);
-      apres?.();
+      setPhotoModifiee(false);
+      notifier(true, "Profil mis à jour.");
       // Rafraîchit la navbar (photo, nom) sans casser le retour visuel.
       router.refresh();
     } catch {
@@ -149,26 +117,6 @@ export default function ProfilForm({ user }: { user: User }) {
     } finally {
       setLoading(false);
     }
-  }
-
-  async function enregistrerPhoto(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    await envoyerPatch({ avatar }, "Photo mise à jour.", () =>
-      setPhotoModifiee(false),
-    );
-  }
-
-  async function enregistrerIdentite(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    await envoyerPatch(
-      { firstName: prenom, lastName: nom },
-      "Identité mise à jour.",
-    );
-  }
-
-  async function enregistrerEmail(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    await envoyerPatch({ email }, "Adresse e-mail mise à jour.");
   }
 
   // Le mot de passe appartient à Clerk, l'écran appartient à Jiska.
@@ -210,66 +158,54 @@ export default function ProfilForm({ user }: { user: User }) {
   const bouton =
     "rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40";
 
-  const groupes: { cle: "profil" | "compte"; titre: string }[] = [
-    { cle: "profil", titre: "Profil" },
-    { cle: "compte", titre: "Compte" },
-  ];
-
   return (
     <div className="mt-8 gap-8 lg:flex">
       {/* Sidebar : colonne à gauche sur desktop, bande d'onglets scrollable
-          sur mobile. Les titres de groupe n'apparaissent qu'en desktop. */}
+          sur mobile. */}
       <nav
         aria-label="Sections des paramètres"
         className="flex gap-1 overflow-x-auto border-b border-hairline pb-2 lg:w-60 lg:shrink-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:border-b-0 lg:pb-0"
       >
-        {groupes.map((g) => (
-          <div key={g.cle} className="contents lg:block">
-            <div className="hidden px-3.5 pb-1.5 pt-3 text-[11px] font-semibold uppercase tracking-wider text-stone first:pt-0 lg:block">
-              {g.titre}
-            </div>
-            {ONGLETS.filter((o) => o.groupe === g.cle).map((o) => {
-              const actif = onglet === o.cle;
-              return (
-                <button
-                  key={o.cle}
-                  type="button"
-                  aria-current={actif ? "page" : undefined}
-                  onClick={() => setOnglet(o.cle)}
-                  className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition ${
-                    actif
-                      ? "bg-brand/5 text-brand"
-                      : "text-mute hover:bg-surface hover:text-ink"
-                  }`}
-                >
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    className="h-4 w-4 shrink-0"
-                    fill="currentColor"
-                  >
-                    {o.icone}
-                  </svg>
-                  {o.label}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+        {ONGLETS.map((o) => {
+          const actif = onglet === o.cle;
+          return (
+            <button
+              key={o.cle}
+              type="button"
+              aria-current={actif ? "page" : undefined}
+              onClick={() => setOnglet(o.cle)}
+              className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition ${
+                actif
+                  ? "bg-brand/5 text-brand"
+                  : "text-mute hover:bg-surface hover:text-ink"
+              }`}
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-4 w-4 shrink-0"
+                fill="currentColor"
+              >
+                {o.icone}
+              </svg>
+              {o.label}
+            </button>
+          );
+        })}
       </nav>
 
       <div className="mt-6 min-w-0 flex-1 lg:mt-0">
-        {onglet === "photo" && (
-          <form onSubmit={enregistrerPhoto}>
+        {onglet === "profil" ? (
+          <form onSubmit={enregistrerProfil} className="flex flex-col gap-4">
             <Bloc
-              titre="Photo de profil"
+              titre="Photo"
               detail="Visible par votre équipe dans les tableaux et les réunions."
             >
               <div className="flex flex-wrap items-center gap-6">
                 <Avatar
                   personne={{
                     id: user.id,
-                    email,
+                    email: user.email,
                     first_name: prenom,
                     last_name: nom,
                     avatar,
@@ -319,24 +255,7 @@ export default function ProfilForm({ user }: { user: User }) {
               />
             </Bloc>
 
-            <div className="mt-6">
-              <button
-                type="submit"
-                disabled={loading || !photoModifiee}
-                className={bouton}
-              >
-                Enregistrer la photo
-              </button>
-            </div>
-          </form>
-        )}
-
-        {onglet === "identite" && (
-          <form onSubmit={enregistrerIdentite}>
-            <Bloc
-              titre="Identité"
-              detail="Le nom sous lequel on vous reconnaît."
-            >
+            <Bloc titre="Identité" detail="Le nom sous lequel on vous reconnaît.">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label htmlFor="p-prenom" className={etiquette}>
@@ -375,47 +294,26 @@ export default function ProfilForm({ user }: { user: User }) {
               </p>
             </Bloc>
 
-            <div className="mt-6">
-              <button type="submit" disabled={loading} className={bouton}>
-                Enregistrer l&apos;identité
-              </button>
-            </div>
-          </form>
-        )}
-
-        {onglet === "email" && (
-          <form onSubmit={enregistrerEmail}>
+            {/* Adresse e-mail : en lecture seule côté profil. Sa modification
+                passe par un dirigeant depuis /app/equipe. */}
             <Bloc
               titre="Adresse e-mail"
               detail="Sert à vous identifier à la connexion."
             >
-              <input
-                id="p-email"
-                type="email"
-                aria-label="Adresse e-mail"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-                className={champ}
-              />
+              <p className="text-sm font-medium text-ink">{user.email}</p>
+              <p className="mt-2 text-xs text-stone">
+                Pour la modifier, contactez un dirigeant.
+              </p>
             </Bloc>
 
-            <div className="mt-6">
-              <button
-                type="submit"
-                disabled={loading || !email}
-                className={bouton}
-              >
-                Enregistrer l&apos;adresse
+            <div className="mt-2">
+              <button type="submit" disabled={loading} className={bouton}>
+                Enregistrer les modifications
               </button>
             </div>
           </form>
-        )}
-
-        {onglet === "mdp" && (
-          <form onSubmit={changerMdp}>
+        ) : (
+          <form onSubmit={changerMdp} className="flex flex-col gap-4">
             <Bloc
               titre="Mot de passe"
               detail="Le modifier fermera vos sessions ouvertes sur d'autres appareils."
@@ -475,42 +373,40 @@ export default function ProfilForm({ user }: { user: User }) {
                   {erreurMdp}
                 </p>
               )}
+
+              <div className="mt-5 flex flex-wrap items-center gap-4">
+                <button
+                  type="submit"
+                  disabled={loading || !mdpActuel || !mdpNouveau || !mdpConfirm}
+                  className={bouton}
+                >
+                  Mettre à jour le mot de passe
+                </button>
+                {/* Sans son mot de passe actuel, le formulaire ci-dessus est
+                    inutilisable : le code par e-mail est la seule sortie. */}
+                <a
+                  href="/mot-de-passe-oublie"
+                  className="text-sm font-medium text-brand transition hover:text-brand-deep"
+                >
+                  Je ne connais plus mon mot de passe
+                </a>
+              </div>
             </Bloc>
 
-            <div className="mt-6 flex flex-wrap items-center gap-4">
-              <button
-                type="submit"
-                disabled={loading || !mdpActuel || !mdpNouveau || !mdpConfirm}
-                className={bouton}
-              >
-                Mettre à jour le mot de passe
-              </button>
-              {/* Sans son mot de passe actuel, le formulaire ci-dessus est
-                  inutilisable : le code par e-mail est la seule sortie. */}
-              <a
-                href="/mot-de-passe-oublie"
-                className="text-sm font-medium text-brand transition hover:text-brand-deep"
-              >
-                Je ne connais plus mon mot de passe
-              </a>
-            </div>
+            <Bloc
+              titre="Rôle"
+              detail="Défini par un dirigeant, il décide de ce que vous voyez."
+            >
+              <p className="text-sm font-medium text-ink">
+                {user.role === "dirigeant" ? "Dirigeant" : "Collaborateur"}
+              </p>
+              <p className="mt-1 text-xs text-stone">
+                {user.role === "dirigeant"
+                  ? "Vous voyez tous les produits et gérez les comptes."
+                  : "Vous voyez les produits dont vous êtes membre."}
+              </p>
+            </Bloc>
           </form>
-        )}
-
-        {onglet === "role" && (
-          <Bloc
-            titre="Rôle"
-            detail="Défini par un dirigeant, il décide de ce que vous voyez."
-          >
-            <p className="text-sm font-medium text-ink">
-              {user.role === "dirigeant" ? "Dirigeant" : "Collaborateur"}
-            </p>
-            <p className="mt-1 text-xs text-stone">
-              {user.role === "dirigeant"
-                ? "Vous voyez tous les produits et gérez les comptes."
-                : "Vous voyez les produits dont vous êtes membre."}
-            </p>
-          </Bloc>
         )}
       </div>
 
