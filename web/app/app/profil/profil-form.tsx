@@ -455,15 +455,17 @@ function Bloc({
   );
 }
 
-// Pile de notifications centrée en haut, à hauteur de la navbar. Chaque
-// toast tombe à l'ouverture et remonte à la fermeture ; le déclenchement de
-// l'anim de sortie est piloté par `sortant` (voir `notifier`).
+// Notifications intégrées à la navbar : pill compact centré à sa hauteur,
+// de la même famille visuelle que les boutons/onglets de l'en-tête. Fond
+// pastel, texte teinté (vert succès / rouge erreur), icône à gauche. Chaque
+// toast tombe à l'ouverture et remonte à la fermeture ; l'anim de sortie
+// est pilotée par `sortant` (voir `notifier`).
 function ToastHost({ toasts }: { toasts: Toast[] }) {
   return (
     <div
       aria-live="polite"
       aria-atomic="true"
-      className="pointer-events-none fixed left-1/2 top-3 z-50 flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 flex-col items-center gap-2"
+      className="pointer-events-none fixed left-1/2 top-2.5 z-50 flex -translate-x-1/2 flex-col items-center gap-2"
     >
       {toasts.map((t) => (
         <ToastItem key={t.id} toast={t} />
@@ -485,27 +487,25 @@ function ToastItem({ toast }: { toast: Toast }) {
   return (
     <div
       role="status"
-      className={`pointer-events-auto flex w-full items-start gap-3 rounded-xl bg-white p-3.5 pr-4 text-sm text-ink shadow-lg ring-1 ring-black/5 transition-all duration-300 ease-out ${
-        visible
-          ? "translate-y-0 opacity-100"
-          : "-translate-y-4 opacity-0"
-      }`}
+      className={`pointer-events-auto inline-flex max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full px-4 py-2 text-sm font-medium shadow-sm ring-1 transition-all duration-300 ease-out ${
+        toast.ok
+          ? "bg-success-soft text-success ring-success/20"
+          : "bg-danger-soft text-danger ring-danger/20"
+      } ${visible ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0"}`}
     >
-      <span
+      <svg
         aria-hidden="true"
-        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white ${
-          toast.ok ? "bg-success" : "bg-danger"
-        }`}
+        viewBox="0 0 24 24"
+        className="h-4 w-4 shrink-0"
+        fill="currentColor"
       >
-        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor">
-          {toast.ok ? (
-            <path d="M9 16.2 4.8 12l-1.4 1.4L9 19 20.6 7.4 19.2 6 9 16.2Z" />
-          ) : (
-            <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 5h2v7h-2V7Zm0 9h2v2h-2v-2Z" />
-          )}
-        </svg>
-      </span>
-      <span className="min-w-0 flex-1 py-0.5 leading-snug">{toast.text}</span>
+        {toast.ok ? (
+          <path d="M9 16.2 4.8 12l-1.4 1.4L9 19 20.6 7.4 19.2 6 9 16.2Z" />
+        ) : (
+          <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 5h2v7h-2V7Zm0 9h2v2h-2v-2Z" />
+        )}
+      </svg>
+      <span className="leading-tight">{toast.text}</span>
     </div>
   );
 }
