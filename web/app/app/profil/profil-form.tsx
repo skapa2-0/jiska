@@ -159,15 +159,25 @@ export default function ProfilForm({ user }: { user: User }) {
     "rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40";
 
   return (
-    <div className="mt-8 gap-8 lg:flex">
-      {/* Sidebar : vrai panneau gris à gauche sur desktop, tab-switcher
-          au même look en haut sur mobile. L'onglet actif « pop » en blanc
-          pour se détacher du fond. */}
-      <nav
-        aria-label="Sections des paramètres"
-        className="flex gap-1 rounded-lg bg-surface p-1.5 lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1 lg:self-start lg:p-3"
-      >
-        {ONGLETS.map((o) => {
+    <div className="gap-8 lg:flex">
+      {/* Sidebar : vrai panneau gris à gauche sur desktop, tab-switcher au
+          même look en haut sur mobile. Le titre « Paramètres » vit en tête
+          du panneau plutôt qu'en haut de la page pour rapprocher le contenu
+          du haut. L'onglet actif « pop » en blanc pour se détacher du fond. */}
+      <div className="rounded-lg bg-surface p-3 lg:w-60 lg:shrink-0 lg:self-start">
+        <div className="mb-3 px-1">
+          <h1 className="font-display text-lg font-medium tracking-[-0.02em] text-ink">
+            Paramètres
+          </h1>
+          <p className="mt-0.5 text-xs text-stone">
+            Votre profil et la sécurité de votre accès.
+          </p>
+        </div>
+        <nav
+          aria-label="Sections des paramètres"
+          className="flex gap-1 lg:flex-col lg:gap-1"
+        >
+          {ONGLETS.map((o) => {
           const actif = onglet === o.cle;
           return (
             <button
@@ -192,8 +202,9 @@ export default function ProfilForm({ user }: { user: User }) {
               {o.label}
             </button>
           );
-        })}
-      </nav>
+          })}
+        </nav>
+      </div>
 
       <div className="mt-6 min-w-0 flex-1 lg:mt-0">
         {onglet === "profil" ? (

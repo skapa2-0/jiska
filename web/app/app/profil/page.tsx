@@ -15,12 +15,6 @@ export default async function ProfilPage() {
     <div className="flex min-h-screen flex-col bg-white">
       <Navbar user={user} canCreateSujet={false} />
       <main className="w-full flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <h1 className="font-display text-2xl font-medium tracking-[-0.02em] text-ink">
-          Paramètres
-        </h1>
-        <p className="mt-2 text-sm text-stone">
-          Votre profil et la sécurité de votre accès.
-        </p>
         <ProfilForm user={user} />
       </main>
       <BottomNav onglet="profil" canCreate={user.role === "dirigeant"} />
