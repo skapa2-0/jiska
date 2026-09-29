@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
+import { estAdmin, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 
 // Clôture de la réunion hebdomadaire : pose la date de départ de la
@@ -10,7 +10,7 @@ import { query } from "@/lib/db";
 export async function POST() {
   const me = await getSessionUser();
   if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
-  if (me.role !== "dirigeant") {
+  if (!estAdmin(me)) {
     return NextResponse.json(
       { error: "Seuls les dirigeants peuvent clôturer la réunion." },
       { status: 403 },

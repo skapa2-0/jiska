@@ -18,6 +18,14 @@ function ensureSchema(): Promise<void> {
        );
        ALTER TABLE users ADD COLUMN IF NOT EXISTS role text NOT NULL
          DEFAULT 'collaborateur' CHECK (role IN ('dirigeant', 'collaborateur'));
+       -- Ajout du rôle developeur : mêmes droits que dirigeant, plus la
+       -- gestion des tickets support. Rôle réservé à l'équipe technique
+       -- de la plateforme, jamais exposé dans l'UI de gestion d'équipe.
+       DO $$ BEGIN
+         ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+         ALTER TABLE users ADD CONSTRAINT users_role_check
+           CHECK (role IN ('dirigeant', 'collaborateur', 'developeur'));
+       END $$;
        ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name text NOT NULL DEFAULT '';
        ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name  text NOT NULL DEFAULT '';
        -- Migration de l'ancien champ unique "name" (prénom + nom collés).
@@ -196,7 +204,25 @@ function ensureSchema(): Promise<void> {
          action     text NOT NULL,
          etat       text NOT NULL,
          PRIMARY KEY (reunion_id, sujet_id)
-       );`,
+       );
+       -- Tickets support : n'importe quel utilisateur peut en créer
+       -- (bogue, demande d'aide, suggestion), seule l'équipe developeur
+       -- les traite. Auteur conservé même si le compte est supprimé
+       -- (SET NULL) pour ne pas perdre le suivi.
+       CREATE TABLE IF NOT EXISTS tickets (
+         id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+         auteur_id   bigint REFERENCES users(id) ON DELETE SET NULL,
+         titre       text NOT NULL,
+         description text NOT NULL DEFAULT '',
+         priorite    text NOT NULL DEFAULT 'normale'
+           CHECK (priorite IN ('basse', 'normale', 'haute')),
+         statut      text NOT NULL DEFAULT 'ouvert'
+           CHECK (statut IN ('ouvert', 'en_cours', 'resolu', 'ferme')),
+         created_at  timestamptz NOT NULL DEFAULT now(),
+         updated_at  timestamptz NOT NULL DEFAULT now()
+       );
+       CREATE INDEX IF NOT EXISTS tickets_auteur_idx ON tickets (auteur_id);
+       CREATE INDEX IF NOT EXISTS tickets_statut_idx ON tickets (statut);`,
     )
     .then(() => undefined);
   return schemaReady;

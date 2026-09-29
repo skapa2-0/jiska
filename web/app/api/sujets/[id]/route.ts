@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { canManageSujets, getSessionUser } from "@/lib/auth";
+import { canManageSujets, estAdmin, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import {
   appliquerPatch,
@@ -52,7 +52,7 @@ export async function DELETE(
   }
   const peutSupprimer =
     sujet.project_id === null
-      ? me.role === "dirigeant"
+      ? estAdmin(me)
       : await canManageSujets(me, sujet.project_id);
   if (!peutSupprimer) {
     return NextResponse.json(

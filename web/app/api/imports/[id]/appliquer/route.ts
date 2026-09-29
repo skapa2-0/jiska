@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { canManageSujets, getSessionUser } from "@/lib/auth";
+import { canManageSujets, estAdmin, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import type { Proposition, PropositionDeploiement } from "@/lib/extraction";
 import {
@@ -96,7 +96,7 @@ export async function POST(
   }
 
   if (imp.project_id === null) {
-    if (me.role !== "dirigeant") {
+    if (!estAdmin(me)) {
       return NextResponse.json({ error: "Accès refusé." }, { status: 403 });
     }
   } else if (!(await canManageSujets(me, imp.project_id))) {

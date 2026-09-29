@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
+import { estAdmin, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
 import { lireSemaine, sqlSemaine, sqlSemaineTransverse } from "@/lib/semaine";
@@ -16,7 +16,7 @@ export default async function ReunionPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const dirigeant = user.role === "dirigeant";
+  const dirigeant = estAdmin(user);
   const vis = dirigeant
     ? "SELECT id FROM projects"
     : "SELECT project_id FROM project_members WHERE user_id = $1";

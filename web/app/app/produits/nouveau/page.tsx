@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
+import { estAdmin, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { sqlAvatarUrl } from "@/lib/media";
 import BottomNav from "../../bottom-nav";
@@ -10,7 +10,7 @@ import ProjetForm from "../projet-form";
 export default async function NouveauProjetPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  if (user.role !== "dirigeant") redirect("/app");
+  if (!estAdmin(user)) redirect("/app");
 
   const people = await query<{
     id: string;

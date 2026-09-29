@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
+import { estAdmin, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
 import { lireSemaine, sqlSemainePortefeuille } from "@/lib/semaine";
@@ -25,7 +25,7 @@ export default async function ActionsPage({
 
   const { sujet: sujetOuvertId } = await searchParams;
 
-  const dirigeant = user.role === "dirigeant";
+  const dirigeant = estAdmin(user);
   // Filtre de visibilité injecté dans chaque requête ($1 = user id).
   const vis = dirigeant
     ? "SELECT id FROM projects"

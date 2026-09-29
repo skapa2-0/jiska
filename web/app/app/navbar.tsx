@@ -1,4 +1,5 @@
 import UserMenu from "./user-menu";
+import { estAdmin } from "@/lib/auth";
 import type { SessionUser } from "@/lib/auth";
 
 // Barre du haut de l'espace : les actions dépendent des permissions.
@@ -48,7 +49,7 @@ export default function Navbar({
             Nouveau sujet
           </a>
         )}
-        {user.role === "dirigeant" && (
+        {estAdmin(user) && (
           <a
             href="/app/produits/nouveau"
             className="hidden items-center gap-1.5 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85 md:flex"

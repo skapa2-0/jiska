@@ -3,7 +3,7 @@
 // import de réunion, pour qu'un transcript n'ouvre aucun chemin d'écriture
 // que la saisie à la main n'aurait pas.
 
-import { canManageSujets } from "./auth";
+import { canManageSujets, estAdmin } from "./auth";
 import type { SessionUser } from "./auth";
 import { query } from "./db";
 import { CRITICITES, ETATS, TYPES_SUJET } from "./sujets";
@@ -61,7 +61,7 @@ export async function peutEditer(
   sujet: SujetDb,
 ): Promise<boolean> {
   if (sujet.porteur_id === me.id) return true;
-  if (sujet.project_id === null) return me.role === "dirigeant";
+  if (sujet.project_id === null) return estAdmin(me);
   return canManageSujets(me, sujet.project_id);
 }
 
@@ -192,7 +192,7 @@ export async function creerSujet(
     return { error: "Produit invalide.", status: 400 };
   }
   if (projectId === null) {
-    if (me.role !== "dirigeant") {
+    if (!estAdmin(me)) {
       return {
         error: "Seuls les dirigeants peuvent créer un sujet transverse.",
         status: 403,

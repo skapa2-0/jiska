@@ -233,6 +233,11 @@ export default function ProjetForm({
                       Dirigeant
                     </span>
                   )}
+                  {p.role === "developeur" && (
+                    <span className="ml-2 text-xs font-normal text-stone">
+                      Développeur
+                    </span>
+                  )}
                 </span>
                 <span className="block truncate text-xs text-stone">
                   {p.email}

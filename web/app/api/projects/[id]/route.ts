@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
+import { estAdmin, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 
 const LOGO_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
@@ -8,7 +8,7 @@ const LOGO_MAX = 300_000;
 async function dirigeantEtProjet(id: string) {
   const me = await getSessionUser();
   if (!me) return { erreur: NextResponse.json({ error: "Non connecté." }, { status: 401 }) };
-  if (me.role !== "dirigeant") {
+  if (!estAdmin(me)) {
     return {
       erreur: NextResponse.json(
         { error: "Seuls les dirigeants peuvent gérer un produit." },
@@ -61,7 +61,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
   }
 
-  if (me.role !== "dirigeant") {
+  if (!estAdmin(me)) {
     return NextResponse.json(
       { error: "Seuls les dirigeants peuvent gérer un produit." },
       { status: 403 },

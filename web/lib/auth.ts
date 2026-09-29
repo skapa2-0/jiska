@@ -1,6 +1,8 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { query } from "./db";
 import { sqlAvatarUrl } from "./media";
+import { estAdmin } from "./roles";
+import type { Role } from "./roles";
 
 // Partage des rôles entre Clerk et Jiska : Clerk répond « qui es-tu »
 // (mot de passe, session, connexion), Jiska répond « à quoi as-tu droit »
@@ -8,7 +10,9 @@ import { sqlAvatarUrl } from "./media";
 // reste l'autorité sur qui entre, et un compte Clerk sans ligne locale est
 // refusé, même authentifié.
 
-export type Role = "dirigeant" | "collaborateur";
+export type { Role };
+export { estAdmin, libelleRole } from "./roles";
+
 export type SessionUser = {
   id: string;
   email: string;
@@ -62,7 +66,7 @@ export async function canManageSujets(
   user: SessionUser,
   projectId: string,
 ): Promise<boolean> {
-  if (user.role === "dirigeant") return true;
+  if (estAdmin(user)) return true;
   const rows = await query(
     "SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2 AND is_responsable",
     [projectId, user.id],

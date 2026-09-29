@@ -419,12 +419,18 @@ export default function ProfilForm({ user }: { user: User }) {
               detail="Défini par un dirigeant, il décide de ce que vous voyez."
             >
               <p className="text-sm font-medium text-ink">
-                {user.role === "dirigeant" ? "Dirigeant" : "Collaborateur"}
+                {user.role === "developeur"
+                  ? "Développeur"
+                  : user.role === "dirigeant"
+                    ? "Dirigeant"
+                    : "Collaborateur"}
               </p>
               <p className="mt-1 text-xs text-stone">
-                {user.role === "dirigeant"
-                  ? "Vous voyez tous les produits et gérez les comptes."
-                  : "Vous voyez les produits dont vous êtes membre."}
+                {user.role === "developeur"
+                  ? "Vous administrez la plateforme et traitez les tickets."
+                  : user.role === "dirigeant"
+                    ? "Vous voyez tous les produits et gérez les comptes."
+                    : "Vous voyez les produits dont vous êtes membre."}
               </p>
             </Bloc>
           </form>

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
+import { estAdmin, getSessionUser } from "@/lib/auth";
 import BottomNav from "../bottom-nav";
 import Navbar from "../navbar";
 import ProfilForm from "./profil-form";
@@ -17,7 +17,7 @@ export default async function ProfilPage() {
       <main className="w-full flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <ProfilForm user={user} />
       </main>
-      <BottomNav onglet="profil" canCreate={user.role === "dirigeant"} />
+      <BottomNav onglet="profil" canCreate={estAdmin(user)} />
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import Avatar, { displayName } from "../avatar";
 import Confirmation from "../confirmer";
+import { libelleRole } from "@/lib/roles";
+import type { Role } from "@/lib/roles";
 
 type Member = {
   id: string;
@@ -126,7 +128,7 @@ export default function TeamManager({
               </p>
               <p className="truncate text-xs text-mute">{m.email}</p>
               <p className="truncate text-xs text-stone">
-                {m.role === "dirigeant" ? "Dirigeant" : "Collaborateur"} ·
+                {libelleRole(m.role as Role)} ·
                 depuis le {m.created_at.split("-").reverse().join("/")} ·{" "}
                 <span className={m.active ? "text-success" : "text-warn"}>
                   {m.active ? "accès activé" : "jamais connecté"}

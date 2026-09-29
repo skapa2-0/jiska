@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
+import { estAdmin, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 
 // Création de projet : dirigeants uniquement. Les membres sont ajoutés
@@ -7,7 +7,7 @@ import { query } from "@/lib/db";
 export async function POST(request: Request) {
   const me = await getSessionUser();
   if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
-  if (me.role !== "dirigeant") {
+  if (!estAdmin(me)) {
     return NextResponse.json(
       { error: "Seuls les dirigeants peuvent créer un produit." },
       { status: 403 },

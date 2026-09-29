@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
-import { getSessionUser } from "@/lib/auth";
+import { estAdmin, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { origineRequete } from "@/lib/http";
 
@@ -17,7 +17,7 @@ export async function POST(
 ) {
   const me = await getSessionUser();
   if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
-  if (me.role !== "dirigeant") {
+  if (!estAdmin(me)) {
     return NextResponse.json({ error: "Réservé aux dirigeants." }, { status: 403 });
   }
 

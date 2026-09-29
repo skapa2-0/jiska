@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSessionUser, isResponsable } from "@/lib/auth";
+import { estAdmin, getSessionUser, isResponsable } from "@/lib/auth";
 import { chargerImportsEnAttente } from "@/lib/imports";
 import { query } from "@/lib/db";
 import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
@@ -65,7 +65,7 @@ export default async function ProjetPage({
   const { id } = await params;
   if (!/^\d+$/.test(id)) redirect("/app");
 
-  const dirigeant = user.role === "dirigeant";
+  const dirigeant = estAdmin(user);
   if (!dirigeant) {
     const membre = await query(
       "SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2",

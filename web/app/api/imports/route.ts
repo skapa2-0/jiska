@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { canManageSujets, getSessionUser } from "@/lib/auth";
+import { canManageSujets, estAdmin, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { chargerCatalogue, extraire } from "@/lib/extraction";
 
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   // Portée portefeuille : dirigeants, comme la création de produit.
   // Portée produit : celui qui a déjà le droit d'écrire dans ce produit.
   if (projectId === null) {
-    if (me.role !== "dirigeant") {
+    if (!estAdmin(me)) {
       return NextResponse.json(
         { error: "Seuls les dirigeants peuvent importer une réunion générale." },
         { status: 403 },

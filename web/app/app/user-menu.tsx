@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useClerk } from "@clerk/nextjs";
 import Avatar, { displayName } from "./avatar";
+import { estAdmin, libelleRole } from "@/lib/roles";
 import type { SessionUser } from "@/lib/auth";
 
 // Menu profil de la navbar : pastille cliquable (photo si renseignée),
@@ -70,8 +71,7 @@ export default function UserMenu({ user }: { user: SessionUser }) {
               {displayName(user)}
             </p>
             <p className="truncate text-xs text-stone">
-              {user.role === "dirigeant" ? "Dirigeant" : "Collaborateur"} ·{" "}
-              {user.email}
+              {libelleRole(user.role)} · {user.email}
             </p>
           </div>
           <div className="my-1 border-t border-hairline" />
@@ -82,7 +82,16 @@ export default function UserMenu({ user }: { user: SessionUser }) {
           >
             Paramètres
           </a>
-          {user.role === "dirigeant" && (
+          {/* Signaler un problème : ouvert à tout le monde, la liste
+              renvoyée diffère selon le rôle (ses tickets vs tous). */}
+          <a
+            role="menuitem"
+            href="/app/tickets"
+            className="block px-4 py-2 text-sm font-medium text-ink transition hover:bg-surface"
+          >
+            {user.role === "developeur" ? "Tickets" : "Signaler un problème"}
+          </a>
+          {estAdmin(user) && (
             <a
               role="menuitem"
               href="/app/equipe"

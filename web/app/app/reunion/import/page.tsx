@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
+import { estAdmin, getSessionUser } from "@/lib/auth";
 import { chargerImport, chargerImportsEnAttente } from "@/lib/imports";
 import BottomNav from "../../bottom-nav";
 import Navbar from "../../navbar";
@@ -17,7 +17,7 @@ export default async function ImportReunionPage({
 }) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  if (user.role !== "dirigeant") redirect("/app");
+  if (!estAdmin(user)) redirect("/app");
 
   const { reprise: repriseId } = await searchParams;
   const [produits, transverses, enAttente, reprise] = await Promise.all([
