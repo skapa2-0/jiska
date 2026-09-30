@@ -70,15 +70,16 @@ export default function SujetsTransverses({
           réunion.
         </p>
       ) : (
-        // Scroll horizontal en dessous d'une certaine largeur, comme la
-        // table des sujets d'un produit. Le shadow-card et le rounded
-        // englobent header + lignes pour donner l'impression d'un tableau.
-        <div className="overflow-x-auto rounded-lg bg-white shadow-card">
+        // Cap à ~5 lignes visibles (h-14 par ligne + header ~40 px ≈ 320
+        // px). Au-delà, scroll interne, la mosaïque des produits au-dessus
+        // n'est pas repoussée vers le bas à mesure que les transverses
+        // grossissent. overflow-auto gère le scroll x (mobile) et y (>5
+        // items) sur le même conteneur, header sticky pour rester en
+        // place pendant le défilement.
+        <div className="max-h-80 overflow-auto rounded-lg bg-white shadow-card">
           <div className="min-w-[640px]">
-            {/* En-tête de colonnes : mêmes gabarits que les lignes,
-                alignements identiques. */}
             <div
-              className={`grid ${COLS} gap-3 border-b border-hairline bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-stone`}
+              className={`sticky top-0 z-10 grid ${COLS} gap-3 border-b border-hairline bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-stone`}
             >
               <span>Sujet</span>
               <span className="text-center">Type</span>
