@@ -347,7 +347,9 @@ function Tuile({
     </>
   );
   const classe = `flex items-center gap-2.5 rounded-lg bg-white px-3 py-2.5 text-left shadow-card ${
-    href ? "transition hover:-translate-y-0.5" : ""
+    href
+      ? "ring-1 ring-transparent transition duration-150 hover:ring-brand/40"
+      : ""
   }`;
   if (href)
     return (

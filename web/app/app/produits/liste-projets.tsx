@@ -188,7 +188,7 @@ function Carte({ p, today }: { p: CarteProjet; today: string }) {
         tabIndex={0}
         onClick={ouvrir}
         onKeyDown={(e) => e.key === "Enter" && ouvrir()}
-        className="flex h-full cursor-pointer flex-col rounded-lg bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgb(25_28_31/0.08),0_8px_20px_rgb(25_28_31/0.10)]"
+        className="flex h-full cursor-pointer flex-col rounded-lg bg-white p-5 shadow-card ring-1 ring-transparent transition duration-150 hover:ring-brand/40"
       >
         <div className="flex items-start gap-3">
           <ProjetLogo name={p.name} logo={p.logo} taille="h-10 w-10 text-xl" />

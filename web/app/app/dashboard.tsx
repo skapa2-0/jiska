@@ -1023,7 +1023,9 @@ function Indicateur({
       type={onClick ? "button" : undefined}
       onClick={onClick}
       className={`flex min-w-36 shrink-0 items-center gap-2.5 rounded-lg bg-white px-3 py-2 text-left shadow-card sm:min-w-0 sm:py-2.5 ${classe} ${
-        onClick ? "transition hover:-translate-y-0.5 cursor-pointer" : ""
+        onClick
+          ? "ring-1 ring-transparent transition duration-150 hover:ring-brand/40 cursor-pointer"
+          : ""
       }`}
     >
       <span
