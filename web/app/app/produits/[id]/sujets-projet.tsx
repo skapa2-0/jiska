@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ETATS } from "@/lib/sujets";
+import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "../../avatar";
 import type { ProjectOption } from "../../dashboard";
@@ -276,20 +276,31 @@ function LigneSujet({
         onClick={onOuvrir}
         className="flex w-full items-center gap-3 py-3 pl-12 pr-4 text-left transition hover:bg-surface"
       >
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2">
-            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
-              {sujet.title}
-            </span>
-            {bloque && (
-              <span className="shrink-0 rounded-md bg-danger-soft px-2 py-0.5 text-[11px] font-semibold text-danger">
-                Bloqué
-              </span>
-            )}
+        <span className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
+            {sujet.title}
           </span>
-          {sujet.action && (
-            <span className="mt-0.5 block truncate text-[13px] text-mute">
-              {sujet.action}
+          {/* Type (Tech/Business) : signalé en pastille discrète. Masqué
+              sur les très petits écrans où la place manque. */}
+          <span
+            className={`hidden shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold sm:inline ${TYPES_SUJET[sujet.type].chip}`}
+          >
+            {TYPES_SUJET[sujet.type].court}
+          </span>
+          {/* Criticité : n'affichée que si elle porte un signal
+              (critique ou haute). « Normale » et « faible » n'ajoutent
+              rien de lisible. */}
+          {(sujet.criticite === "critique" ||
+            sujet.criticite === "haute") && (
+            <span
+              className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold ${CRITICITES[sujet.criticite].chip}`}
+            >
+              {CRITICITES[sujet.criticite].label}
+            </span>
+          )}
+          {bloque && (
+            <span className="shrink-0 rounded-md bg-danger-soft px-2 py-0.5 text-[11px] font-semibold text-danger">
+              Bloqué
             </span>
           )}
         </span>
