@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 import Avatar, { displayName } from "../../avatar";
 import type { Personne } from "../../avatar";
@@ -24,7 +24,9 @@ export type EntreeHistorique = {
   creation: boolean;
 };
 
-const PAS = 25;
+// Nombre d'entrées visibles dans la colonne latérale ; au-delà on
+// ouvre le tiroir latéral qui montre tout.
+const APERCU = 5;
 
 // Icône dépendant du champ modifié : donne un signal visuel avant même
 // de lire. Trois familles : contenu textuel (crayon), état / criticité /
@@ -165,38 +167,19 @@ function ValeurBadge({
   );
 }
 
-// Fil d'historique du projet : filtre par sujet, regroupement par jour,
-// une carte par événement avec avatar, icône, avant → après.
+// Fil d'historique du projet : aperçu compact (5 dernières entrées)
+// visible en colonne latérale ; « Voir tout » ouvre un panneau latéral
+// à droite avec la liste complète et un filtre par sujet.
 export default function HistoriqueProjet({
   entrees,
 }: {
   entrees: EntreeHistorique[];
 }) {
-  const [sujetId, setSujetId] = useState("");
-  const [limite, setLimite] = useState(PAS);
-
-  const sujets = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const e of entrees) if (!seen.has(e.sujetId)) seen.set(e.sujetId, e.titre);
-    return [...seen.entries()].map(([value, label]) => ({ value, label }));
-  }, [entrees]);
-
-  const filtrees = sujetId
-    ? entrees.filter((e) => e.sujetId === sujetId)
-    : entrees;
-  const visibles = filtrees.slice(0, limite);
+  const [tiroir, setTiroir] = useState(false);
+  const apercu = entrees.slice(0, APERCU);
+  const reste = Math.max(0, entrees.length - APERCU);
   const today = new Date().toISOString().slice(0, 10);
-
-  // Regroupement par jour. On garde l'ordre d'origine (déjà DESC côté SQL).
-  const groupes = useMemo(() => {
-    const acc: { jour: string; items: EntreeHistorique[] }[] = [];
-    for (const e of visibles) {
-      const dernier = acc[acc.length - 1];
-      if (dernier && dernier.jour === e.dateIso) dernier.items.push(e);
-      else acc.push({ jour: e.dateIso, items: [e] });
-    }
-    return acc;
-  }, [visibles]);
+  const groupesApercu = grouperParJour(apercu);
 
   return (
     <section>
@@ -204,27 +187,24 @@ export default function HistoriqueProjet({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-stone">
           Historique
         </h2>
-        {sujets.length > 1 && (
-          <Select
-            ariaLabel="Filtrer l'historique par sujet"
-            placeholder="Tous les sujets"
-            value={sujetId}
-            onChange={(v) => {
-              setSujetId(v);
-              setLimite(PAS);
-            }}
-            options={sujets}
-          />
+        {entrees.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setTiroir(true)}
+            className="rounded-md px-2 py-1 text-xs font-semibold text-brand transition hover:bg-brand/5"
+          >
+            Voir tout{reste > 0 ? ` (${entrees.length})` : ""}
+          </button>
         )}
       </div>
 
-      {visibles.length === 0 ? (
+      {apercu.length === 0 ? (
         <p className="text-sm text-stone">
           Aucune modification enregistrée pour l&apos;instant.
         </p>
       ) : (
         <div className="space-y-6">
-          {groupes.map((g) => (
+          {groupesApercu.map((g) => (
             <div key={g.jour}>
               <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-stone">
                 {libelleJour(g.jour, today)}
@@ -239,17 +219,157 @@ export default function HistoriqueProjet({
         </div>
       )}
 
-      {filtrees.length > limite && (
-        <button
-          type="button"
-          onClick={() => setLimite((l) => l + PAS)}
-          className="mt-4 rounded-lg border border-hairline px-4 py-2 text-sm font-medium text-mute transition hover:bg-surface hover:text-ink"
-        >
-          Voir plus ({filtrees.length - limite} restant
-          {filtrees.length - limite > 1 ? "s" : ""})
-        </button>
+      {tiroir && (
+        <TiroirHistorique
+          entrees={entrees}
+          onFermer={() => setTiroir(false)}
+        />
       )}
     </section>
+  );
+}
+
+function grouperParJour(entrees: EntreeHistorique[]) {
+  const acc: { jour: string; items: EntreeHistorique[] }[] = [];
+  for (const e of entrees) {
+    const dernier = acc[acc.length - 1];
+    if (dernier && dernier.jour === e.dateIso) dernier.items.push(e);
+    else acc.push({ jour: e.dateIso, items: [e] });
+  }
+  return acc;
+}
+
+// Tiroir latéral droit : mêmes cartes que l'aperçu, tout l'historique,
+// filtre par sujet. Ouverture avec fond assombri, fermeture Échap ou
+// clic hors panneau. Structure calquée sur FicheSujet pour cohérence.
+function TiroirHistorique({
+  entrees,
+  onFermer,
+}: {
+  entrees: EntreeHistorique[];
+  onFermer: () => void;
+}) {
+  const [visible, setVisible] = useState(false);
+  const [sujetId, setSujetId] = useState("");
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") fermer();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function fermer() {
+    setVisible(false);
+    // Laisser jouer la sortie avant de démonter.
+    window.setTimeout(onFermer, 300);
+  }
+
+  const sujets = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const e of entrees) if (!seen.has(e.sujetId)) seen.set(e.sujetId, e.titre);
+    return [...seen.entries()].map(([value, label]) => ({ value, label }));
+  }, [entrees]);
+
+  const filtrees = sujetId
+    ? entrees.filter((e) => e.sujetId === sujetId)
+    : entrees;
+  const today = new Date().toISOString().slice(0, 10);
+  const groupes = grouperParJour(filtrees);
+
+  return (
+    <div className="fixed inset-0 z-40">
+      <div
+        aria-hidden="true"
+        onClick={fermer}
+        className={`absolute inset-0 bg-ink/30 transition-opacity duration-300 ${
+          visible ? "opacity-100" : "opacity-0"
+        }`}
+      />
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Historique complet du produit"
+        className={`absolute inset-y-0 right-0 flex w-full max-w-lg flex-col bg-white shadow-[-12px_0_32px_rgb(25_28_31/0.18)] transition-transform duration-300 ${
+          visible ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <header className="flex items-center justify-between gap-3 border-b border-hairline px-5 py-4">
+          <div>
+            <h2 className="font-display text-lg font-medium tracking-[-0.01em] text-ink">
+              Historique du produit
+            </h2>
+            <p className="mt-0.5 text-xs text-stone">
+              {entrees.length} événement{entrees.length > 1 ? "s" : ""}{" "}
+              enregistré{entrees.length > 1 ? "s" : ""}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={fermer}
+            aria-label="Fermer l'historique"
+            className="rounded-md p-1.5 text-stone transition hover:bg-surface hover:text-ink"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </header>
+        {sujets.length > 1 && (
+          <div className="border-b border-hairline px-5 py-3">
+            <Select
+              ariaLabel="Filtrer l'historique par sujet"
+              placeholder="Tous les sujets"
+              value={sujetId}
+              onChange={setSujetId}
+              options={sujets}
+              variante="champ"
+            />
+          </div>
+        )}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          {filtrees.length === 0 ? (
+            <p className="text-sm text-stone">
+              Aucune modification pour ce filtre.
+            </p>
+          ) : (
+            <div className="space-y-6">
+              {groupes.map((g) => (
+                <div key={g.jour}>
+                  <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-stone">
+                    {libelleJour(g.jour, today)}
+                  </h3>
+                  <ul className="space-y-1.5">
+                    {g.items.map((e, i) => (
+                      <EntreeCarte
+                        key={`${g.jour}-${i}`}
+                        entree={e}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </aside>
+    </div>
   );
 }
 
