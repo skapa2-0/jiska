@@ -242,22 +242,22 @@ export default async function ProjetPage({
           ← Tous les produits
         </a>
 
-        {/* En-tête du projet */}
-        <div className="mt-4 flex flex-wrap items-start gap-5">
+        {/* En-tête du projet : tout tient dans la hauteur du logo. Titre
+            et description sur deux lignes, description en clamp pour ne
+            pas déborder. La date de création vit sur l'écran de
+            modification, elle n'a rien à faire dans le bandeau. */}
+        <div className="mt-4 flex flex-wrap items-center gap-5">
           <ProjetLogo
             name={projet.name}
             logo={projet.logo}
             taille="h-14 w-14 text-3xl"
           />
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-2xl font-medium tracking-[-0.02em] text-ink">
+            <h1 className="line-clamp-1 font-display text-2xl font-medium leading-tight tracking-[-0.02em] text-ink">
               {projet.name}
             </h1>
-            <p className="mt-1 text-sm text-mute">
+            <p className="mt-0.5 line-clamp-1 text-sm text-mute">
               {projet.description || "Aucune description."}
-            </p>
-            <p className="mt-1 text-xs text-stone">
-              Créé le {projet.created_at.split("-").reverse().join("/")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
