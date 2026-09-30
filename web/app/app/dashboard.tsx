@@ -692,6 +692,7 @@ export default function Dashboard({
                         name={s.project_name}
                         logo={s.project_logo}
                         taille="h-8 w-8 text-base"
+                        transverse={s.project_id === null}
                       />
                       <span className="line-clamp-2 font-semibold leading-tight text-ink">
                         {s.project_name}
@@ -955,6 +956,7 @@ function CarteSujet({
             name={s.project_name}
             logo={s.project_logo}
             taille="h-7 w-7 text-sm"
+            transverse={s.project_id === null}
           />
           <span className="min-w-0 flex-1 truncate text-xs font-medium text-stone">
             {s.project_name}

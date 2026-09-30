@@ -234,6 +234,7 @@ export default function FicheSujet({
             name={sujet.project_name}
             logo={sujet.project_logo}
             taille="h-9 w-9 text-lg"
+            transverse={sujet.project_id === null}
           />
           <span className="min-w-0 flex-1">
             <span className="block text-xs font-medium text-stone">

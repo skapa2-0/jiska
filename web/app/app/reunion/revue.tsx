@@ -124,32 +124,14 @@ export default function Revue({
 
       <main className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-3xl px-4 py-5 sm:px-6">
-          {/* Le produit du moment */}
+          {/* Le produit du moment (ou pastille transverse). */}
           <div className="flex items-center gap-4">
-            {etape.transverse ? (
-              <span
-                aria-hidden="true"
-                className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-surface text-mute"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-6 w-6"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.9"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M4 12h16M12 4v16" />
-                </svg>
-              </span>
-            ) : (
-              <ProjetLogo
-                name={p.name}
-                logo={p.logo}
-                taille="h-12 w-12 text-2xl"
-              />
-            )}
+            <ProjetLogo
+              name={p.name}
+              logo={p.logo}
+              taille="h-12 w-12 text-2xl"
+              transverse={etape.transverse}
+            />
             <div className="min-w-0 flex-1">
               <h1 className="truncate font-display text-2xl font-medium tracking-[-0.02em] text-ink">
                 {p.name}
