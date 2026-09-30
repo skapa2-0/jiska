@@ -1,5 +1,6 @@
-import { CRITICITES, ETATS, NOM_TRANSVERSES } from "@/lib/sujets";
-import Avatar from "./avatar";
+import { CRITICITES, ETATS, NOM_TRANSVERSES, TYPES_SUJET } from "@/lib/sujets";
+import type { TypeSujet } from "@/lib/sujets";
+import Avatar, { displayName } from "./avatar";
 import type { Personne } from "./avatar";
 
 // Sujets transverses : tâches et missions qui ne relèvent d'aucun produit.
@@ -11,12 +12,18 @@ export type SujetTransverse = {
   titre: string;
   action: string;
   echeance: string | null;
+  type: TypeSujet;
   etat: string;
   criticite: string;
   porteur: Personne | null;
 };
 
 const jolieDate = (v: string) => v.split("-").reverse().join("/");
+
+// Structure de colonnes commune au header et aux lignes : garantit
+// l'alignement sans passer par une <table> (chaque ligne est un <a>).
+const COLS =
+  "grid-cols-[minmax(0,1fr)_96px_112px_112px_96px_80px]";
 
 export default function SujetsTransverses({
   sujets,
@@ -63,63 +70,111 @@ export default function SujetsTransverses({
           réunion.
         </p>
       ) : (
-        <ul className="divide-y divide-hairline overflow-hidden rounded-lg bg-white shadow-card">
-          {sujets.map((s) => {
-            const etat = ETATS[s.etat as keyof typeof ETATS];
-            const criticite = CRITICITES[s.criticite as keyof typeof CRITICITES];
-            const retard =
-              !!s.echeance && s.echeance < today && s.etat !== "termine";
-            return (
-              <li key={s.id}>
-                <a
-                  href={`/app/actions?sujet=${s.id}`}
-                  className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5 py-3 transition hover:bg-surface"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`h-2 w-2 shrink-0 rounded-full ${etat?.dot ?? "bg-stone"}`}
-                  />
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
-                    {s.titre}
-                  </span>
-                  {s.action && (
-                    <span className="min-w-0 max-w-xs truncate text-xs text-mute">
-                      {s.action}
-                    </span>
-                  )}
-                  {criticite && s.criticite !== "normale" && (
-                    <span
-                      className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${criticite.chip}`}
-                    >
-                      {criticite.label}
-                    </span>
-                  )}
-                  <span
-                    className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${etat?.chip ?? "bg-surface text-mute"}`}
-                  >
-                    {etat?.label ?? s.etat}
-                  </span>
-                  <span
-                    className={`w-20 shrink-0 text-right text-xs font-medium ${
-                      retard ? "text-danger" : "text-stone"
-                    }`}
-                  >
-                    {s.echeance ? jolieDate(s.echeance) : "-"}
-                  </span>
-                  <span className="w-7 shrink-0">
-                    {s.porteur && (
-                      <Avatar
-                        personne={s.porteur}
-                        taille="h-7 w-7 text-[11px]"
-                      />
-                    )}
-                  </span>
-                </a>
-              </li>
-            );
-          })}
-        </ul>
+        // Scroll horizontal en dessous d'une certaine largeur, comme la
+        // table des sujets d'un produit. Le shadow-card et le rounded
+        // englobent header + lignes pour donner l'impression d'un tableau.
+        <div className="overflow-x-auto rounded-lg bg-white shadow-card">
+          <div className="min-w-[640px]">
+            {/* En-tête de colonnes : mêmes gabarits que les lignes,
+                alignements identiques. */}
+            <div
+              className={`grid ${COLS} gap-3 border-b border-hairline bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-stone`}
+            >
+              <span>Sujet</span>
+              <span className="text-center">Type</span>
+              <span className="text-center">Criticité</span>
+              <span className="text-center">État</span>
+              <span className="text-center">Échéance</span>
+              <span className="text-center">Porteur</span>
+            </div>
+            <ul className="divide-y divide-hairline">
+              {sujets.map((s) => (
+                <LigneTransverse key={s.id} sujet={s} today={today} />
+              ))}
+            </ul>
+          </div>
+        </div>
       )}
     </section>
+  );
+}
+
+function LigneTransverse({
+  sujet: s,
+  today,
+}: {
+  sujet: SujetTransverse;
+  today: string;
+}) {
+  const etatMeta = ETATS[s.etat as keyof typeof ETATS];
+  const critMeta = CRITICITES[s.criticite as keyof typeof CRITICITES];
+  const typeMeta = TYPES_SUJET[s.type];
+  const retard = !!s.echeance && s.echeance < today && s.etat !== "termine";
+  const critHaute = s.criticite === "critique" || s.criticite === "haute";
+
+  return (
+    <li>
+      <a
+        href={`/app/actions?sujet=${s.id}`}
+        className={`grid ${COLS} items-center gap-3 px-4 py-0 transition hover:bg-surface`}
+      >
+        <div className="flex h-14 items-center">
+          <span className="truncate text-sm font-semibold leading-tight text-ink">
+            {s.titre}
+          </span>
+        </div>
+        <div className="flex h-14 items-center justify-center">
+          <span
+            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold leading-tight ${typeMeta.chip}`}
+          >
+            {typeMeta.court}
+          </span>
+        </div>
+        <div className="flex h-14 items-center justify-center">
+          {critHaute && critMeta ? (
+            <span
+              className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold leading-tight ${critMeta.chip}`}
+            >
+              {critMeta.label}
+            </span>
+          ) : (
+            <span className="text-xs leading-tight text-stone">
+              {critMeta?.label ?? "-"}
+            </span>
+          )}
+        </div>
+        <div className="flex h-14 items-center justify-center">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold leading-tight ${etatMeta?.chip ?? "bg-surface text-mute"}`}
+          >
+            <span
+              aria-hidden="true"
+              className={`h-1.5 w-1.5 rounded-full ${etatMeta?.dot ?? "bg-stone"}`}
+            />
+            {etatMeta?.label ?? s.etat}
+          </span>
+        </div>
+        <div
+          className={`flex h-14 items-center justify-center whitespace-nowrap text-xs leading-tight ${
+            retard ? "font-semibold text-danger" : "text-mute"
+          }`}
+        >
+          {s.echeance ? jolieDate(s.echeance) : "-"}
+        </div>
+        <div className="flex h-14 items-center justify-center">
+          {s.porteur ? (
+            <span
+              className="inline-flex"
+              title={displayName(s.porteur)}
+              aria-label={displayName(s.porteur)}
+            >
+              <Avatar personne={s.porteur} taille="h-7 w-7 text-[10px]" />
+            </span>
+          ) : (
+            <span className="text-xs text-stone">-</span>
+          )}
+        </div>
+      </a>
+    </li>
   );
 }

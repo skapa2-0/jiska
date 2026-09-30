@@ -146,6 +146,7 @@ export default async function AppPage() {
     title: string;
     action: string;
     due_date: string | null;
+    type: "technique" | "business";
     etat: string;
     criticite: string;
     porteur_id: string | null;
@@ -155,7 +156,7 @@ export default async function AppPage() {
     porteur_avatar: string | null;
   }>(
     `SELECT s.id, s.title, s.action, s.due_date::text AS due_date,
-            s.etat, s.criticite, s.porteur_id,
+            s.type, s.etat, s.criticite, s.porteur_id,
             u.email AS porteur_email,
             u.first_name AS porteur_first_name,
             u.last_name AS porteur_last_name,
@@ -170,6 +171,7 @@ export default async function AppPage() {
     titre: s.title,
     action: s.action,
     echeance: s.due_date,
+    type: s.type,
     etat: s.etat,
     criticite: s.criticite,
     porteur: s.porteur_id
