@@ -375,7 +375,9 @@ export default async function ProjetPage({
                 today={today}
               />
             </div>
-            <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+            {/* Historique : pas de scroll interne, l'aperçu est déjà
+                borné à 5 entrées (le reste part dans le tiroir latéral). */}
+            <div className="min-w-0">
               <HistoriqueProjet entrees={entrees} />
             </div>
           </div>
