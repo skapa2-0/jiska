@@ -153,18 +153,47 @@ export default function SujetsProjet({
       {actifs.length === 0 ? (
         <p className="text-sm text-stone">Aucun sujet actif sur ce produit.</p>
       ) : (
-        <ul className="divide-y divide-hairline rounded-lg bg-white shadow-card">
-          {actifs.map((s) => (
-            <LigneSujet
-              key={s.id}
-              sujet={s}
-              projet={projet}
-              today={today}
-              onCocher={() => cloturer(s)}
-              onOuvrir={() => setFiche(s)}
-            />
-          ))}
-        </ul>
+        <div className="overflow-x-auto rounded-lg bg-white shadow-card">
+          <table className="w-full min-w-[720px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-hairline text-left text-[11px] font-semibold uppercase tracking-wide text-stone">
+                <th scope="col" className="w-10 py-2.5 pl-4">
+                  <span className="sr-only">Terminé</span>
+                </th>
+                <th scope="col" className="py-2.5 pr-3 font-semibold">
+                  Sujet
+                </th>
+                <th scope="col" className="w-24 py-2.5 pr-3 font-semibold">
+                  Type
+                </th>
+                <th scope="col" className="w-28 py-2.5 pr-3 font-semibold">
+                  Criticité
+                </th>
+                <th scope="col" className="w-28 py-2.5 pr-3 font-semibold">
+                  État
+                </th>
+                <th scope="col" className="w-24 py-2.5 pr-3 font-semibold">
+                  Échéance
+                </th>
+                <th scope="col" className="w-32 py-2.5 pr-4 font-semibold">
+                  Porteur
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-hairline">
+              {actifs.map((s) => (
+                <LigneSujet
+                  key={s.id}
+                  sujet={s}
+                  projet={projet}
+                  today={today}
+                  onCocher={() => cloturer(s)}
+                  onOuvrir={() => setFiche(s)}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       {termines.length > 0 && (
         <div className="mt-3">
@@ -264,70 +293,79 @@ function LigneSujet({
 }) {
   const retard = !!sujet.due_date && sujet.due_date < today;
   const porteur = projet.members.find((m) => m.id === sujet.porteur_id);
-  const bloque = sujet.etat === "bloque";
+  const etatMeta = ETATS[sujet.etat as keyof typeof ETATS];
 
   return (
-    <li className="group relative">
-      {/* Zone cliquable qui ouvre la fiche. La case à cocher vit en
-          absolu par-dessus la même zone : c'est un vrai sibling du
-          bouton, donc son clic ne remonte pas jusqu'à onOuvrir. */}
-      <button
-        type="button"
-        onClick={onOuvrir}
-        className="flex w-full items-center gap-3 py-3 pl-12 pr-4 text-left transition hover:bg-surface"
-      >
-        <span className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
-            {sujet.title}
-          </span>
-          {/* Type (Tech/Business) : signalé en pastille discrète. Masqué
-              sur les très petits écrans où la place manque. */}
-          <span
-            className={`hidden shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold sm:inline ${TYPES_SUJET[sujet.type].chip}`}
-          >
-            {TYPES_SUJET[sujet.type].court}
-          </span>
-          {/* Criticité : n'affichée que si elle porte un signal
-              (critique ou haute). « Normale » et « faible » n'ajoutent
-              rien de lisible. */}
-          {(sujet.criticite === "critique" ||
-            sujet.criticite === "haute") && (
-            <span
-              className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold ${CRITICITES[sujet.criticite].chip}`}
-            >
-              {CRITICITES[sujet.criticite].label}
-            </span>
-          )}
-          {bloque && (
-            <span className="shrink-0 rounded-md bg-danger-soft px-2 py-0.5 text-[11px] font-semibold text-danger">
-              Bloqué
-            </span>
-          )}
-        </span>
-        <span
-          className={`w-20 shrink-0 whitespace-nowrap text-right text-xs ${
-            retard ? "font-semibold text-danger" : "text-mute"
-          }`}
-        >
-          {sujet.due_date
-            ? sujet.due_date.split("-").reverse().join("/")
-            : "-"}
-        </span>
-        {porteur && (
-          <span className="shrink-0" title={displayName(porteur)}>
-            <Avatar personne={porteur} taille="h-7 w-7 text-[10px]" />
-          </span>
-        )}
-      </button>
-
-      <span className="absolute left-4 top-1/2 -translate-y-1/2">
+    <tr
+      className="cursor-pointer transition hover:bg-surface"
+      // Clic sur la ligne = ouvre la fiche. La case à cocher fait
+      // stopPropagation pour ne pas déclencher cette ouverture.
+      onClick={onOuvrir}
+    >
+      <td className="py-3 pl-4 align-middle" onClick={(e) => e.stopPropagation()}>
         <CaseATerminer
           etat={sujet.etat}
           disabled={!sujet.can_edit}
           onClick={onCocher}
         />
-      </span>
-    </li>
+      </td>
+      <td className="py-3 pr-3 align-middle">
+        <span className="block truncate font-semibold text-ink">
+          {sujet.title}
+        </span>
+      </td>
+      <td className="py-3 pr-3 align-middle">
+        <span
+          className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-semibold ${TYPES_SUJET[sujet.type].chip}`}
+        >
+          {TYPES_SUJET[sujet.type].court}
+        </span>
+      </td>
+      <td className="py-3 pr-3 align-middle">
+        {sujet.criticite === "critique" || sujet.criticite === "haute" ? (
+          <span
+            className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-semibold ${CRITICITES[sujet.criticite].chip}`}
+          >
+            {CRITICITES[sujet.criticite].label}
+          </span>
+        ) : (
+          <span className="text-xs text-stone">
+            {CRITICITES[sujet.criticite].label}
+          </span>
+        )}
+      </td>
+      <td className="py-3 pr-3 align-middle">
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold ${etatMeta.chip}`}
+        >
+          <span
+            aria-hidden="true"
+            className={`h-1.5 w-1.5 rounded-full ${etatMeta.dot}`}
+          />
+          {etatMeta.label}
+        </span>
+      </td>
+      <td
+        className={`py-3 pr-3 align-middle whitespace-nowrap text-xs ${
+          retard ? "font-semibold text-danger" : "text-mute"
+        }`}
+      >
+        {sujet.due_date ? sujet.due_date.split("-").reverse().join("/") : "-"}
+      </td>
+      <td className="py-3 pr-4 align-middle">
+        {porteur ? (
+          <span
+            className="flex items-center gap-2 text-xs text-mute"
+            title={displayName(porteur)}
+          >
+            <Avatar personne={porteur} taille="h-6 w-6 text-[10px]" />
+            <span className="truncate">{displayName(porteur)}</span>
+          </span>
+        ) : (
+          <span className="text-xs text-stone">-</span>
+        )}
+      </td>
+    </tr>
   );
 }
 
@@ -353,18 +391,19 @@ function CaseATerminer({
       aria-label={`Marquer terminé (actuellement ${label})`}
       onClick={onClick}
       disabled={disabled}
-      className={`grid h-5 w-5 place-items-center rounded-md border-2 border-hairline bg-white transition ${
+      className={`group/case grid h-5 w-5 place-items-center rounded-md border-2 border-hairline bg-white transition ${
         disabled
           ? "cursor-not-allowed opacity-40"
           : "cursor-pointer hover:border-brand hover:bg-brand/10"
       }`}
     >
-      {/* Coche signalée en fantôme au survol de la ligne : on voit ce
-          que le clic va faire sans coche fixe qui dirait « déjà fait ». */}
+      {/* Coche fantôme au survol de la case seulement (pas de la ligne) :
+          survoler la ligne ne doit pas suggérer que le clic va valider,
+          c'est un clic dans la case qui fait ça. */}
       <svg
         aria-hidden="true"
         viewBox="0 0 16 16"
-        className="h-3 w-3 text-brand opacity-0 transition group-hover:opacity-100"
+        className="h-3 w-3 text-brand opacity-0 transition group-hover/case:opacity-100"
         fill="none"
         stroke="currentColor"
         strokeWidth="2.6"
