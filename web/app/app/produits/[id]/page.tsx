@@ -313,92 +313,103 @@ export default async function ProjetPage({
           </div>
         </div>
 
-        {/* La semaine : ce qu'on s'était engagé à faire, et où on en est. */}
-        <div className="mt-5">
+        {/* Section « viewport-lock » à partir de la semaine : sur lg+,
+            elle fait exactement viewport - navbar (57 px), si bien qu'une
+            fois le haut de la page scrollé (breadcrumb + en-tête), le
+            bloc semaine se colle sous la navbar et rien ne dépasse en
+            dessous : le tout est calibré à l'écran, les sujets et
+            l'historique scrollent en interne. Sur mobile on garde le
+            scroll de page classique. */}
+        <div className="mt-5 lg:flex lg:h-[calc(100dvh-57px)] lg:flex-col lg:pb-6">
           <BlocSemaine semaine={lireSemaine(projet)} />
-        </div>
 
-        {/* Répartition (à gauche) + toggle déployable (à droite) sur une
-            même ligne : la répartition est la question de fond du produit,
-            la déployabilité sa réponse binaire de livraison. Elles se
-            lisent ensemble. Empilées sur mobile. */}
-        <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <div className="rounded-lg bg-white p-4 shadow-card">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-ink">
-                Répartition des sujets
-              </h2>
-              <ChiffresRepartition r={repartition} />
+          {/* Répartition (à gauche) + toggle déployable (à droite) sur une
+              même ligne : la répartition est la question de fond du produit,
+              la déployabilité sa réponse binaire de livraison. Elles se
+              lisent ensemble. Empilées sur mobile. */}
+          <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <div className="rounded-lg bg-white p-4 shadow-card">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold text-ink">
+                  Répartition des sujets
+                </h2>
+                <ChiffresRepartition r={repartition} />
+              </div>
+              <div className="mt-3">
+                <BarreRepartition r={repartition} />
+              </div>
             </div>
-            <div className="mt-3">
-              <BarreRepartition r={repartition} />
-            </div>
-          </div>
-          <DeployableControle
-            projetId={projet.id}
-            initial={projet.deployable}
-            peutMarquer={canManage}
-          />
-        </div>
-
-        {/* Trois chiffres bruts du produit, sous la répartition. */}
-        <div className="mt-3 grid grid-cols-3 gap-3">
-          <Stat valeur={actifs.length} label="Sujets actifs" />
-          <Stat
-            valeur={bloques}
-            label="Bloqués"
-            ton={bloques > 0 ? "text-danger" : undefined}
-          />
-          <Stat
-            valeur={termines}
-            label="Terminés"
-            ton={termines > 0 ? "text-success" : undefined}
-          />
-        </div>
-
-        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="space-y-8">
-            <SujetsProjet
-              sujets={sujets}
-              projet={projetOption}
-              emetteurs={emetteurs}
-              today={today}
+            <DeployableControle
+              projetId={projet.id}
+              initial={projet.deployable}
+              peutMarquer={canManage}
             />
-
-            {/* Équipe */}
-            <section>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-stone">
-                Équipe
-              </h2>
-              <ul className="flex flex-wrap gap-3">
-                {equipe.map((m) => (
-                  <li
-                    key={m.id}
-                    className="flex items-center gap-2.5 rounded-lg bg-white py-2 pl-2.5 pr-4 shadow-card"
-                  >
-                    <Avatar
-                      personne={m}
-                      taille="h-8 w-8 text-sm"
-                      dore={m.is_responsable}
-                    />
-                    <span className="text-sm">
-                      <span className="block font-medium leading-tight text-ink">
-                        {displayName(m)}
-                      </span>
-                      {m.is_responsable && (
-                        <span className="block text-xs leading-tight text-brand">
-                          Responsable
-                        </span>
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
           </div>
 
-          {/* Historique (PRD : conservé, hors tableau principal) */}
-          <HistoriqueProjet entrees={entrees} />
+          {/* Trois chiffres bruts du produit, sous la répartition. */}
+          <div className="mt-3 grid grid-cols-3 gap-3">
+            <Stat valeur={actifs.length} label="Sujets actifs" />
+            <Stat
+              valeur={bloques}
+              label="Bloqués"
+              ton={bloques > 0 ? "text-danger" : undefined}
+            />
+            <Stat
+              valeur={termines}
+              label="Terminés"
+              ton={termines > 0 ? "text-success" : undefined}
+            />
+          </div>
+
+          <div className="mt-5 grid gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_380px]">
+            {/* Colonne principale : sujets + équipe, scroll interne
+                sur desktop pour tenir dans la hauteur du viewport-lock. */}
+            <div className="min-w-0 space-y-5 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+              <SujetsProjet
+                sujets={sujets}
+                projet={projetOption}
+                emetteurs={emetteurs}
+                today={today}
+              />
+
+              {/* Équipe */}
+              <section>
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-stone">
+                  Équipe
+                </h2>
+                <ul className="flex flex-wrap gap-3">
+                  {equipe.map((m) => (
+                    <li
+                      key={m.id}
+                      className="flex items-center gap-2.5 rounded-lg bg-white py-2 pl-2.5 pr-4 shadow-card"
+                    >
+                      <Avatar
+                        personne={m}
+                        taille="h-8 w-8 text-sm"
+                        dore={m.is_responsable}
+                      />
+                      <span className="text-sm">
+                        <span className="block font-medium leading-tight text-ink">
+                          {displayName(m)}
+                        </span>
+                        {m.is_responsable && (
+                          <span className="block text-xs leading-tight text-brand">
+                            Responsable
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </div>
+
+            {/* Historique : 5 dernières en aperçu, tiroir pour tout voir.
+                Scroll interne sur desktop pour rester dans le viewport-lock. */}
+            <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+              <HistoriqueProjet entrees={entrees} />
+            </div>
+          </div>
         </div>
       </main>
       <BottomNav onglet="produits" canCreate={canCreateSujet} />
