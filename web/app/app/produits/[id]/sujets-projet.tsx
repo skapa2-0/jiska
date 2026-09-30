@@ -2,24 +2,27 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
+import { ETATS } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "../../avatar";
 import type { ProjectOption } from "../../dashboard";
 import FicheSujet from "../../fiche-sujet";
 import SujetModal from "../../sujet-modal";
 
-// Sujets du produit : lignes quasi complètes (sujet, action, porteur,
-// émetteur) cliquables vers la fiche, et création d'un sujet
-// directement scopée au produit.
+// Sujets du produit : une ligne par sujet, une case à cocher qui clôt
+// la tâche d'un clic, l'essentiel visible (titre + action + échéance +
+// porteur). Type, criticité et émetteur restent accessibles dans la
+// fiche (clic sur la ligne). Un sujet bloqué porte une pastille rouge
+// discrète : le signal reste lisible sans encombrer la ligne.
 export default function SujetsProjet({
   sujets,
   projet,
-  emetteurs = {},
   today,
 }: {
   sujets: SujetRow[];
   projet: ProjectOption;
+  // Prop conservée pour compat (page produit la passe encore), l'info
+  // « émis par » migre vers la fiche.
   emetteurs?: Record<string, string>;
   today: string;
 }) {
@@ -28,13 +31,47 @@ export default function SujetsProjet({
   const [modal, setModal] = useState<
     { mode: "create" } | { mode: "edit"; sujet: SujetRow } | null
   >(null);
+  // Optimistic : id des sujets qu'on vient de clôturer et qui n'ont pas
+  // encore été effacés par router.refresh(). Sinon la ligne resterait
+  // jusqu'à ce que le rendu serveur revienne, ce qui donne l'impression
+  // que le clic n'a rien fait.
+  const [clotures, setClotures] = useState<Set<string>>(new Set());
+  const [erreur, setErreur] = useState<string | null>(null);
 
-  const actifs = sujets.filter((s) => s.etat !== "termine");
+  const actifs = sujets.filter(
+    (s) => s.etat !== "termine" && !clotures.has(s.id),
+  );
   const termines = sujets.length - actifs.length;
 
   function fermerModal(refresh: boolean) {
     setModal(null);
     if (refresh) router.refresh();
+  }
+
+  async function cloturer(s: SujetRow) {
+    if (!s.can_edit) return;
+    setErreur(null);
+    setClotures((prev) => new Set(prev).add(s.id));
+    try {
+      const res = await fetch(`/api/sujets/${s.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ etat: "termine" }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Échec de la clôture.");
+      }
+      router.refresh();
+    } catch (e) {
+      // On remet la ligne : le clic est resté sans suite.
+      setClotures((prev) => {
+        const suivant = new Set(prev);
+        suivant.delete(s.id);
+        return suivant;
+      });
+      setErreur(e instanceof Error ? e.message : "Échec de la clôture.");
+    }
   }
 
   return (
@@ -65,77 +102,29 @@ export default function SujetsProjet({
         )}
       </div>
 
+      {erreur && (
+        <p
+          role="alert"
+          className="mb-2 rounded-lg bg-danger-soft px-3 py-2 text-xs font-medium text-danger"
+        >
+          {erreur}
+        </p>
+      )}
+
       {actifs.length === 0 ? (
         <p className="text-sm text-stone">Aucun sujet actif sur ce produit.</p>
       ) : (
         <ul className="divide-y divide-hairline rounded-lg bg-white shadow-card">
-          {actifs.map((s) => {
-            const retard =
-              s.due_date && s.due_date < today && s.etat !== "termine";
-            const porteur = projet.members.find((m) => m.id === s.porteur_id);
-            const emetteur = emetteurs[s.id];
-            return (
-              <li key={s.id}>
-                <button
-                  type="button"
-                  onClick={() => setFiche(s)}
-                  className="w-full px-4 py-3 text-left transition hover:bg-surface active:bg-surface"
-                >
-                  <span className="flex items-center gap-2.5">
-                    <span
-                      title={ETATS[s.etat].label}
-                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${ETATS[s.etat].dot}`}
-                    />
-                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
-                      {s.title}
-                    </span>
-                    <span
-                      className={`hidden rounded-md px-2 py-0.5 text-xs font-semibold sm:inline ${TYPES_SUJET[s.type].chip}`}
-                    >
-                      {TYPES_SUJET[s.type].court}
-                    </span>
-                    <span
-                      className={`rounded-md px-2 py-0.5 text-xs font-semibold ${CRITICITES[s.criticite].chip}`}
-                    >
-                      {CRITICITES[s.criticite].label}
-                    </span>
-                    <span
-                      className={`w-20 shrink-0 whitespace-nowrap text-right text-xs ${
-                        retard ? "font-semibold text-danger" : "text-mute"
-                      }`}
-                    >
-                      {s.due_date
-                        ? s.due_date.split("-").reverse().join("/")
-                        : "-"}
-                    </span>
-                  </span>
-                  <span className="mt-1 flex items-center gap-2 pl-5">
-                    <span className="min-w-0 flex-1 truncate text-[13px] text-mute">
-                      {s.action || (
-                        <span className="text-stone">
-                          Aucune action définie
-                        </span>
-                      )}
-                    </span>
-                    {emetteur && (
-                      <span className="hidden shrink-0 text-xs text-stone sm:inline">
-                        Émis par {emetteur}
-                      </span>
-                    )}
-                    {porteur && (
-                      <span className="flex shrink-0 items-center gap-1.5 text-xs text-mute">
-                        <Avatar
-                          personne={porteur}
-                          taille="h-5 w-5 text-[9px]"
-                        />
-                        {displayName(porteur)}
-                      </span>
-                    )}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
+          {actifs.map((s) => (
+            <LigneSujet
+              key={s.id}
+              sujet={s}
+              projet={projet}
+              today={today}
+              onCocher={() => cloturer(s)}
+              onOuvrir={() => setFiche(s)}
+            />
+          ))}
         </ul>
       )}
       {termines > 0 && (
@@ -165,5 +154,122 @@ export default function SujetsProjet({
         />
       )}
     </section>
+  );
+}
+
+function LigneSujet({
+  sujet,
+  projet,
+  today,
+  onCocher,
+  onOuvrir,
+}: {
+  sujet: SujetRow;
+  projet: ProjectOption;
+  today: string;
+  onCocher: () => void;
+  onOuvrir: () => void;
+}) {
+  const retard = !!sujet.due_date && sujet.due_date < today;
+  const porteur = projet.members.find((m) => m.id === sujet.porteur_id);
+  const bloque = sujet.etat === "bloque";
+
+  return (
+    <li className="group relative">
+      {/* Zone cliquable qui ouvre la fiche. La case à cocher vit en
+          absolu par-dessus la même zone : c'est un vrai sibling du
+          bouton, donc son clic ne remonte pas jusqu'à onOuvrir. */}
+      <button
+        type="button"
+        onClick={onOuvrir}
+        className="flex w-full items-center gap-3 py-3 pl-12 pr-4 text-left transition hover:bg-surface"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
+              {sujet.title}
+            </span>
+            {bloque && (
+              <span className="shrink-0 rounded-md bg-danger-soft px-2 py-0.5 text-[11px] font-semibold text-danger">
+                Bloqué
+              </span>
+            )}
+          </span>
+          {sujet.action && (
+            <span className="mt-0.5 block truncate text-[13px] text-mute">
+              {sujet.action}
+            </span>
+          )}
+        </span>
+        <span
+          className={`w-20 shrink-0 whitespace-nowrap text-right text-xs ${
+            retard ? "font-semibold text-danger" : "text-mute"
+          }`}
+        >
+          {sujet.due_date
+            ? sujet.due_date.split("-").reverse().join("/")
+            : "-"}
+        </span>
+        {porteur && (
+          <span className="shrink-0" title={displayName(porteur)}>
+            <Avatar personne={porteur} taille="h-7 w-7 text-[10px]" />
+          </span>
+        )}
+      </button>
+
+      <span className="absolute left-4 top-1/2 -translate-y-1/2">
+        <CaseATerminer
+          etat={sujet.etat}
+          disabled={!sujet.can_edit}
+          onClick={onCocher}
+        />
+      </span>
+    </li>
+  );
+}
+
+// Case à cocher maison (règle DA : pas de contrôle natif). Cochée =
+// tâche terminée. Sur ce composant elle reste toujours décochée à
+// l'affichage (les terminés sont filtrés), sa vraie fonction est de
+// clore la tâche en un clic.
+function CaseATerminer({
+  etat,
+  disabled,
+  onClick,
+}: {
+  etat: string;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const label = ETATS[etat as keyof typeof ETATS]?.label ?? etat;
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={false}
+      aria-label={`Marquer terminé (actuellement ${label})`}
+      onClick={onClick}
+      disabled={disabled}
+      className={`grid h-5 w-5 place-items-center rounded-md border-2 border-hairline bg-white transition ${
+        disabled
+          ? "cursor-not-allowed opacity-40"
+          : "cursor-pointer hover:border-brand hover:bg-brand/10"
+      }`}
+    >
+      {/* Coche signalée en fantôme au survol de la ligne : on voit ce
+          que le clic va faire sans coche fixe qui dirait « déjà fait ». */}
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 16 16"
+        className="h-3 w-3 text-brand opacity-0 transition group-hover:opacity-100"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="m3 8 3.5 3.5L13 5" />
+      </svg>
+    </button>
   );
 }
