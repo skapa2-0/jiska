@@ -234,7 +234,7 @@ export default async function ProjetPage({
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Navbar user={user} canCreateSujet={canCreateSujet} onglet="produits" />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         <a
           href="/app"
           className="text-sm font-medium text-mute transition hover:text-ink"
@@ -339,7 +339,7 @@ export default async function ProjetPage({
           </div>
         </div>
 
-        <div className="mt-8 grid gap-8 xl:grid-cols-[1fr_440px]">
+        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
           <div className="space-y-8">
             <SujetsProjet
               sujets={sujets}
