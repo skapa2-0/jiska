@@ -380,12 +380,12 @@ function EntreeCarte({
   // Stagger capé à 8 items : au-delà, tout démarre en même temps
   // (le tiroir peut contenir 200 événements, un délai linéaire
   // rendrait l'ouverture ridiculement lente).
-  const delay = Math.min(index, 8) * 40;
+  const delay = Math.min(index, 8) * 60;
   return (
     <li
       className="flex gap-3 rounded-lg border border-hairline bg-white p-3"
       style={{
-        animation: `historique-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both`,
+        animation: `historique-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both`,
         animationDelay: `${delay}ms`,
       }}
     >

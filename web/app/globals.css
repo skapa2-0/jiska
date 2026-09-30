@@ -59,10 +59,25 @@ body {
 @keyframes historique-in {
   from {
     opacity: 0;
-    transform: translateY(-6px);
+    transform: translateY(-10px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* View Transitions par défaut : ralentit les animations d'entrée /
+   sortie déclenchées par document.startViewTransition() pour qu'elles
+   respirent (500 ms au lieu du 250 ms par défaut du navigateur) avec
+   un ease-out doux. Sert à la clôture / réouverture d'un sujet
+   (sujets-projet.tsx) : la ligne fond, les suivantes remontent. */
+::view-transition-group(*) {
+  animation-duration: 500ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: 500ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }

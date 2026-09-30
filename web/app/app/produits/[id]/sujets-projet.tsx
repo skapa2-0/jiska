@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
@@ -8,6 +9,23 @@ import Avatar, { displayName } from "../../avatar";
 import type { ProjectOption } from "../../dashboard";
 import FicheSujet from "../../fiche-sujet";
 import SujetModal from "../../sujet-modal";
+
+// Utilitaire pour animer une mise à jour d'état avec View Transitions
+// (Chrome, Edge, Safari). Le navigateur capture la position avant et
+// après la mutation, puis anime le delta (fade sur ce qui disparaît /
+// apparaît, translation sur ce qui bouge). flushSync force React à
+// appliquer les setState de manière synchrone dans le callback pour
+// que le snapshot « après » reflète bien la nouvelle liste.
+function animerMaj(mutation: () => void): void {
+  const doc = document as Document & {
+    startViewTransition?: (cb: () => void) => unknown;
+  };
+  if (typeof document !== "undefined" && doc.startViewTransition) {
+    doc.startViewTransition(() => flushSync(mutation));
+  } else {
+    mutation();
+  }
+}
 
 // Sujets du produit : une ligne par sujet, une case à cocher qui clôt
 // la tâche d'un clic, l'essentiel visible (titre + action + échéance +
@@ -55,11 +73,13 @@ export default function SujetsProjet({
   async function cloturer(s: SujetRow) {
     if (!s.can_edit) return;
     setErreur(null);
-    setClotures((prev) => new Set(prev).add(s.id));
-    setRouvertsOpt((prev) => {
-      const suivant = new Set(prev);
-      suivant.delete(s.id);
-      return suivant;
+    animerMaj(() => {
+      setClotures((prev) => new Set(prev).add(s.id));
+      setRouvertsOpt((prev) => {
+        const suivant = new Set(prev);
+        suivant.delete(s.id);
+        return suivant;
+      });
     });
     try {
       const res = await fetch(`/api/sujets/${s.id}`, {
@@ -86,11 +106,13 @@ export default function SujetsProjet({
   async function rouvrir(s: SujetRow) {
     if (!s.can_edit) return;
     setErreur(null);
-    setRouvertsOpt((prev) => new Set(prev).add(s.id));
-    setClotures((prev) => {
-      const suivant = new Set(prev);
-      suivant.delete(s.id);
-      return suivant;
+    animerMaj(() => {
+      setRouvertsOpt((prev) => new Set(prev).add(s.id));
+      setClotures((prev) => {
+        const suivant = new Set(prev);
+        suivant.delete(s.id);
+        return suivant;
+      });
     });
     try {
       const res = await fetch(`/api/sujets/${s.id}`, {
