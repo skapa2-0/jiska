@@ -130,7 +130,7 @@ function ValeurBadge({
     const meta = ETATS[brut as keyof typeof ETATS];
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold leading-none ${meta.chip}`}
+        className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold leading-tight ${meta.chip}`}
       >
         <span
           aria-hidden="true"
@@ -144,7 +144,7 @@ function ValeurBadge({
     const meta = CRITICITES[brut as keyof typeof CRITICITES];
     return (
       <span
-        className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold leading-none ${meta.chip}`}
+        className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold leading-tight ${meta.chip}`}
       >
         {meta.label}
       </span>
@@ -154,7 +154,7 @@ function ValeurBadge({
     const meta = TYPES_SUJET[brut as keyof typeof TYPES_SUJET];
     return (
       <span
-        className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold leading-none ${meta.chip}`}
+        className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold leading-tight ${meta.chip}`}
       >
         {meta.court}
       </span>
@@ -364,7 +364,7 @@ function TiroirHistorique({
 function EntreeCarte({ entree: e }: { entree: EntreeHistorique }) {
   const icone = iconePour(e.champRaw, e.creation);
   return (
-    <li className="flex gap-3 rounded-lg bg-white p-3 shadow-card">
+    <li className="flex gap-3 rounded-lg border border-hairline bg-white p-3">
       <span
         aria-hidden="true"
         className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${icone.fond}`}

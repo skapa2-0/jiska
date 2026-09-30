@@ -1170,12 +1170,13 @@ function Chip({
   classe: string;
   children: React.ReactNode;
 }) {
-  // inline-flex + leading-none : le glyph est centré dans la box du chip
-  // plutôt que collé au baseline. Sans ça, le chip a l'air posé « un peu
-  // haut » à côté d'un avatar ou d'une case.
+  // inline-flex + leading-tight : le glyph est centré dans la box du chip
+  // plutôt que collé au baseline. leading-tight (1.25) donne assez de
+  // hauteur pour laisser passer les descendants (« q » de « Critique »,
+  // etc.) sans les rogner comme le ferait leading-none.
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap rounded-md px-2 py-1 text-xs font-semibold leading-none ${classe}`}
+      className={`inline-flex items-center whitespace-nowrap rounded-md px-2 py-1 text-xs font-semibold leading-tight ${classe}`}
     >
       {children}
     </span>

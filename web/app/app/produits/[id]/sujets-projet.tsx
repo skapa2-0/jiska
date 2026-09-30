@@ -210,7 +210,7 @@ export default function SujetsProjet({
             <svg
               aria-hidden="true"
               viewBox="0 0 16 16"
-              className={`h-3.5 w-3.5 transition-transform ${voirTermines ? "rotate-90" : ""}`}
+              className={`h-3.5 w-3.5 transition-transform duration-300 ${voirTermines ? "rotate-90" : ""}`}
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
@@ -222,8 +222,19 @@ export default function SujetsProjet({
             {termines.length} sujet{termines.length > 1 ? "s" : ""} terminé
             {termines.length > 1 ? "s" : ""}
           </button>
-          {voirTermines && (
-            <ul className="mt-2 divide-y divide-hairline rounded-lg bg-surface/60">
+          {/* Accordéon animé : la grille passe de 0fr à 1fr en 300 ms,
+              ce qui rétrécit / dilate la ligne sans à-coup. Les
+              éléments au-dessus et en dessous (bouton, Équipe) suivent
+              la hauteur naturellement. L'enfant est en overflow-hidden
+              pour ne rien laisser dépasser pendant la transition. */}
+          <div
+            className={`grid transition-[grid-template-rows,margin-top] duration-300 ease-in-out ${
+              voirTermines
+                ? "mt-2 grid-rows-[1fr]"
+                : "mt-0 grid-rows-[0fr]"
+            }`}
+          >
+            <ul className="divide-y divide-hairline overflow-hidden rounded-lg bg-surface/60">
               {termines.map((s) => (
                 <li
                   key={s.id}
@@ -256,7 +267,7 @@ export default function SujetsProjet({
                 </li>
               ))}
             </ul>
-          )}
+          </div>
         </div>
       )}
 
@@ -322,7 +333,7 @@ function LigneSujet({
       </td>
       <td className="pr-3">
         <div className="flex h-14 items-center">
-          <span className="truncate font-semibold leading-none text-ink">
+          <span className="truncate font-semibold leading-tight text-ink">
             {sujet.title}
           </span>
         </div>
@@ -330,7 +341,7 @@ function LigneSujet({
       <td className="pr-3">
         <div className="flex h-14 items-center justify-center">
           <span
-            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold leading-none ${TYPES_SUJET[sujet.type].chip}`}
+            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold leading-tight ${TYPES_SUJET[sujet.type].chip}`}
           >
             {TYPES_SUJET[sujet.type].court}
           </span>
@@ -340,12 +351,12 @@ function LigneSujet({
         <div className="flex h-14 items-center justify-center">
           {sujet.criticite === "critique" || sujet.criticite === "haute" ? (
             <span
-              className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold leading-none ${CRITICITES[sujet.criticite].chip}`}
+              className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold leading-tight ${CRITICITES[sujet.criticite].chip}`}
             >
               {CRITICITES[sujet.criticite].label}
             </span>
           ) : (
-            <span className="text-xs leading-none text-stone">
+            <span className="text-xs leading-tight text-stone">
               {CRITICITES[sujet.criticite].label}
             </span>
           )}
@@ -354,7 +365,7 @@ function LigneSujet({
       <td className="pr-3">
         <div className="flex h-14 items-center justify-center">
           <span
-            className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold leading-none ${etatMeta.chip}`}
+            className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold leading-tight ${etatMeta.chip}`}
           >
             <span
               aria-hidden="true"
@@ -366,7 +377,7 @@ function LigneSujet({
       </td>
       <td className="pr-3">
         <div
-          className={`flex h-14 items-center justify-center whitespace-nowrap text-xs leading-none ${
+          className={`flex h-14 items-center justify-center whitespace-nowrap text-xs leading-tight ${
             retard ? "font-semibold text-danger" : "text-mute"
           }`}
         >
@@ -384,7 +395,7 @@ function LigneSujet({
               <Avatar personne={porteur} taille="h-7 w-7 text-[10px]" />
             </span>
           ) : (
-            <span className="text-xs leading-none text-stone">-</span>
+            <span className="text-xs leading-tight text-stone">-</span>
           )}
         </div>
       </td>
