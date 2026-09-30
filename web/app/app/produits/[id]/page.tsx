@@ -313,104 +313,95 @@ export default async function ProjetPage({
           </div>
         </div>
 
-        {/* Section « viewport-lock » à partir de la semaine : sur lg+,
-            elle fait exactement viewport - navbar (57 px), si bien qu'une
-            fois le haut de la page scrollé (breadcrumb + en-tête), le
-            bloc semaine se colle sous la navbar et rien ne dépasse en
-            dessous : le tout est calibré à l'écran, les sujets et
-            l'historique scrollent en interne. Sur mobile on garde le
-            scroll de page classique. */}
-        <div className="mt-5 lg:flex lg:h-[calc(100dvh-57px)] lg:flex-col lg:pb-6">
+        {/* Avancement de la semaine : sticky sous la navbar (57 px). Il
+            reste visible dès qu'on scrolle passé l'en-tête, sans être
+            planté en dur au sommet à l'ouverture. Fond blanc pour ne
+            pas laisser transparaître les cartes de dessous, marges
+            négatives pour toucher les bords du main pendant qu'il est
+            collé, padding interne pour reprendre la respiration. */}
+        <div className="sticky top-[57px] z-20 -mx-4 mt-5 bg-white px-4 py-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
           <BlocSemaine semaine={lireSemaine(projet)} />
-
-          {/* Répartition (à gauche) + toggle déployable (à droite) sur une
-              même ligne : la répartition est la question de fond du produit,
-              la déployabilité sa réponse binaire de livraison. Elles se
-              lisent ensemble. Empilées sur mobile. */}
-          <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-            <div className="rounded-lg bg-white p-4 shadow-card">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-sm font-semibold text-ink">
-                  Répartition des sujets
-                </h2>
-                <ChiffresRepartition r={repartition} />
-              </div>
-              <div className="mt-3">
-                <BarreRepartition r={repartition} />
-              </div>
-            </div>
-            <DeployableControle
-              projetId={projet.id}
-              initial={projet.deployable}
-              peutMarquer={canManage}
-            />
-          </div>
-
-          {/* Trois chiffres bruts du produit, sous la répartition. */}
-          <div className="mt-3 grid grid-cols-3 gap-3">
-            <Stat valeur={actifs.length} label="Sujets actifs" />
-            <Stat
-              valeur={bloques}
-              label="Bloqués"
-              ton={bloques > 0 ? "text-danger" : undefined}
-            />
-            <Stat
-              valeur={termines}
-              label="Terminés"
-              ton={termines > 0 ? "text-success" : undefined}
-            />
-          </div>
-
-          <div className="mt-5 grid gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_380px]">
-            {/* Colonne principale : sujets + équipe, scroll interne
-                sur desktop pour tenir dans la hauteur du viewport-lock. */}
-            <div className="min-w-0 space-y-5 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
-              <SujetsProjet
-                sujets={sujets}
-                projet={projetOption}
-                emetteurs={emetteurs}
-                today={today}
-              />
-
-              {/* Équipe */}
-              <section>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-stone">
-                  Équipe
-                </h2>
-                <ul className="flex flex-wrap gap-3">
-                  {equipe.map((m) => (
-                    <li
-                      key={m.id}
-                      className="flex items-center gap-2.5 rounded-lg bg-white py-2 pl-2.5 pr-4 shadow-card"
-                    >
-                      <Avatar
-                        personne={m}
-                        taille="h-8 w-8 text-sm"
-                        dore={m.is_responsable}
-                      />
-                      <span className="text-sm">
-                        <span className="block font-medium leading-tight text-ink">
-                          {displayName(m)}
-                        </span>
-                        {m.is_responsable && (
-                          <span className="block text-xs leading-tight text-brand">
-                            Responsable
-                          </span>
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            </div>
-
-            {/* Historique : 5 dernières en aperçu, tiroir pour tout voir.
-                Scroll interne sur desktop pour rester dans le viewport-lock. */}
-            <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
-              <HistoriqueProjet entrees={entrees} />
-            </div>
-          </div>
         </div>
+
+        {/* Répartition (à gauche) + toggle déployable (à droite) sur une
+            même ligne. Empilées sur mobile. */}
+        <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="rounded-lg bg-white p-4 shadow-card">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-ink">
+                Répartition des sujets
+              </h2>
+              <ChiffresRepartition r={repartition} />
+            </div>
+            <div className="mt-3">
+              <BarreRepartition r={repartition} />
+            </div>
+          </div>
+          <DeployableControle
+            projetId={projet.id}
+            initial={projet.deployable}
+            peutMarquer={canManage}
+          />
+        </div>
+
+        <div className="mt-3 grid grid-cols-3 gap-3">
+          <Stat valeur={actifs.length} label="Sujets actifs" />
+          <Stat
+            valeur={bloques}
+            label="Bloqués"
+            ton={bloques > 0 ? "text-danger" : undefined}
+          />
+          <Stat
+            valeur={termines}
+            label="Terminés"
+            ton={termines > 0 ? "text-success" : undefined}
+          />
+        </div>
+
+        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <SujetsProjet
+            sujets={sujets}
+            projet={projetOption}
+            emetteurs={emetteurs}
+            today={today}
+          />
+          <HistoriqueProjet entrees={entrees} />
+        </div>
+
+        {/* Équipe : collée en bas de la page, sticky bottom-0. Reste
+            visible en permanence sous les sujets et l'historique ; on
+            la retrouve d'un coup d'œil sans avoir à scroller. Marges
+            négatives pour toucher les bords quand collée, séparateur
+            haut pour la distinguer du contenu qui défile derrière. */}
+        <section className="sticky bottom-0 z-10 -mx-4 mt-8 border-t border-hairline bg-white px-4 py-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-stone">
+              Équipe
+            </h2>
+            <ul className="flex flex-wrap items-center gap-2">
+              {equipe.map((m) => (
+                <li
+                  key={m.id}
+                  className="flex items-center gap-2 rounded-lg bg-surface/60 py-1 pl-1 pr-2.5"
+                  title={
+                    m.is_responsable
+                      ? `${displayName(m)} · responsable`
+                      : displayName(m)
+                  }
+                >
+                  <Avatar
+                    personne={m}
+                    taille="h-6 w-6 text-[10px]"
+                    dore={m.is_responsable}
+                  />
+                  <span className="text-xs font-medium text-ink">
+                    {displayName(m)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
       </main>
       <BottomNav onglet="produits" canCreate={canCreateSujet} />
     </div>
