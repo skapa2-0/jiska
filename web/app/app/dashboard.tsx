@@ -667,7 +667,7 @@ export default function Dashboard({
               </Th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-hairline">
             {visibles.length === 0 && (
               <tr>
                 <td colSpan={9} className="px-4 py-16 text-center text-stone">
@@ -684,10 +684,10 @@ export default function Dashboard({
                   key={s.id}
                   onClick={() => setFiche(s)}
                   style={{ height: hauteurLigne }}
-                  className="divide-x divide-hairline border-b border-hairline last:border-b-0 cursor-pointer transition hover:bg-surface"
+                  className="divide-x divide-hairline cursor-pointer transition hover:bg-surface"
                 >
-                  <td className="px-4 py-2 align-middle">
-                    <span className="flex items-center gap-2.5">
+                  <td className="px-4 py-0">
+                    <span className="flex h-full items-center gap-2.5">
                       <ProjetLogo
                         name={s.project_name}
                         logo={s.project_logo}
@@ -698,32 +698,36 @@ export default function Dashboard({
                       </span>
                     </span>
                   </td>
-                  <td className="px-2 py-2 align-middle">
-                    <span className="flex items-center justify-center">
+                  <td className="px-2 py-0">
+                    <span className="flex h-full items-center justify-center">
                       <Chip classe={ETATS[s.etat].chip}>
                         {ETATS[s.etat].label}
                       </Chip>
                     </span>
                   </td>
-                  <td className="max-w-56 px-4 py-2 align-middle font-medium text-ink">
+                  <td className="max-w-56 px-4 py-0 font-medium text-ink">
                     <span className="flex h-full items-center">
                       <span className="line-clamp-2">{s.title}</span>
                     </span>
                   </td>
-                  <td className="px-2 py-2 align-middle">
-                    <span className="flex items-center justify-center">
+                  <td className="px-2 py-0">
+                    <span className="flex h-full items-center justify-center">
                       <Chip classe={TYPES_SUJET[s.type].chip}>
                         {TYPES_SUJET[s.type].court}
                       </Chip>
                     </span>
                   </td>
-                  <td className="px-4 py-2 align-middle">
+                  <td className="px-4 py-0">
                     {(() => {
                       const porteur = porteurDe(s);
                       if (!porteur)
-                        return <span className="text-stone">-</span>;
+                        return (
+                          <span className="flex h-full items-center text-stone">
+                            -
+                          </span>
+                        );
                       return (
-                        <span className="flex items-center gap-2">
+                        <span className="flex h-full items-center gap-2">
                           <Avatar
                             personne={porteur}
                             taille="h-7 w-7 text-[11px]"
@@ -735,31 +739,31 @@ export default function Dashboard({
                       );
                     })()}
                   </td>
-                  <td className="max-w-52 px-4 py-2 align-middle text-mute">
+                  <td className="max-w-52 px-4 py-0 text-mute">
                     <span className="flex h-full items-center">
                       <span className="line-clamp-2">{s.action}</span>
                     </span>
                   </td>
                   <td
-                    className={`whitespace-nowrap px-2 py-2 align-middle ${
+                    className={`whitespace-nowrap px-2 py-0 ${
                       retard ? "font-medium text-danger" : "text-ink"
                     }`}
                   >
-                    <span className="flex items-center justify-center">
+                    <span className="flex h-full items-center justify-center">
                       {s.due_date
                         ? s.due_date.split("-").reverse().join("/")
                         : "-"}
                     </span>
                   </td>
-                  <td className="px-2 py-2 align-middle">
-                    <span className="flex items-center justify-center">
+                  <td className="px-2 py-0">
+                    <span className="flex h-full items-center justify-center">
                       <Chip classe={CRITICITES[s.criticite].chip}>
                         {CRITICITES[s.criticite].label}
                       </Chip>
                     </span>
                   </td>
-                  <td className="px-2 py-2 align-middle">
-                    <span className="flex items-center justify-center">
+                  <td className="px-2 py-0">
+                    <span className="flex h-full items-center justify-center">
                     {s.commentaire && (
                       <button
                         type="button"
