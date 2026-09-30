@@ -234,7 +234,7 @@ export default async function ProjetPage({
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Navbar user={user} canCreateSujet={canCreateSujet} onglet="produits" />
-      <main className="w-full flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         <a
           href="/app"
           className="text-sm font-medium text-mute transition hover:text-ink"
