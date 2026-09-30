@@ -706,7 +706,9 @@ export default function Dashboard({
                     </span>
                   </td>
                   <td className="max-w-56 px-4 py-2 align-middle font-medium text-ink">
-                    <span className="line-clamp-2">{s.title}</span>
+                    <span className="flex h-full items-center">
+                      <span className="line-clamp-2">{s.title}</span>
+                    </span>
                   </td>
                   <td className="px-2 py-2 align-middle">
                     <span className="flex items-center justify-center">
@@ -734,7 +736,9 @@ export default function Dashboard({
                     })()}
                   </td>
                   <td className="max-w-52 px-4 py-2 align-middle text-mute">
-                    <span className="line-clamp-2">{s.action}</span>
+                    <span className="flex h-full items-center">
+                      <span className="line-clamp-2">{s.action}</span>
+                    </span>
                   </td>
                   <td
                     className={`whitespace-nowrap px-2 py-2 align-middle ${
