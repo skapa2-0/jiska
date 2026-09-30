@@ -154,28 +154,32 @@ export default function SujetsProjet({
         <p className="text-sm text-stone">Aucun sujet actif sur ce produit.</p>
       ) : (
         <div className="overflow-x-auto rounded-lg bg-white shadow-card">
-          <table className="w-full min-w-[720px] border-collapse text-sm">
+          {/* table-fixed : les largeurs de colonnes déclarées dans le
+              thead s'imposent, sinon un titre long refuse de tronquer.
+              min-w assure un scroll horizontal en dessous d'un seuil
+              plutôt qu'un tassement illisible. */}
+          <table className="w-full min-w-[720px] table-fixed border-collapse text-sm">
             <thead>
-              <tr className="border-b border-hairline text-left text-[11px] font-semibold uppercase tracking-wide text-stone">
-                <th scope="col" className="w-10 py-2.5 pl-4">
+              <tr className="border-b border-hairline text-[11px] font-semibold uppercase tracking-wide text-stone">
+                <th scope="col" className="w-12 py-2.5 pl-4 text-left">
                   <span className="sr-only">Terminé</span>
                 </th>
-                <th scope="col" className="py-2.5 pr-3 font-semibold">
+                <th scope="col" className="py-2.5 pr-3 text-left font-semibold">
                   Sujet
                 </th>
-                <th scope="col" className="w-24 py-2.5 pr-3 font-semibold">
+                <th scope="col" className="w-24 py-2.5 pr-3 text-center font-semibold">
                   Type
                 </th>
-                <th scope="col" className="w-28 py-2.5 pr-3 font-semibold">
+                <th scope="col" className="w-28 py-2.5 pr-3 text-center font-semibold">
                   Criticité
                 </th>
-                <th scope="col" className="w-28 py-2.5 pr-3 font-semibold">
+                <th scope="col" className="w-28 py-2.5 pr-3 text-center font-semibold">
                   État
                 </th>
-                <th scope="col" className="w-24 py-2.5 pr-3 font-semibold">
+                <th scope="col" className="w-24 py-2.5 pr-3 text-center font-semibold">
                   Échéance
                 </th>
-                <th scope="col" className="w-32 py-2.5 pr-4 font-semibold">
+                <th scope="col" className="w-20 py-2.5 pr-4 text-center font-semibold">
                   Porteur
                 </th>
               </tr>
@@ -310,21 +314,22 @@ function LigneSujet({
         />
       </td>
       <td className="py-3 pr-3 align-middle">
+        {/* Sujet : collé à gauche, tronqué avec « … » si trop long. */}
         <span className="block truncate font-semibold text-ink">
           {sujet.title}
         </span>
       </td>
-      <td className="py-3 pr-3 align-middle">
+      <td className="py-3 pr-3 text-center align-middle">
         <span
-          className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-semibold ${TYPES_SUJET[sujet.type].chip}`}
+          className={`inline-block max-w-full truncate rounded-md px-2 py-0.5 text-[11px] font-semibold ${TYPES_SUJET[sujet.type].chip}`}
         >
           {TYPES_SUJET[sujet.type].court}
         </span>
       </td>
-      <td className="py-3 pr-3 align-middle">
+      <td className="py-3 pr-3 text-center align-middle">
         {sujet.criticite === "critique" || sujet.criticite === "haute" ? (
           <span
-            className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-semibold ${CRITICITES[sujet.criticite].chip}`}
+            className={`inline-block max-w-full truncate rounded-md px-2 py-0.5 text-[11px] font-semibold ${CRITICITES[sujet.criticite].chip}`}
           >
             {CRITICITES[sujet.criticite].label}
           </span>
@@ -334,32 +339,32 @@ function LigneSujet({
           </span>
         )}
       </td>
-      <td className="py-3 pr-3 align-middle">
+      <td className="py-3 pr-3 text-center align-middle">
         <span
-          className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold ${etatMeta.chip}`}
+          className={`inline-flex max-w-full items-center gap-1.5 truncate rounded-md px-2 py-0.5 text-[11px] font-semibold ${etatMeta.chip}`}
         >
           <span
             aria-hidden="true"
-            className={`h-1.5 w-1.5 rounded-full ${etatMeta.dot}`}
+            className={`h-1.5 w-1.5 shrink-0 rounded-full ${etatMeta.dot}`}
           />
           {etatMeta.label}
         </span>
       </td>
       <td
-        className={`py-3 pr-3 align-middle whitespace-nowrap text-xs ${
+        className={`whitespace-nowrap py-3 pr-3 text-center align-middle text-xs ${
           retard ? "font-semibold text-danger" : "text-mute"
         }`}
       >
         {sujet.due_date ? sujet.due_date.split("-").reverse().join("/") : "-"}
       </td>
-      <td className="py-3 pr-4 align-middle">
+      <td className="py-3 pr-4 text-center align-middle">
         {porteur ? (
           <span
-            className="flex items-center gap-2 text-xs text-mute"
+            className="inline-flex"
             title={displayName(porteur)}
+            aria-label={displayName(porteur)}
           >
-            <Avatar personne={porteur} taille="h-6 w-6 text-[10px]" />
-            <span className="truncate">{displayName(porteur)}</span>
+            <Avatar personne={porteur} taille="h-7 w-7 text-[10px]" />
           </span>
         ) : (
           <span className="text-xs text-stone">-</span>
