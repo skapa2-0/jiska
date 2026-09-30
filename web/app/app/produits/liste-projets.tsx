@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Avatar, { displayName } from "../avatar";
 import type { Personne } from "../avatar";
 import ProjetLogo from "../projet-logo";
-import BadgeDeployable from "../deployable";
+import { PastilleDeployable } from "../deployable";
 import { SemaineLigne } from "../semaine";
 import type { Semaine } from "@/lib/semaine";
 import type { Repartition } from "@/lib/sujets";
@@ -200,19 +200,19 @@ function Carte({ p, today }: { p: CarteProjet; today: string }) {
               {p.description || "Aucune description"}
             </p>
           </div>
+          {/* Pastille compacte en haut à droite : la ligne complète
+              prenait une hauteur qui répétait l'info sans nécessité. */}
+          <PastilleDeployable deployable={p.deployable} />
         </div>
-        <p className="mt-2.5">
-          <BadgeDeployable deployable={p.deployable} />
-        </p>
 
-        <div className="mt-3 space-y-2">
+        <div className="mt-4 space-y-2">
           {/* Répartition tech / business : par comptage des sujets. */}
           <div>
             <div className="flex items-center justify-between text-[11px] font-medium">
-              <span className="text-info">
+              <span className="text-brand">
                 Tech {p.repartition.total ? `${p.repartition.partTech} %` : "-"}
               </span>
-              <span className="text-purple-700">
+              <span className="text-ink">
                 Business {p.repartition.total ? `${p.repartition.partBusiness} %` : "-"}
               </span>
             </div>

@@ -57,3 +57,38 @@ export default function BadgeDeployable({
     </span>
   );
 }
+
+// Pastille compacte icône seule : sert en coin de carte quand la ligne
+// complète prendrait trop de place. Le tooltip (title) porte le label
+// pour rester lisible sans texte visible.
+export function PastilleDeployable({ deployable }: { deployable: boolean }) {
+  return (
+    <span
+      title={deployable ? "Déployable" : "Non déployable"}
+      aria-label={deployable ? "Déployable" : "Non déployable"}
+      className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${
+        deployable ? TONS.oui : TONS.non
+      }`}
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-3.5 w-3.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {deployable ? (
+          <path d="m5 13 4 4L19 7" />
+        ) : (
+          <>
+            <circle cx="12" cy="12" r="8.5" />
+            <path d="M6 18 18 6" />
+          </>
+        )}
+      </svg>
+    </span>
+  );
+}
