@@ -257,7 +257,12 @@ export default async function AppPage() {
             tuiles se calent sous la navbar, et la mosaïque + les
             transverses défilent en interne sans jamais faire déborder la
             page. Sur mobile, scroll classique. */}
-        <div className="mt-5 lg:flex lg:h-[calc(100dvh-57px)] lg:flex-col lg:pt-4 lg:pb-4">
+        {/* overflow-hidden essentiel : sans lui, si la zone scrollable
+            interne ne prend pas correctement le relais, tout contenu
+            débordant s'échappe hors du bloc en h-[calc(...)] et
+            rallonge le scroll de la page — la limite n'est plus
+            respectée. */}
+        <div className="mt-5 lg:flex lg:h-[calc(100dvh-57px)] lg:flex-col lg:overflow-hidden lg:pt-4 lg:pb-4">
           {projets.length > 0 && (
             <section
               aria-label="Synthèse du portefeuille"

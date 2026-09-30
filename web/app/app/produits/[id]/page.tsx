@@ -328,7 +328,7 @@ export default async function ProjetPage({
             bloc Semaine une fois le scroll en butée. Le padding est
             dans la hauteur fixe (100dvh - 57 px), donc n'ajoute pas
             de scroll supplémentaire. */}
-        <div className="mt-5 lg:flex lg:h-[calc(100dvh-57px)] lg:flex-col lg:pt-4 lg:pb-4">
+        <div className="mt-5 lg:flex lg:h-[calc(100dvh-57px)] lg:flex-col lg:overflow-hidden lg:pt-4 lg:pb-4">
           <BlocSemaine semaine={lireSemaine(projet)} />
 
           {/* Répartition (à gauche) + toggle déployable (à droite) sur
