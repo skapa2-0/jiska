@@ -17,7 +17,7 @@ export default function Navbar({
   onglet?: Onglet;
 }) {
   return (
-    <header className="flex items-center justify-between gap-2 border-b border-hairline px-4 py-3 sm:px-6">
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-hairline bg-white px-4 py-3 sm:px-6">
       <div className="flex min-w-0 items-center gap-3 sm:gap-5">
         <a href="/app" className="shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG local, pas d'optimisation utile */}
