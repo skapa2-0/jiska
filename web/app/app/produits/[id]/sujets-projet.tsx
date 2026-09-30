@@ -306,69 +306,87 @@ function LigneSujet({
       // stopPropagation pour ne pas déclencher cette ouverture.
       onClick={onOuvrir}
     >
-      <td className="py-3 pl-4 align-middle" onClick={(e) => e.stopPropagation()}>
-        <CaseATerminer
-          etat={sujet.etat}
-          disabled={!sujet.can_edit}
-          onClick={onCocher}
-        />
-      </td>
-      <td className="py-3 pr-3 align-middle">
-        {/* Sujet : collé à gauche, tronqué avec « … » si trop long. */}
-        <span className="block truncate font-semibold text-ink">
-          {sujet.title}
-        </span>
-      </td>
-      <td className="py-3 pr-3 text-center align-middle">
-        <span
-          className={`inline-block max-w-full truncate rounded-md px-2 py-0.5 text-[11px] font-semibold ${TYPES_SUJET[sujet.type].chip}`}
-        >
-          {TYPES_SUJET[sujet.type].court}
-        </span>
-      </td>
-      <td className="py-3 pr-3 text-center align-middle">
-        {sujet.criticite === "critique" || sujet.criticite === "haute" ? (
-          <span
-            className={`inline-block max-w-full truncate rounded-md px-2 py-0.5 text-[11px] font-semibold ${CRITICITES[sujet.criticite].chip}`}
-          >
-            {CRITICITES[sujet.criticite].label}
-          </span>
-        ) : (
-          <span className="text-xs text-stone">
-            {CRITICITES[sujet.criticite].label}
-          </span>
-        )}
-      </td>
-      <td className="py-3 pr-3 text-center align-middle">
-        <span
-          className={`inline-flex max-w-full items-center gap-1.5 truncate rounded-md px-2 py-0.5 text-[11px] font-semibold ${etatMeta.chip}`}
-        >
-          <span
-            aria-hidden="true"
-            className={`h-1.5 w-1.5 shrink-0 rounded-full ${etatMeta.dot}`}
+      {/* Toutes les cellules : py-0 sur le <td>, hauteur portée par le
+          flex intérieur qui garantit le centrage vertical du contenu
+          quel que soit son type (chip, texte, avatar). h-14 fixe une
+          hauteur commune à toutes les lignes pour que le centrage
+          fonctionne à l'identique partout. */}
+      <td className="pl-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex h-14 items-center">
+          <CaseATerminer
+            etat={sujet.etat}
+            disabled={!sujet.can_edit}
+            onClick={onCocher}
           />
-          {etatMeta.label}
-        </span>
+        </div>
       </td>
-      <td
-        className={`whitespace-nowrap py-3 pr-3 text-center align-middle text-xs ${
-          retard ? "font-semibold text-danger" : "text-mute"
-        }`}
-      >
-        {sujet.due_date ? sujet.due_date.split("-").reverse().join("/") : "-"}
-      </td>
-      <td className="py-3 pr-4 text-center align-middle">
-        {porteur ? (
-          <span
-            className="inline-flex"
-            title={displayName(porteur)}
-            aria-label={displayName(porteur)}
-          >
-            <Avatar personne={porteur} taille="h-7 w-7 text-[10px]" />
+      <td className="pr-3">
+        <div className="flex h-14 items-center">
+          <span className="truncate font-semibold leading-none text-ink">
+            {sujet.title}
           </span>
-        ) : (
-          <span className="text-xs text-stone">-</span>
-        )}
+        </div>
+      </td>
+      <td className="pr-3">
+        <div className="flex h-14 items-center justify-center">
+          <span
+            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold leading-none ${TYPES_SUJET[sujet.type].chip}`}
+          >
+            {TYPES_SUJET[sujet.type].court}
+          </span>
+        </div>
+      </td>
+      <td className="pr-3">
+        <div className="flex h-14 items-center justify-center">
+          {sujet.criticite === "critique" || sujet.criticite === "haute" ? (
+            <span
+              className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold leading-none ${CRITICITES[sujet.criticite].chip}`}
+            >
+              {CRITICITES[sujet.criticite].label}
+            </span>
+          ) : (
+            <span className="text-xs leading-none text-stone">
+              {CRITICITES[sujet.criticite].label}
+            </span>
+          )}
+        </div>
+      </td>
+      <td className="pr-3">
+        <div className="flex h-14 items-center justify-center">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold leading-none ${etatMeta.chip}`}
+          >
+            <span
+              aria-hidden="true"
+              className={`h-1.5 w-1.5 shrink-0 rounded-full ${etatMeta.dot}`}
+            />
+            {etatMeta.label}
+          </span>
+        </div>
+      </td>
+      <td className="pr-3">
+        <div
+          className={`flex h-14 items-center justify-center whitespace-nowrap text-xs leading-none ${
+            retard ? "font-semibold text-danger" : "text-mute"
+          }`}
+        >
+          {sujet.due_date ? sujet.due_date.split("-").reverse().join("/") : "-"}
+        </div>
+      </td>
+      <td className="pr-4">
+        <div className="flex h-14 items-center justify-center">
+          {porteur ? (
+            <span
+              className="inline-flex"
+              title={displayName(porteur)}
+              aria-label={displayName(porteur)}
+            >
+              <Avatar personne={porteur} taille="h-7 w-7 text-[10px]" />
+            </span>
+          ) : (
+            <span className="text-xs leading-none text-stone">-</span>
+          )}
+        </div>
       </td>
     </tr>
   );
