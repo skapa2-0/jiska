@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     memberIds?: unknown;
     responsableId?: string;
     logo?: string | null;
+    logoRounded?: boolean;
   };
   try {
     body = await request.json();
@@ -60,11 +61,12 @@ export async function POST(request: Request) {
     body.logo.length <= 300_000
       ? body.logo
       : null;
+  const logoRounded = body.logoRounded !== false;
 
   const project = await query<{ id: string }>(
-    `INSERT INTO projects (name, description, created_by, logo)
-     VALUES ($1, $2, $3, $4) RETURNING id`,
-    [name, description, me.id, logo],
+    `INSERT INTO projects (name, description, created_by, logo, logo_rounded)
+     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [name, description, me.id, logo, logoRounded],
   );
   const projectId = project[0].id;
 

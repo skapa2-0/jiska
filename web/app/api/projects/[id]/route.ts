@@ -51,6 +51,7 @@ export async function PATCH(
     name?: string;
     description?: string;
     logo?: string | null;
+    logoRounded?: boolean;
     memberIds?: unknown;
     responsableId?: string;
   };
@@ -68,7 +69,7 @@ export async function PATCH(
   }
 
   const sets: string[] = [];
-  const paramsSql: (string | number | null)[] = [];
+  const paramsSql: (string | number | boolean | null)[] = [];
 
   if (typeof body.name === "string") {
     const name = body.name.trim();
@@ -97,6 +98,10 @@ export async function PATCH(
     }
     paramsSql.push(body.logo);
     sets.push(`logo = $${paramsSql.length}`);
+  }
+  if (typeof body.logoRounded === "boolean") {
+    paramsSql.push(body.logoRounded);
+    sets.push(`logo_rounded = $${paramsSql.length}`);
   }
 
   if (sets.length > 0) {

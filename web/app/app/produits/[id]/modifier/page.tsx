@@ -25,8 +25,9 @@ export default async function ModifierProjetPage({
       name: string;
       description: string;
       logo: string | null;
+      logo_rounded: boolean;
     }>(
-      `SELECT id, name, description, ${sqlLogoUrl()} AS logo
+      `SELECT id, name, description, logo_rounded, ${sqlLogoUrl()} AS logo
          FROM projects WHERE id = $1`,
       [id],
     ),
@@ -71,6 +72,7 @@ export default async function ModifierProjetPage({
             name: projet.name,
             description: projet.description,
             logo: projet.logo,
+            logoRounded: projet.logo_rounded,
             memberIds: membres.map((m) => m.user_id),
             responsableId:
               membres.find((m) => m.is_responsable)?.user_id ?? "",

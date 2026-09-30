@@ -21,6 +21,7 @@ type ProjetInitial = {
   name: string;
   description: string;
   logo: string | null;
+  logoRounded: boolean;
   memberIds: string[];
   responsableId: string;
 };
@@ -40,6 +41,10 @@ export default function ProjetForm({
   // Comme la photo de profil : `logo` est l'URL servie par /api/logos au
   // chargement, une data URL seulement après un nouvel import.
   const [logoModifie, setLogoModifie] = useState(false);
+  const [logoRounded, setLogoRounded] = useState(initial?.logoRounded ?? true);
+  // Marquer le flag comme modifié si l'utilisateur touche au toggle,
+  // pour l'envoyer même si la nouvelle image n'a pas changé.
+  const [roundedModifie, setRoundedModifie] = useState(false);
   const [memberIds, setMemberIds] = useState<string[]>(
     initial?.memberIds ?? [],
   );
@@ -90,6 +95,7 @@ export default function ProjetForm({
             name,
             description,
             ...(logoModifie ? { logo } : {}),
+            ...(logoModifie || roundedModifie ? { logoRounded } : {}),
             memberIds,
             responsableId,
           }),
@@ -133,6 +139,7 @@ export default function ProjetForm({
           name={name || "?"}
           logo={logo}
           taille="h-16 w-16 text-2xl"
+          roundedForce={logoRounded}
         />
         <div className="space-y-2">
           <div className="flex flex-wrap gap-2">
@@ -158,10 +165,40 @@ export default function ProjetForm({
               </button>
             )}
           </div>
-          <p className="text-xs text-stone">
-            Facultatif : sans logo, la première lettre du nom du produit sera
-            affichée.
-          </p>
+          {logo ? (
+            // Toggle rond / carré : appliqué à l'aperçu tout de suite,
+            // enregistré au submit. Un logo qui inclut déjà une pastille
+            // (ex: le mark de Jiska sur fond brand) est mieux rendu en
+            // carré pour ne pas rogner ses propres bords arrondis.
+            <label className="flex items-center gap-2.5 text-xs text-mute">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={logoRounded}
+                onClick={() => {
+                  setLogoRounded((v) => !v);
+                  setRoundedModifie(true);
+                }}
+                disabled={loading}
+                className={`relative h-5 w-9 shrink-0 rounded-full transition ${
+                  logoRounded ? "bg-brand" : "bg-hairline"
+                } ${loading ? "opacity-50" : "cursor-pointer"}`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all ${
+                    logoRounded ? "left-[18px]" : "left-0.5"
+                  }`}
+                />
+              </button>
+              Coins arrondis
+            </label>
+          ) : (
+            <p className="text-xs text-stone">
+              Facultatif : sans logo, la première lettre du nom du produit sera
+              affichée.
+            </p>
+          )}
         </div>
         <input
           ref={fileRef}

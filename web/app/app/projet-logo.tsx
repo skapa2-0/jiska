@@ -10,20 +10,33 @@ export default function ProjetLogo({
   taille = "h-8 w-8 text-base",
   classe = "",
   transverse = false,
+  roundedForce,
 }: {
   name: string;
   logo?: string | null;
   taille?: string;
   classe?: string;
   transverse?: boolean;
+  // Sert au formulaire d'import : l'utilisateur peut tester le rendu
+  // sans avoir enregistré. Undefined = comportement automatique (lu
+  // depuis l'URL du logo servi).
+  roundedForce?: boolean;
 }) {
   if (logo) {
+    // Marker « &sq=1 » dans l'URL du logo = choix de rendu carré au
+    // moment de l'import (lib/media.ts::sqlLogoUrl). Rien = arrondi
+    // par défaut. Le prop roundedForce l'override quand on utilise
+    // ProjetLogo avec un logo qui n'est pas servi par /api/logos
+    // (aperçu du formulaire, data URL locale).
+    const carre =
+      roundedForce === false ||
+      (roundedForce === undefined && /[?&]sq=1(?:&|$)/.test(logo));
     return (
       // eslint-disable-next-line @next/next/no-img-element -- image servie par /api/logos
       <img
         src={logo}
         alt=""
-        className={`${taille} shrink-0 rounded-lg object-contain ${classe}`}
+        className={`${taille} shrink-0 object-contain ${carre ? "" : "rounded-lg"} ${classe}`}
       />
     );
   }

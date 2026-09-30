@@ -69,6 +69,12 @@ function ensureSchema(): Promise<void> {
        -- Logo de projet : data URL (image réduite côté client), NULL =
        -- première lettre du nom. Les anciens couleur/emoji sont retirés.
        ALTER TABLE projects ADD COLUMN IF NOT EXISTS logo text;
+       -- Un logo importé peut se rendre en rounded-lg (défaut) ou en
+       -- carré strict (rounded-none) selon le choix du dirigeant à
+       -- l'import. Stocké ici pour que toutes les vues qui affichent
+       -- le logo appliquent la même règle.
+       ALTER TABLE projects ADD COLUMN IF NOT EXISTS logo_rounded boolean
+         NOT NULL DEFAULT true;
        ALTER TABLE projects DROP COLUMN IF EXISTS color;
        ALTER TABLE projects DROP COLUMN IF EXISTS icon;
        -- Anciens jalons stockés sur le projet : retirés lorsque

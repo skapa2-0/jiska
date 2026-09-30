@@ -29,9 +29,17 @@ export function sqlAvatarUrl(alias = ""): string {
   return sqlUrl("/api/avatars/", `${p}id`, `${p}avatar`);
 }
 
+// Le logo d'un produit hérite d'un flag `logo_rounded` (défaut true) :
+// on l'encode dans l'URL via `&sq=1` quand FALSE. ProjetLogo lit ce
+// marker pour appliquer rounded-none plutôt que rounded-lg. On garde
+// ainsi la propagation transparente à travers toutes les requêtes qui
+// utilisent sqlLogoUrl().
 export function sqlLogoUrl(alias = ""): string {
   const p = prefixe(alias);
-  return sqlUrl("/api/logos/", `${p}id`, `${p}logo`);
+  return `CASE WHEN ${p}logo IS NULL THEN NULL
+               ELSE '/api/logos/' || ${p}id || '?v=' || left(md5(${p}logo), 8)
+                 || CASE WHEN ${p}logo_rounded THEN '' ELSE '&sq=1' END
+          END`;
 }
 
 // Sert une data URL de la base en vraie réponse image, cachable.
