@@ -177,9 +177,6 @@ export default function HistoriqueProjet({
 }) {
   const [tiroir, setTiroir] = useState(false);
   const apercu = entrees.slice(0, APERCU);
-  const reste = Math.max(0, entrees.length - APERCU);
-  const today = new Date().toISOString().slice(0, 10);
-  const groupesApercu = grouperParJour(apercu);
 
   return (
     <section>
@@ -191,9 +188,9 @@ export default function HistoriqueProjet({
           <button
             type="button"
             onClick={() => setTiroir(true)}
-            className="rounded-md px-2 py-1 text-xs font-semibold text-brand transition hover:bg-brand/5"
+            className="flex items-center gap-1.5 rounded-lg border border-hairline px-3.5 py-1.5 text-sm font-semibold text-ink transition hover:bg-surface"
           >
-            Voir tout{reste > 0 ? ` (${entrees.length})` : ""}
+            Voir tout
           </button>
         )}
       </div>
@@ -203,20 +200,11 @@ export default function HistoriqueProjet({
           Aucune modification enregistrée pour l&apos;instant.
         </p>
       ) : (
-        <div className="space-y-6">
-          {groupesApercu.map((g) => (
-            <div key={g.jour}>
-              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-stone">
-                {libelleJour(g.jour, today)}
-              </h3>
-              <ul className="space-y-1.5">
-                {g.items.map((e, i) => (
-                  <EntreeCarte key={`${g.jour}-${i}`} entree={e} />
-                ))}
-              </ul>
-            </div>
+        <ul className="space-y-1.5">
+          {apercu.map((e, i) => (
+            <EntreeCarte key={i} entree={e} />
           ))}
-        </div>
+        </ul>
       )}
 
       {tiroir && (
