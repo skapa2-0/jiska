@@ -129,12 +129,14 @@ export default async function ProjetPage({
       field: string;
       old_value: string | null;
       new_value: string | null;
-      quand: string;
+      date_iso: string;
+      heure: string;
       titre: string;
       auteur_id: string | null;
     }>(
       `SELECT h.sujet_id, h.field, h.old_value, h.new_value,
-              to_char(h.changed_at, 'DD/MM à HH24:MI') AS quand,
+              to_char(h.changed_at, 'YYYY-MM-DD') AS date_iso,
+              to_char(h.changed_at, 'HH24:MI') AS heure,
               s.title AS titre, h.changed_by AS auteur_id
          FROM sujet_history h
          JOIN sujets s ON s.id = h.sujet_id
@@ -148,7 +150,11 @@ export default async function ProjetPage({
       email: string;
       first_name: string;
       last_name: string;
-    }>("SELECT id, email, first_name, last_name FROM users"),
+      avatar: string | null;
+    }>(
+      `SELECT id, email, first_name, last_name, ${sqlAvatarUrl()} AS avatar
+         FROM users`,
+    ),
     // Qui a émis chaque sujet : la trace de création de l'historique.
     query<{ sujet_id: string; changed_by: string | null }>(
       `SELECT h.sujet_id, h.changed_by
@@ -163,6 +169,18 @@ export default async function ProjetPage({
   if (!projet) redirect("/app");
 
   const nomDe = new Map(personnes.map((p) => [p.id, displayName(p)]));
+  const auteurDe = new Map(
+    personnes.map((p) => [
+      p.id,
+      {
+        id: p.id,
+        email: p.email,
+        first_name: p.first_name,
+        last_name: p.last_name,
+        avatar: p.avatar,
+      },
+    ]),
+  );
   const canManage = dirigeant || equipe.some((m) => m.id === user.id && m.is_responsable);
 
   const repartition = repartitionSujets(sujetRows);
@@ -201,11 +219,13 @@ export default async function ProjetPage({
   }));
 
   const entrees: EntreeHistorique[] = histRows.map((h) => ({
-    quand: h.quand,
-    auteur: (h.auteur_id && nomDe.get(h.auteur_id)) || "",
+    dateIso: h.date_iso,
+    heure: h.heure,
+    auteur: h.auteur_id ? auteurDe.get(h.auteur_id) ?? null : null,
     sujetId: h.sujet_id,
     titre: h.titre,
-    champ: CHAMPS[h.field] ?? h.field,
+    champRaw: h.field,
+    champLibelle: CHAMPS[h.field] ?? h.field,
     ancien:
       ["responsable_id", "porteur_id"].includes(h.field)
         ? (nomDe.get(h.old_value ?? "") ?? "-")
@@ -214,6 +234,8 @@ export default async function ProjetPage({
       ["responsable_id", "porteur_id"].includes(h.field)
         ? (nomDe.get(h.new_value ?? "") ?? "-")
         : valeurLisible(h.field, h.new_value),
+    ancienBrut: h.old_value,
+    nouveauBrut: h.new_value,
     creation: h.field === "creation",
   }));
 
