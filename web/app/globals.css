@@ -51,3 +51,18 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans, Arial, Helvetica, sans-serif);
 }
+
+/* Entrée douce d'un élément de liste par le haut : l'item nouveau
+   glisse depuis le haut avec un fondu, ceux d'après suivent le
+   flux (poussés vers le bas par la hauteur retrouvée). Sert à
+   l'historique produit, appliqué avec un léger stagger. */
+@keyframes historique-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -202,7 +202,7 @@ export default function HistoriqueProjet({
       ) : (
         <ul className="space-y-1.5">
           {apercu.map((e, i) => (
-            <EntreeCarte key={i} entree={e} />
+            <EntreeCarte key={cleEntree(e)} entree={e} index={i} />
           ))}
         </ul>
       )}
@@ -215,6 +215,13 @@ export default function HistoriqueProjet({
       )}
     </section>
   );
+}
+
+// Clé stable pour un événement d'historique : deux modifs sur le
+// même sujet, même champ, à la même seconde, avec les mêmes valeurs
+// avant/après sont indistinguables — extrêmement improbable.
+function cleEntree(e: EntreeHistorique): string {
+  return `${e.dateIso}-${e.heure}-${e.sujetId}-${e.champRaw}-${e.ancienBrut ?? ""}-${e.nouveauBrut ?? ""}-${e.creation ? "c" : "m"}`;
 }
 
 function grouperParJour(entrees: EntreeHistorique[]) {
@@ -346,8 +353,9 @@ function TiroirHistorique({
                   <ul className="space-y-1.5">
                     {g.items.map((e, i) => (
                       <EntreeCarte
-                        key={`${g.jour}-${i}`}
+                        key={cleEntree(e)}
                         entree={e}
+                        index={i}
                       />
                     ))}
                   </ul>
@@ -361,10 +369,26 @@ function TiroirHistorique({
   );
 }
 
-function EntreeCarte({ entree: e }: { entree: EntreeHistorique }) {
+function EntreeCarte({
+  entree: e,
+  index = 0,
+}: {
+  entree: EntreeHistorique;
+  index?: number;
+}) {
   const icone = iconePour(e.champRaw, e.creation);
+  // Stagger capé à 8 items : au-delà, tout démarre en même temps
+  // (le tiroir peut contenir 200 événements, un délai linéaire
+  // rendrait l'ouverture ridiculement lente).
+  const delay = Math.min(index, 8) * 40;
   return (
-    <li className="flex gap-3 rounded-lg border border-hairline bg-white p-3">
+    <li
+      className="flex gap-3 rounded-lg border border-hairline bg-white p-3"
+      style={{
+        animation: `historique-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both`,
+        animationDelay: `${delay}ms`,
+      }}
+    >
       <span
         aria-hidden="true"
         className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${icone.fond}`}
