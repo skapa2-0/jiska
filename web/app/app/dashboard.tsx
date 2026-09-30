@@ -693,7 +693,7 @@ export default function Dashboard({
                         logo={s.project_logo}
                         taille="h-8 w-8 text-base"
                       />
-                      <span className="line-clamp-2 font-semibold text-ink">
+                      <span className="line-clamp-2 font-semibold leading-tight text-ink">
                         {s.project_name}
                       </span>
                     </span>
@@ -707,7 +707,9 @@ export default function Dashboard({
                   </td>
                   <td className="max-w-56 px-4 py-0 font-medium text-ink">
                     <span className="flex h-full items-center">
-                      <span className="line-clamp-2">{s.title}</span>
+                      <span className="line-clamp-2 leading-tight">
+                        {s.title}
+                      </span>
                     </span>
                   </td>
                   <td className="px-2 py-0">
@@ -741,7 +743,9 @@ export default function Dashboard({
                   </td>
                   <td className="max-w-52 px-4 py-0 text-mute">
                     <span className="flex h-full items-center">
-                      <span className="line-clamp-2">{s.action}</span>
+                      <span className="line-clamp-2 leading-tight">
+                        {s.action}
+                      </span>
                     </span>
                   </td>
                   <td
@@ -1166,9 +1170,12 @@ function Chip({
   classe: string;
   children: React.ReactNode;
 }) {
+  // inline-flex + leading-none : le glyph est centré dans la box du chip
+  // plutôt que collé au baseline. Sans ça, le chip a l'air posé « un peu
+  // haut » à côté d'un avatar ou d'une case.
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-md px-2 py-1 text-xs font-semibold ${classe}`}
+      className={`inline-flex items-center whitespace-nowrap rounded-md px-2 py-1 text-xs font-semibold leading-none ${classe}`}
     >
       {children}
     </span>
