@@ -291,16 +291,27 @@ export default async function ProjetPage({
           </div>
         </div>
 
-        {/* La semaine : ce qu'on s'était engagé à faire, et où on en
-            est. À côté de l'avancement du produit, pas à sa place. */}
+        {/* La semaine : ce qu'on s'était engagé à faire, et où on en est. */}
         <div className="mt-5">
           <BlocSemaine semaine={lireSemaine(projet)} />
         </div>
 
-        {/* Déployable ou non : la question se pose en clair, la réponse
-            aussi. Ligne dédiée pour qu'elle ne se lise pas comme une
-            mention accessoire de l'en-tête. */}
-        <div className="mt-5">
+        {/* Répartition (à gauche) + toggle déployable (à droite) sur une
+            même ligne : la répartition est la question de fond du produit,
+            la déployabilité sa réponse binaire de livraison. Elles se
+            lisent ensemble. Empilées sur mobile. */}
+        <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="rounded-lg bg-white p-4 shadow-card">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-ink">
+                Répartition des sujets
+              </h2>
+              <ChiffresRepartition r={repartition} />
+            </div>
+            <div className="mt-3">
+              <BarreRepartition r={repartition} />
+            </div>
+          </div>
           <DeployableControle
             projetId={projet.id}
             initial={projet.deployable}
@@ -308,10 +319,8 @@ export default async function ProjetPage({
           />
         </div>
 
-        {/* Indicateurs du produit : ni avancement pondéré, ni axe. Les
-            trois chiffres parlent d'eux-mêmes ; la répartition tech /
-            business se lit dans le bloc suivant. */}
-        <div className="mt-6 grid grid-cols-3 gap-3">
+        {/* Trois chiffres bruts du produit, sous la répartition. */}
+        <div className="mt-3 grid grid-cols-3 gap-3">
           <Stat valeur={actifs.length} label="Sujets actifs" />
           <Stat
             valeur={bloques}
@@ -323,20 +332,6 @@ export default async function ProjetPage({
             label="Terminés"
             ton={termines > 0 ? "text-success" : undefined}
           />
-        </div>
-
-        {/* Répartition tech / business : part de chaque type dans les
-            sujets du produit, par comptage. Un sujet = un point. */}
-        <div className="mt-3 rounded-lg bg-white p-4 shadow-card">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-ink">
-              Répartition des sujets
-            </h2>
-            <ChiffresRepartition r={repartition} />
-          </div>
-          <div className="mt-3">
-            <BarreRepartition r={repartition} />
-          </div>
         </div>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
