@@ -324,7 +324,11 @@ export default async function ProjetPage({
             Historique, Équipe) tient à l'écran. Les sujets et
             l'historique scrollent en interne. Sur mobile, scroll de
             page classique. */}
-        <div className="mt-5 lg:flex lg:h-[calc(100dvh-57px)] lg:flex-col lg:pb-4">
+        {/* pt-4 en interne : un peu de souffle entre la navbar et le
+            bloc Semaine une fois le scroll en butée. Le padding est
+            dans la hauteur fixe (100dvh - 57 px), donc n'ajoute pas
+            de scroll supplémentaire. */}
+        <div className="mt-5 lg:flex lg:h-[calc(100dvh-57px)] lg:flex-col lg:pt-4 lg:pb-4">
           <BlocSemaine semaine={lireSemaine(projet)} />
 
           {/* Répartition (à gauche) + toggle déployable (à droite) sur
