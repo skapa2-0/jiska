@@ -17,9 +17,6 @@ export type ProjectOption = {
   name: string;
   logo: string | null;
   responsableId: string | null;
-  avancement: number;
-  poidsTech: number;
-  poidsBusiness: number;
   canManage: boolean;
   members: Personne[];
 };
@@ -27,7 +24,6 @@ export type ProjectOption = {
 type Indicateurs = {
   projets: number;
   ouverts: number;
-  avancement: number;
   bloques: number;
   echeances: number;
   retard: number;
@@ -249,9 +245,6 @@ export default function Dashboard({
       name: NOM_TRANSVERSE,
       logo: null,
       responsableId: null,
-      avancement: 0,
-      poidsTech: 0,
-      poidsBusiness: 0,
       canManage: dirigeant,
       members: [...tousMembres.values()],
     }),
@@ -331,7 +324,7 @@ export default function Dashboard({
         case "sujet":
           return s.title.toLowerCase();
         case "type":
-          return (s.type === "technique" ? 0 : 1000) + (100 - s.poids);
+          return s.type;
         case "equipe": {
           const p = porteurDe(s);
           return p ? displayName(p).toLowerCase() : null;
@@ -491,25 +484,11 @@ export default function Dashboard({
           classe="order-3 sm:order-4"
         />
         <Indicateur
-          valeur={`${indicateurs.avancement} %`}
-          label="Avancement moyen"
-          tint="bg-success-soft text-success"
-          icone={<IconeTendance />}
-          ton={
-            indicateurs.avancement >= 75
-              ? "text-success"
-              : indicateurs.avancement >= 50
-                ? "text-warn"
-                : "text-ink"
-          }
-          classe="order-5 sm:order-3"
-        />
-        <Indicateur
           valeur={indicateurs.projets}
           label="Produits actifs"
           tint="bg-brand/10 text-brand"
           icone={<IconeDossier />}
-          classe="order-6 sm:order-1"
+          classe="order-5 sm:order-1"
         />
         <Indicateur
           valeur={indicateurs.clotures}
@@ -732,7 +711,7 @@ export default function Dashboard({
                   <td className="px-2 py-2 align-middle">
                     <span className="flex items-center justify-center">
                       <Chip classe={TYPES_SUJET[s.type].chip}>
-                        {TYPES_SUJET[s.type].court} · {s.poids} %
+                        {TYPES_SUJET[s.type].court}
                       </Chip>
                     </span>
                   </td>
@@ -980,7 +959,7 @@ function CarteSujet({
         )}
         <span className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
           <Chip classe={TYPES_SUJET[s.type].chip}>
-            {TYPES_SUJET[s.type].court} · {s.poids} %
+            {TYPES_SUJET[s.type].court}
           </Chip>
           <Chip classe={CRITICITES[s.criticite].chip}>
             {CRITICITES[s.criticite].label}

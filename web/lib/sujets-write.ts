@@ -16,7 +16,6 @@ export type SujetDb = {
   action: string;
   due_date: string | null;
   type: string;
-  poids: number;
   porteur_id: string | null;
   criticite: string;
   etat: string;
@@ -36,7 +35,6 @@ const CHAMPS_DB = [
   "commentaire",
   "due_date",
   "type",
-  "poids",
   "criticite",
   "etat",
   "porteur_id",
@@ -47,7 +45,7 @@ export async function chargerSujet(id: string): Promise<SujetDb | null> {
   const rows = await query<SujetDb>(
     `SELECT id, project_id, title, action,
             due_date::text AS due_date,
-            type, poids, porteur_id, criticite, etat, commentaire
+            type, porteur_id, criticite, etat, commentaire
        FROM sujets WHERE id = $1`,
     [id],
   );
@@ -84,10 +82,6 @@ function champsValides(body: CorpsSujet) {
     type:
       typeof body.type === "string" && body.type in TYPES_SUJET
         ? body.type
-        : undefined,
-    poids:
-      typeof body.poids === "number" && Number.isFinite(body.poids)
-        ? Math.min(100, Math.max(0, Math.round(body.poids)))
         : undefined,
     criticite:
       typeof body.criticite === "string" && body.criticite in CRITICITES
@@ -217,17 +211,14 @@ export async function creerSujet(
 
   const rows = await query<{ id: string }>(
     `INSERT INTO sujets (project_id, title, action, due_date,
-                         type, poids, porteur_id, criticite, etat, commentaire)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+                         type, porteur_id, criticite, etat, commentaire)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
     [
       projectId,
       title,
       patch.action ?? "",
       patch.due_date ?? null,
       patch.type ?? "technique",
-      // Le poids est une décision de pilotage : il n'est jamais deviné.
-      // Un sujet créé depuis une réunion arrive à 0 et reste à signaler.
-      patch.poids ?? 0,
       patch.porteur_id ?? null,
       patch.criticite ?? "normale",
       patch.etat ?? "a_faire",

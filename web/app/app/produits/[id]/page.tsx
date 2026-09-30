@@ -4,12 +4,10 @@ import { chargerImportsEnAttente } from "@/lib/imports";
 import { query } from "@/lib/db";
 import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
 import {
-  avancementGlobal,
   CRITICITES,
   ETATS,
-  JALONS_BUSINESS,
-  JALONS_TECH,
-  creditSujet,
+  repartitionSujets,
+  TYPES_SUJET,
 } from "@/lib/sujets";
 import type { Criticite, Etat, SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "../../avatar";
@@ -19,7 +17,10 @@ import ProjetLogo from "../../projet-logo";
 import DeployableControle from "./deployable-controle";
 import BlocSemaine from "../../semaine";
 import { lireSemaine, sqlSemaine } from "@/lib/semaine";
-import Roue, { tonAvancement } from "../../roue";
+import {
+  BarreRepartition,
+  ChiffresRepartition,
+} from "../../repartition";
 import HistoriqueProjet from "./historique-projet";
 import type { EntreeHistorique } from "./historique-projet";
 import SujetsProjet from "./sujets-projet";
@@ -29,10 +30,7 @@ const CHAMPS: Record<string, string> = {
   action: "l'action de la semaine",
   commentaire: "le commentaire",
   due_date: "l'échéance",
-  jalon_tech: "le jalon technique",
-  jalon_business: "le jalon business",
   type: "le type",
-  poids: "le poids",
   criticite: "la criticité",
   etat: "l'état",
   responsable_id: "le responsable",
@@ -43,12 +41,7 @@ function valeurLisible(field: string, v: string | null): string {
   if (!v) return "-";
   if (field === "etat") return ETATS[v as Etat]?.label ?? v;
   if (field === "criticite") return CRITICITES[v as Criticite]?.label ?? v;
-  if (field === "jalon_tech")
-    return `${JALONS_TECH[Number(v) as 0] ?? v} (${v} %)`;
-  if (field === "jalon_business")
-    return `${JALONS_BUSINESS[Number(v) as 0] ?? v} (${v} %)`;
-  if (field === "type") return v === "technique" ? "Technique" : "Business";
-  if (field === "poids") return `${v} %`;
+  if (field === "type") return TYPES_SUJET[v as "technique"]?.label ?? v;
   if (field === "due_date") return v.split("-").reverse().join("/");
   return v.length > 60 ? `${v.slice(0, 60)}…` : v;
 }
@@ -120,12 +113,11 @@ export default async function ProjetPage({
       etat: Etat;
       criticite: Criticite;
       type: "technique" | "business";
-      poids: number;
       porteur_id: string | null;
       updated_at: string;
       due_date: string | null;
     }>(
-      `SELECT id, title, action, commentaire, etat, criticite, type, poids,
+      `SELECT id, title, action, commentaire, etat, criticite, type,
               porteur_id, updated_at::date::text AS updated_at,
               due_date::text AS due_date
          FROM sujets WHERE project_id = $1
@@ -173,31 +165,13 @@ export default async function ProjetPage({
   const nomDe = new Map(personnes.map((p) => [p.id, displayName(p)]));
   const canManage = dirigeant || equipe.some((m) => m.id === user.id && m.is_responsable);
 
-  const acquis = (t: "technique" | "business") =>
-    Math.min(
-      100,
-      Math.round(
-        sujetRows
-          .filter((s) => s.type === t)
-          .reduce((acc, s) => acc + creditSujet(s.etat, Number(s.poids)), 0),
-      ),
-    );
-  const attribue = (t: "technique" | "business") =>
-    sujetRows
-      .filter((s) => s.type === t)
-      .reduce((acc, s) => acc + Number(s.poids), 0);
-  const tech = acquis("technique");
-  const business = acquis("business");
-  const avancement = avancementGlobal(tech, business);
+  const repartition = repartitionSujets(sujetRows);
 
   const projetOption = {
     id: projet.id,
     name: projet.name,
     logo: projet.logo,
     responsableId: equipe.find((m) => m.is_responsable)?.id ?? null,
-    avancement,
-    poidsTech: attribue("technique"),
-    poidsBusiness: attribue("business"),
     canManage,
     members: equipe.map((m) => ({
       id: m.id,
@@ -217,7 +191,6 @@ export default async function ProjetPage({
     action: s.action,
     due_date: s.due_date,
     type: s.type,
-    poids: Number(s.poids),
     porteur_id: s.porteur_id,
     updated_at: s.updated_at,
     criticite: s.criticite,
@@ -335,23 +308,11 @@ export default async function ProjetPage({
           />
         </div>
 
-        {/* Indicateurs du projet */}
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="flex items-center gap-3 rounded-lg bg-white px-4 py-3 shadow-card">
-            <Roue
-              valeur={avancement}
-              ton={tonAvancement(avancement)}
-              taille="h-12 w-12"
-            />
-            <span className="text-xs font-medium text-mute">
-              Avancement
-              <br />
-              moyen
-            </span>
-          </div>
+        {/* Indicateurs du produit : ni avancement pondéré, ni axe. Les
+            trois chiffres parlent d'eux-mêmes ; la répartition tech /
+            business se lit dans le bloc suivant. */}
+        <div className="mt-6 grid grid-cols-3 gap-3">
           <Stat valeur={actifs.length} label="Sujets actifs" />
-          {/* Couleur seulement quand la valeur porte un signal : un
-              zéro reste neutre. */}
           <Stat
             valeur={bloques}
             label="Bloqués"
@@ -364,24 +325,18 @@ export default async function ProjetPage({
           />
         </div>
 
-        {/* Avancement par axe : somme des poids des sujets terminés. */}
+        {/* Répartition tech / business : part de chaque type dans les
+            sujets du produit, par comptage. Un sujet = un point. */}
         <div className="mt-3 rounded-lg bg-white p-4 shadow-card">
-          <div className="grid gap-5 sm:grid-cols-2">
-            <BarreAxe
-              nom="Technique · 60 %"
-              valeur={tech}
-              attribue={attribue("technique")}
-            />
-            <BarreAxe
-              nom="Business · 40 %"
-              valeur={business}
-              attribue={attribue("business")}
-            />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-ink">
+              Répartition des sujets
+            </h2>
+            <ChiffresRepartition r={repartition} />
           </div>
-          <p className="mt-3 text-xs text-stone">
-            Un sujet terminé rapporte tout son poids, un sujet en validation
-            la moitié. Objectif : 100 % attribués par axe.
-          </p>
+          <div className="mt-3">
+            <BarreRepartition r={repartition} />
+          </div>
         </div>
 
         <div className="mt-8 grid gap-8 xl:grid-cols-[1fr_440px]">
@@ -430,36 +385,6 @@ export default async function ProjetPage({
         </div>
       </main>
       <BottomNav onglet="produits" canCreate={canCreateSujet} />
-    </div>
-  );
-}
-
-function BarreAxe({
-  nom,
-  valeur,
-  attribue,
-}: {
-  nom: string;
-  valeur: number;
-  attribue: number;
-}) {
-  return (
-    <div>
-      <div className="flex items-baseline justify-between">
-        <p className="text-sm font-medium text-ink">{nom}</p>
-        <p className="text-xs text-mute">
-          <span className="font-semibold text-ink">{valeur} %</span> acquis ·{" "}
-          <span className={attribue < 100 ? "font-semibold text-warn" : ""}>
-            {attribue} % attribués
-          </span>
-        </p>
-      </div>
-      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface">
-        <div
-          className={`h-full rounded-full ${valeur >= 75 ? "bg-success" : "bg-warn"}`}
-          style={{ width: `${valeur}%` }}
-        />
-      </div>
     </div>
   );
 }

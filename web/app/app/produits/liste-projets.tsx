@@ -8,7 +8,8 @@ import ProjetLogo from "../projet-logo";
 import BadgeDeployable from "../deployable";
 import { SemaineLigne } from "../semaine";
 import type { Semaine } from "@/lib/semaine";
-import Roue, { tonAvancement } from "../roue";
+import type { Repartition } from "@/lib/sujets";
+import { BarreRepartition } from "../repartition";
 import Select from "../select";
 
 export type CarteProjet = {
@@ -18,11 +19,7 @@ export type CarteProjet = {
   logo: string | null;
   deployable: boolean;
   semaine: Semaine;
-  avancement: number;
-  jalonTech: number;
-  jalonBusiness: number;
-  attribTech: number;
-  attribBusiness: number;
+  repartition: Repartition;
   echeance: string | null;
   actifs: number;
   bloques: number;
@@ -34,8 +31,6 @@ export type CarteProjet = {
 
 const TRIS = [
   { value: "nom", label: "Par nom" },
-  { value: "avancement-bas", label: "Avancement croissant" },
-  { value: "avancement-haut", label: "Avancement décroissant" },
   { value: "bloques", label: "Bloqués d'abord" },
   { value: "actifs", label: "Sujets actifs" },
   { value: "echeance", label: "Prochaine échéance" },
@@ -73,10 +68,6 @@ export default function ListeProjets({
     switch (tri) {
       case "nom":
         return a.name.localeCompare(b.name, "fr");
-      case "avancement-bas":
-        return a.avancement - b.avancement;
-      case "avancement-haut":
-        return b.avancement - a.avancement;
       case "bloques":
         return b.bloques - a.bloques;
       case "actifs":
@@ -199,44 +190,39 @@ function Carte({ p, today }: { p: CarteProjet; today: string }) {
         onKeyDown={(e) => e.key === "Enter" && ouvrir()}
         className="flex h-full cursor-pointer flex-col rounded-lg bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgb(25_28_31/0.08),0_8px_20px_rgb(25_28_31/0.10)]"
       >
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-start gap-3">
           <ProjetLogo name={p.name} logo={p.logo} taille="h-10 w-10 text-xl" />
-          <Roue
-            valeur={p.avancement}
-            ton={tonAvancement(p.avancement)}
-            taille="h-11 w-11"
-          />
+          <div className="min-w-0 flex-1">
+            <h2 className="line-clamp-1 font-display text-lg font-semibold text-ink">
+              {p.name}
+            </h2>
+            <p className="mt-0.5 line-clamp-1 text-xs text-stone">
+              {p.description || "Aucune description"}
+            </p>
+          </div>
         </div>
-
-        <h2 className="mt-3 line-clamp-1 font-display text-lg font-semibold text-ink">
-          {p.name}
-        </h2>
-        <p className="mt-0.5 line-clamp-1 text-xs text-stone">
-          {p.description || "Aucune description"}
-        </p>
         <p className="mt-2.5">
           <BadgeDeployable deployable={p.deployable} />
         </p>
 
         <div className="mt-3 space-y-2">
-          <Barre nom="Tech" valeur={p.jalonTech} />
-          <Barre nom="Bus." valeur={p.jalonBusiness} />
-          {/* Signal discret : l'orange plein est réservé aux vraies
-              alertes (bloqués, retards). */}
-          {/* La semaine se lit sous les axes : le produit d'un côté,
-              l'engagement tenu de l'autre. */}
+          {/* Répartition tech / business : par comptage des sujets. */}
+          <div>
+            <div className="flex items-center justify-between text-[11px] font-medium">
+              <span className="text-info">
+                Tech {p.repartition.total ? `${p.repartition.partTech} %` : "-"}
+              </span>
+              <span className="text-purple-700">
+                Business {p.repartition.total ? `${p.repartition.partBusiness} %` : "-"}
+              </span>
+            </div>
+            <div className="mt-1">
+              <BarreRepartition r={p.repartition} />
+            </div>
+          </div>
           <div className="border-t border-hairline pt-2">
             <SemaineLigne semaine={p.semaine} />
           </div>
-          {(p.attribTech < 100 || p.attribBusiness < 100) && (
-            <p className="flex items-center gap-1.5 text-[11px] font-medium text-stone">
-              <span
-                aria-hidden="true"
-                className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn"
-              />
-              Pondération : Tech {p.attribTech} % · Bus. {p.attribBusiness} %
-            </p>
-          )}
         </div>
 
         <div className="mt-3.5 flex min-h-6 flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium">
@@ -320,21 +306,3 @@ function Carte({ p, today }: { p: CarteProjet; today: string }) {
   );
 }
 
-function Barre({ nom, valeur }: { nom: string; valeur: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="w-8 shrink-0 text-[11px] font-medium text-stone">
-        {nom}
-      </span>
-      <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface">
-        <div
-          className={`h-full rounded-full ${valeur >= 75 ? "bg-success" : "bg-warn"}`}
-          style={{ width: `${valeur}%` }}
-        />
-      </div>
-      <span className="w-9 shrink-0 text-right text-[11px] font-semibold text-ink">
-        {valeur} %
-      </span>
-    </div>
-  );
-}

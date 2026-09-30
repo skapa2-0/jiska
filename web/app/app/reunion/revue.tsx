@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
+import {
+  CRITICITES,
+  ETATS,
+  repartitionSujets,
+  TYPES_SUJET,
+} from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
 import Avatar, { displayName } from "../avatar";
 import Confirmation from "../confirmer";
@@ -11,15 +16,14 @@ import FicheSujet from "../fiche-sujet";
 import ProjetLogo from "../projet-logo";
 import BlocSemaine from "../semaine";
 import type { Semaine } from "@/lib/semaine";
-import Roue, { tonAvancement } from "../roue";
+import { BarreRepartition, ChiffresRepartition } from "../repartition";
 
 export type EtapeRevue = {
-  // Étape des sujets transverses : pas de produit derrière, donc ni roue
-  // d'avancement, ni axes, ni poids. Le projet porté est un habillage.
+  // Étape des sujets transverses : pas de produit derrière, donc pas
+  // de bloc de répartition tech / business. Le projet porté est un
+  // habillage.
   transverse?: boolean;
   projet: ProjectOption;
-  tech: number;
-  business: number;
   semaine: Semaine;
   sujets: SujetRow[];
   termines: number;
@@ -175,13 +179,6 @@ export default function Revue({
                 </p>
               )}
             </div>
-            {!etape.transverse && (
-              <Roue
-                valeur={p.avancement}
-                ton={tonAvancement(p.avancement)}
-                taille="h-12 w-12"
-              />
-            )}
           </div>
 
           {/* La question de la réunion, en tête : ce qu'on s'était
@@ -190,11 +187,19 @@ export default function Revue({
             <BlocSemaine semaine={etape.semaine} />
           </div>
 
-          {/* Axes et signaux : un sujet transverse ne pèse sur aucun axe. */}
+          {/* Répartition tech / business du produit. Aucun axe pondéré,
+              aucun avancement : la répartition se lit par comptage. */}
           {!etape.transverse && (
-            <div className="mt-4 grid gap-x-6 gap-y-2 rounded-lg bg-white p-4 shadow-card sm:grid-cols-2">
-              <BarreAxe nom="Technique · 60 %" valeur={etape.tech} />
-              <BarreAxe nom="Business · 40 %" valeur={etape.business} />
+            <div className="mt-4 rounded-lg bg-white p-4 shadow-card">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-ink">
+                  Répartition des sujets
+                </h3>
+                <ChiffresRepartition r={repartitionSujets(etape.sujets)} />
+              </div>
+              <div className="mt-3">
+                <BarreRepartition r={repartitionSujets(etape.sujets)} />
+              </div>
             </div>
           )}
 
@@ -252,7 +257,7 @@ export default function Revue({
                           <span
                             className={`hidden rounded-md px-2 py-0.5 text-xs font-semibold sm:inline ${TYPES_SUJET[s.type].chip}`}
                           >
-                            {TYPES_SUJET[s.type].court} · {s.poids} %
+                            {TYPES_SUJET[s.type].court}
                           </span>
                         )}
                         <span
@@ -367,19 +372,3 @@ export default function Revue({
   );
 }
 
-function BarreAxe({ nom, valeur }: { nom: string; valeur: number }) {
-  return (
-    <div>
-      <div className="flex items-baseline justify-between">
-        <p className="text-sm font-medium text-ink">{nom}</p>
-        <p className="text-xs font-semibold text-ink">{valeur} %</p>
-      </div>
-      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface">
-        <div
-          className={`h-full rounded-full ${valeur >= 75 ? "bg-success" : "bg-warn"}`}
-          style={{ width: `${valeur}%` }}
-        />
-      </div>
-    </div>
-  );
-}

@@ -10,7 +10,6 @@ import type { ProjectOption } from "./dashboard";
 import DatePicker from "./date-picker";
 import ProjetLogo from "./projet-logo";
 import Select from "./select";
-import Roue, { tonAvancement } from "./roue";
 
 // Fiche détaillée d'un sujet : panneau qui glisse depuis la droite.
 // Édition directe sur la fiche (selon permissions) : les chips
@@ -35,8 +34,6 @@ export default function FicheSujet({
   const [criticite, setCriticite] = useState<string>(sujet.criticite);
   const [commentaire, setCommentaire] = useState(sujet.commentaire);
   const [type, setType] = useState<string>(sujet.type);
-  const [poids, setPoids] = useState(String(sujet.poids));
-  const [poidsSauve, setPoidsSauve] = useState(sujet.poids);
   const [porteurId, setPorteurId] = useState(sujet.porteur_id);
   const [sauve, setSauve] = useState({
     title: sujet.title,
@@ -74,7 +71,6 @@ export default function FicheSujet({
         patch({ title: title.trim() });
       if (action !== sauve.action) patch({ action });
       if (commentaire !== sauve.commentaire) patch({ commentaire });
-      blurPoids();
     }
     setVisible(false);
     window.setTimeout(onClose, 250);
@@ -139,16 +135,6 @@ export default function FicheSujet({
     poser(v);
     patch({ [cle]: v }).then((ok) => {
       if (!ok) poser(avant);
-    });
-  }
-
-  function blurPoids() {
-    const n = Math.min(100, Math.max(0, Math.round(Number(poids) || 0)));
-    setPoids(String(n));
-    if (n === poidsSauve) return;
-    patch({ poids: n }).then((ok) => {
-      if (ok) setPoidsSauve(n);
-      else setPoids(String(poidsSauve));
     });
   }
 
@@ -333,48 +319,23 @@ export default function FicheSujet({
                 )}
               </div>
             </div>
-            {/* Type et poids ne veulent rien dire sans produit : aucun axe
-                à pondérer, aucun budget à tenir. */}
+            {/* Un sujet transverse n'a pas de type produit à afficher. */}
             {sujet.project_id !== null && (
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {editable ? (
-                  <>
-                    {Object.entries(TYPES_SUJET).map(([k, t]) => (
-                      <Pastille
-                        key={k}
-                        actif={type === k}
-                        classe={t.chip}
-                        onClick={() => changerChip("type", k)}
-                      >
-                        {t.label}
-                      </Pastille>
-                    ))}
-                    <label className="ml-1 flex items-center gap-1.5 text-xs font-medium text-mute">
-                      Poids
-                      <input
-                        type="number"
-                        aria-label="Poids dans le produit (%)"
-                        min={0}
-                        max={100}
-                        step={5}
-                        value={poids}
-                        onChange={(e) => setPoids(e.target.value)}
-                        onBlur={blurPoids}
-                        className="w-16 rounded-lg bg-surface px-2 py-1 text-xs font-semibold text-ink outline-none transition focus:bg-white focus:ring-2 focus:ring-brand"
-                      />
-                      %
-                    </label>
-                    <BudgetAxe
-                      projet={projet}
-                      type={type}
-                      poidsInitial={sujet.type === type ? sujet.poids : 0}
-                      poidsActuel={Math.round(Number(poids) || 0)}
-                    />
-                  </>
+                  Object.entries(TYPES_SUJET).map(([k, t]) => (
+                    <Pastille
+                      key={k}
+                      actif={type === k}
+                      classe={t.chip}
+                      onClick={() => changerChip("type", k)}
+                    >
+                      {t.label}
+                    </Pastille>
+                  ))
                 ) : (
                   <Chip classe={TYPES_SUJET[type as keyof typeof TYPES_SUJET].chip}>
-                    {TYPES_SUJET[type as keyof typeof TYPES_SUJET].label} ·{" "}
-                    {poids} %
+                    {TYPES_SUJET[type as keyof typeof TYPES_SUJET].label}
                   </Chip>
                 )}
               </div>
@@ -539,12 +500,6 @@ export default function FicheSujet({
                     )}
                   </span>
                 </span>
-                <Roue
-                  valeur={projet.avancement}
-                  ton={tonAvancement(projet.avancement)}
-                  taille="h-9 w-9"
-                  texte="text-[8px]"
-                />
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 16 16"
@@ -591,35 +546,6 @@ export default function FicheSujet({
         />
       )}
     </div>
-  );
-}
-
-// Budget de l'axe : poids des autres sujets + celui-ci, reste à 100.
-function BudgetAxe({
-  projet,
-  type,
-  poidsInitial,
-  poidsActuel,
-}: {
-  projet?: ProjectOption;
-  type: string;
-  poidsInitial: number;
-  poidsActuel: number;
-}) {
-  if (!projet) return null;
-  const attribueAxe =
-    type === "technique" ? projet.poidsTech : projet.poidsBusiness;
-  const autres = Math.max(0, attribueAxe - poidsInitial);
-  const total = autres + poidsActuel;
-  const reste = 100 - total;
-  return (
-    <span
-      className={`text-[11px] font-medium ${reste < 0 ? "text-danger" : "text-stone"}`}
-    >
-      {reste < 0
-        ? `Dépasse le budget de l'axe de ${-reste} % (${total} % attribués)`
-        : `Axe à ${total} % attribués · reste ${reste} %`}
-    </span>
   );
 }
 

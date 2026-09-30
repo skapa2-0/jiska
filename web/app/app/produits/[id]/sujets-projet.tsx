@@ -92,7 +92,7 @@ export default function SujetsProjet({
                     <span
                       className={`hidden rounded-md px-2 py-0.5 text-xs font-semibold sm:inline ${TYPES_SUJET[s.type].chip}`}
                     >
-                      {TYPES_SUJET[s.type].court} · {s.poids} %
+                      {TYPES_SUJET[s.type].court}
                     </span>
                     <span
                       className={`rounded-md px-2 py-0.5 text-xs font-semibold ${CRITICITES[s.criticite].chip}`}

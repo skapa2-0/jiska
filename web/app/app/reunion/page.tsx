@@ -30,21 +30,15 @@ export default async function ReunionPage() {
       logo: string | null;
       tech: string;
       business: string;
-      attrib_tech: string;
-      attrib_business: string;
       responsable_id: string | null;
       is_resp: boolean;
     } & SemaineRow>(
       `SELECT p.id, p.name, ${sqlLogoUrl("p")} AS logo,
               ${sqlSemaine("p")},
-              least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
-                WHERE s.project_id = p.id AND s.type = 'technique'), 0)) AS tech,
-              least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
-                WHERE s.project_id = p.id AND s.type = 'business'), 0))  AS business,
-              COALESCE((SELECT sum(s.poids) FROM sujets s
-                WHERE s.project_id = p.id AND s.type = 'technique'), 0) AS attrib_tech,
-              COALESCE((SELECT sum(s.poids) FROM sujets s
-                WHERE s.project_id = p.id AND s.type = 'business'), 0)  AS attrib_business,
+              (SELECT count(*) FROM sujets s
+                WHERE s.project_id = p.id AND s.type = 'technique') AS tech,
+              (SELECT count(*) FROM sujets s
+                WHERE s.project_id = p.id AND s.type = 'business')  AS business,
               (SELECT m.user_id FROM project_members m
                 WHERE m.project_id = p.id AND m.is_responsable LIMIT 1) AS responsable_id,
               EXISTS (SELECT 1 FROM project_members m
@@ -79,7 +73,6 @@ export default async function ReunionPage() {
       action: string;
       due_date: string | null;
       type: "technique" | "business";
-      poids: string;
       porteur_id: string | null;
       updated_at: string;
       criticite: SujetRow["criticite"];
@@ -87,7 +80,7 @@ export default async function ReunionPage() {
       commentaire: string;
     }>(
       `SELECT s.id, s.project_id, s.title, s.action,
-              s.due_date::text AS due_date, s.type, s.poids,
+              s.due_date::text AS due_date, s.type,
               s.porteur_id, s.updated_at::date::text AS updated_at,
               s.criticite, s.etat, s.commentaire
          FROM sujets s
@@ -119,9 +112,6 @@ export default async function ReunionPage() {
       name: p.name,
       logo: p.logo,
       responsableId: p.responsable_id,
-      avancement: Math.round(Number(p.tech) * 0.6 + Number(p.business) * 0.4),
-      poidsTech: Number(p.attrib_tech),
-      poidsBusiness: Number(p.attrib_business),
       canManage,
       members: equipe,
     };
@@ -136,7 +126,6 @@ export default async function ReunionPage() {
         action: s.action,
         due_date: s.due_date,
         type: s.type,
-        poids: Number(s.poids),
         porteur_id: s.porteur_id,
         updated_at: s.updated_at,
         criticite: s.criticite,
@@ -160,8 +149,6 @@ export default async function ReunionPage() {
     });
     return {
       projet,
-      tech: Number(p.tech),
-      business: Number(p.business),
       semaine: lireSemaine(p),
       sujets,
       termines: tous.length - sujets.length,
@@ -193,7 +180,6 @@ export default async function ReunionPage() {
       action: s.action,
       due_date: s.due_date,
       type: s.type,
-      poids: Number(s.poids),
       porteur_id: s.porteur_id,
       updated_at: s.updated_at,
       criticite: s.criticite,
@@ -240,14 +226,9 @@ export default async function ReunionPage() {
         name: NOM_TRANSVERSES,
         logo: null,
         responsableId: null,
-        avancement: 0,
-        poidsTech: 0,
-        poidsBusiness: 0,
         canManage: dirigeant,
         members: tousMembres,
       },
-      tech: 0,
-      business: 0,
       semaine: lireSemaine(semaineTransverseRows[0]),
       sujets: actifs,
       termines: transverseTous.length - actifs.length,

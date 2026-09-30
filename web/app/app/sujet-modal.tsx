@@ -50,7 +50,6 @@ export default function SujetModal({
   const [etat, setEtat] = useState<string>(sujet?.etat ?? "a_faire");
   const [commentaire, setCommentaire] = useState(sujet?.commentaire ?? "");
   const [type, setType] = useState<string>(sujet?.type ?? "technique");
-  const [poids, setPoids] = useState(String(sujet?.poids ?? 5));
   const [porteurId, setPorteurId] = useState<string | null>(
     sujet?.porteur_id ?? null,
   );
@@ -92,10 +91,6 @@ export default function SujetModal({
       action,
       dueDate: dueDate || null,
       type,
-      // Hors produit, il n'y a aucun axe à pondérer : le poids reste nul.
-      poids: transverse
-        ? 0
-        : Math.min(100, Math.max(0, Math.round(Number(poids) || 0))),
       porteurId,
       criticite,
       etat,
@@ -283,52 +278,20 @@ export default function SujetModal({
           </div>
 
 
-          <div
-            className={`mt-5 grid gap-5 sm:grid-cols-2 ${transverse ? "hidden" : ""}`}
-          >
-            <div>
-              <Etiquette>Type de sujet</Etiquette>
-              <div className="flex gap-1.5">
-                {Object.entries(TYPES_SUJET).map(([k, t]) => (
-                  <Pastille
-                    key={k}
-                    actif={type === k}
-                    classe={t.chip}
-                    onClick={() => !readOnly && setType(k)}
-                    disabled={loading || readOnly}
-                  >
-                    {t.label}
-                  </Pastille>
-                ))}
-              </div>
-            </div>
-            <div>
-              <Etiquette libelle="s-poids">
-                Poids dans le produit{" "}
-                <span className="font-normal text-stone">(%)</span>
-              </Etiquette>
-              <input
-                id="s-poids"
-                type="number"
-                min={0}
-                max={100}
-                step={5}
-                value={poids}
-                onChange={(e) => setPoids(e.target.value)}
-                disabled={loading || readOnly}
-                className={champ}
-              />
-              {projet && (
-                <BudgetAxe
-                  attribueAxe={
-                    (type === "technique"
-                      ? projet.poidsTech
-                      : projet.poidsBusiness) -
-                    (sujet && sujet.type === type ? sujet.poids : 0)
-                  }
-                  poids={Math.round(Number(poids) || 0)}
-                />
-              )}
+          <div className={`mt-5 ${transverse ? "hidden" : ""}`}>
+            <Etiquette>Type de sujet</Etiquette>
+            <div className="flex gap-1.5">
+              {Object.entries(TYPES_SUJET).map(([k, t]) => (
+                <Pastille
+                  key={k}
+                  actif={type === k}
+                  classe={t.chip}
+                  onClick={() => !readOnly && setType(k)}
+                  disabled={loading || readOnly}
+                >
+                  {t.label}
+                </Pastille>
+              ))}
             </div>
           </div>
 
@@ -424,25 +387,6 @@ export default function SujetModal({
   );
 }
 
-function BudgetAxe({
-  attribueAxe,
-  poids,
-}: {
-  attribueAxe: number;
-  poids: number;
-}) {
-  const total = Math.max(0, attribueAxe) + poids;
-  const reste = 100 - total;
-  return (
-    <p
-      className={`mt-1.5 text-[11px] font-medium ${reste < 0 ? "text-danger" : "text-stone"}`}
-    >
-      {reste < 0
-        ? `Dépasse le budget de l'axe de ${-reste} % (${total} % attribués)`
-        : `Axe à ${total} % attribués avec ce sujet · reste ${reste} %`}
-    </p>
-  );
-}
 
 function Etiquette({
   libelle,

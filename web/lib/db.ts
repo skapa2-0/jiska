@@ -71,8 +71,8 @@ function ensureSchema(): Promise<void> {
        ALTER TABLE projects ADD COLUMN IF NOT EXISTS logo text;
        ALTER TABLE projects DROP COLUMN IF EXISTS color;
        ALTER TABLE projects DROP COLUMN IF EXISTS icon;
-       -- L'avancement du projet se calcule depuis les poids des sujets
-       -- terminés : plus de jalons stockés sur le projet.
+       -- Anciens jalons stockés sur le projet : retirés lorsque
+       -- l'avancement par axe a été supprimé.
        ALTER TABLE projects DROP COLUMN IF EXISTS jalon_tech;
        ALTER TABLE projects DROP COLUMN IF EXISTS jalon_business;
        -- Déployable : information affirmée, jamais devinée. Ni l'analyse de
@@ -90,17 +90,13 @@ function ensureSchema(): Promise<void> {
        CREATE TABLE IF NOT EXISTS sujets (
          id             bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
          -- NULL = sujet transverse : une tâche ou une mission qui ne relève
-         -- d'aucun produit. Elle ne pèse sur aucun axe (les requêtes
-         -- d'avancement filtrent sur project_id = p.id) et se lit dans sa
-         -- propre section.
+         -- d'aucun produit. Elle se lit dans sa propre section.
          project_id     bigint REFERENCES projects(id) ON DELETE CASCADE,
          title          text NOT NULL,
          action         text NOT NULL DEFAULT '',
          due_date       date,
          type           text NOT NULL DEFAULT 'technique'
            CHECK (type IN ('technique', 'business')),
-         poids          int NOT NULL DEFAULT 0
-           CHECK (poids BETWEEN 0 AND 100),
          criticite      text NOT NULL DEFAULT 'normale'
            CHECK (criticite IN ('critique', 'haute', 'normale', 'faible')),
          etat           text NOT NULL DEFAULT 'a_faire'
@@ -115,11 +111,13 @@ function ensureSchema(): Promise<void> {
        ALTER TABLE sujets ALTER COLUMN project_id DROP NOT NULL;
        -- Le responsable est porté par le projet, pas par le sujet.
        ALTER TABLE sujets DROP COLUMN IF EXISTS responsable_id;
-       -- Chaque sujet est typé et pèse un pourcentage du projet.
+       -- Chaque sujet est typé technique ou business (pastille).
        ALTER TABLE sujets ADD COLUMN IF NOT EXISTS type text NOT NULL DEFAULT 'technique'
          CHECK (type IN ('technique', 'business'));
-       ALTER TABLE sujets ADD COLUMN IF NOT EXISTS poids int NOT NULL DEFAULT 0
-         CHECK (poids BETWEEN 0 AND 100);
+       -- Le poids par sujet a été retiré : la répartition d'un produit
+       -- se lit désormais par comptage tech / business, sans pondération
+       -- ni avancement dérivé.
+       ALTER TABLE sujets DROP COLUMN IF EXISTS poids;
        -- Porteur de l'action de la semaine (membre du projet, optionnel).
        ALTER TABLE sujets ADD COLUMN IF NOT EXISTS porteur_id bigint
          REFERENCES users(id) ON DELETE SET NULL;

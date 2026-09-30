@@ -30,8 +30,7 @@ async function dirigeantEtProjet(id: string) {
 }
 
 // Modification d'un projet (nom, description, logo, membres,
-// responsable) : dirigeants seuls. L'avancement n'est plus stocké ici,
-// il découle des poids des sujets terminés.
+// responsable) : dirigeants seuls.
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },

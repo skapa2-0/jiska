@@ -1,25 +1,5 @@
-// Vocabulaire métier du PRD : jalons, états, criticités. Partagé entre
-// le serveur (validation) et le client (affichage). Aucun pourcentage
-// n'est saisi à la main : tout passe par les jalons.
-
-export const JALONS = [0, 25, 50, 75, 100] as const;
-export type Jalon = (typeof JALONS)[number];
-
-export const JALONS_TECH: Record<Jalon, string> = {
-  0: "Analyse du besoin",
-  25: "Développement lancé",
-  50: "Architecture validée",
-  75: "Développement terminé",
-  100: "Livré / Déployé",
-};
-
-export const JALONS_BUSINESS: Record<Jalon, string> = {
-  0: "Besoin identifié",
-  25: "PRD validé",
-  50: "Bêta-test",
-  75: "Validation client",
-  100: "Livré",
-};
+// Vocabulaire métier du PRD : types, états, criticités. Partagé entre
+// le serveur (validation) et le client (affichage).
 
 export const ETATS = {
   a_faire: { label: "À faire", dot: "bg-stone", chip: "bg-surface text-mute" },
@@ -55,27 +35,10 @@ export const CRITICITES = {
 } as const;
 export type Criticite = keyof typeof CRITICITES;
 
-// PRD §9 : global = technique × 60 % + business × 40 %, jamais saisi.
-export function avancementGlobal(tech: number, business: number): number {
-  return Math.round(tech * 0.6 + business * 0.4);
-}
-
-// Crédit d'un sujet sur son axe selon l'état : terminé = 100 % du
-// poids, en validation = 50 %, le reste = 0. Le pendant SQL vit dans
-// les requêtes (CASE etat...).
-export const CREDIT_ETAT: Record<string, number> = {
-  termine: 1,
-  en_validation: 0.5,
-};
-export function creditSujet(etat: string, poids: number): number {
-  return poids * (CREDIT_ETAT[etat] ?? 0);
-}
-
-export function isJalon(v: unknown): v is Jalon {
-  return typeof v === "number" && (JALONS as readonly number[]).includes(v);
-}
-
-// Type d'un sujet : il pèse sur l'axe technique ou l'axe business.
+// Type d'un sujet : technique ou business. Servi uniquement en pastille
+// et pour la répartition d'un produit (part de tech vs business dans ses
+// sujets). Aucun poids, aucun axe pondéré, aucun avancement produit
+// dérivé : un sujet compte pour un.
 export const TYPES_SUJET = {
   technique: {
     label: "Technique",
@@ -105,7 +68,6 @@ export type SujetRow = {
   action: string;
   due_date: string | null;
   type: TypeSujet;
-  poids: number;
   porteur_id: string | null;
   updated_at: string;
   criticite: Criticite;
@@ -114,3 +76,28 @@ export type SujetRow = {
   can_edit: boolean;
   can_manage: boolean;
 };
+
+// Répartition tech / business d'un ensemble de sujets, par comptage.
+// Total 0 : les deux parts sont à 0, la lecture reste correcte.
+export type Repartition = {
+  tech: number;
+  business: number;
+  total: number;
+  partTech: number;
+  partBusiness: number;
+};
+
+export function repartitionSujets(
+  sujets: readonly { type: TypeSujet }[],
+): Repartition {
+  const tech = sujets.filter((s) => s.type === "technique").length;
+  const business = sujets.filter((s) => s.type === "business").length;
+  const total = tech + business;
+  return {
+    tech,
+    business,
+    total,
+    partTech: total ? Math.round((tech / total) * 100) : 0,
+    partBusiness: total ? 100 - Math.round((tech / total) * 100) : 0,
+  };
+}

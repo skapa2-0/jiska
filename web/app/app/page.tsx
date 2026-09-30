@@ -34,8 +34,6 @@ export default async function AppPage() {
       deployable: boolean;
       tech: string;
       business: string;
-      attrib_tech: string;
-      attrib_business: string;
       actifs: string;
       bloques: string;
       retards: string;
@@ -48,14 +46,10 @@ export default async function AppPage() {
       `SELECT p.id, p.name, p.description, p.deployable,
               ${sqlSemaine("p")},
               ${sqlLogoUrl("p")} AS logo,
-              least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
-                WHERE s.project_id = p.id AND s.type = 'technique'), 0)) AS tech,
-              least(100, COALESCE((SELECT round(sum(s.poids * CASE s.etat WHEN 'termine' THEN 1 WHEN 'en_validation' THEN 0.5 ELSE 0 END)) FROM sujets s
-                WHERE s.project_id = p.id AND s.type = 'business'), 0))  AS business,
-              COALESCE((SELECT sum(s.poids) FROM sujets s
-                WHERE s.project_id = p.id AND s.type = 'technique'), 0) AS attrib_tech,
-              COALESCE((SELECT sum(s.poids) FROM sujets s
-                WHERE s.project_id = p.id AND s.type = 'business'), 0)  AS attrib_business,
+              (SELECT count(*) FROM sujets s
+                WHERE s.project_id = p.id AND s.type = 'technique') AS tech,
+              (SELECT count(*) FROM sujets s
+                WHERE s.project_id = p.id AND s.type = 'business')  AS business,
               (SELECT min(s.due_date)::text FROM sujets s
                 WHERE s.project_id = p.id AND s.etat <> 'termine'
                   AND s.due_date IS NOT NULL)                      AS echeance,
@@ -99,46 +93,44 @@ export default async function AppPage() {
     ),
   ]);
 
-  const projets: CarteProjet[] = projetRows.map((p) => ({
-    id: p.id,
-    name: p.name,
-    description: p.description,
-    logo: p.logo,
-    deployable: p.deployable,
-    semaine: lireSemaine(p),
-    avancement: Math.round(Number(p.tech) * 0.6 + Number(p.business) * 0.4),
-    jalonTech: Number(p.tech),
-    jalonBusiness: Number(p.business),
-    attribTech: Number(p.attrib_tech),
-    attribBusiness: Number(p.attrib_business),
-    echeance: p.echeance,
-    actifs: Number(p.actifs),
-    bloques: Number(p.bloques),
-    retards: Number(p.retards),
-    derniere: p.derniere,
-    responsableId: p.responsable_id,
-    equipe: membres
-      .filter((m) => m.project_id === p.id)
-      .map((m) => ({
-        id: m.id,
-        email: m.email,
-        first_name: m.first_name,
-        last_name: m.last_name,
-        avatar: m.avatar,
-      })),
-  }));
+  const projets: CarteProjet[] = projetRows.map((p) => {
+    const tech = Number(p.tech);
+    const business = Number(p.business);
+    const total = tech + business;
+    return {
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      logo: p.logo,
+      deployable: p.deployable,
+      semaine: lireSemaine(p),
+      repartition: {
+        tech,
+        business,
+        total,
+        partTech: total ? Math.round((tech / total) * 100) : 0,
+        partBusiness: total ? 100 - Math.round((tech / total) * 100) : 0,
+      },
+      echeance: p.echeance,
+      actifs: Number(p.actifs),
+      bloques: Number(p.bloques),
+      retards: Number(p.retards),
+      derniere: p.derniere,
+      responsableId: p.responsable_id,
+      equipe: membres
+        .filter((m) => m.project_id === p.id)
+        .map((m) => ({
+          id: m.id,
+          email: m.email,
+          first_name: m.first_name,
+          last_name: m.last_name,
+          avatar: m.avatar,
+        })),
+    };
+  });
 
-  // Synthèse du portefeuille : moyenne sur les produits pondérés,
-  // signaux d'alerte agrégés.
-  const pondere = projetRows.filter((p) => Number(p.total) > 0);
-  const avancementMoyen = pondere.length
-    ? Math.round(
-        pondere.reduce(
-          (acc, p) => acc + Number(p.tech) * 0.6 + Number(p.business) * 0.4,
-          0,
-        ) / pondere.length,
-      )
-    : 0;
+  // Synthèse du portefeuille : les signaux d'alerte agrégés. L'avancement
+  // moyen a été retiré (plus de pondération produit).
   const aRisque = projets.filter((p) => p.bloques > 0 || p.retards > 0).length;
   const bloquesTotal = projets.reduce((acc, p) => acc + p.bloques, 0);
   const semaineTotal = projetRows.reduce(
@@ -256,21 +248,8 @@ export default async function AppPage() {
         {projets.length > 0 && (
           <section
             aria-label="Synthèse du portefeuille"
-            className="mb-6 grid grid-cols-2 gap-2.5 lg:grid-cols-4"
+            className="mb-6 grid grid-cols-3 gap-2.5"
           >
-            <Tuile
-              valeur={`${avancementMoyen} %`}
-              label="Avancement du portefeuille"
-              tint="bg-success-soft text-success"
-              ton={
-                avancementMoyen >= 75
-                  ? "text-success"
-                  : avancementMoyen >= 50
-                    ? "text-warn"
-                    : "text-ink"
-              }
-              icone="M3 17l6-6 4 4 8-8m0 0h-5m5 0v5"
-            />
             <Tuile
               valeur={aRisque}
               label="Produits à risque"
