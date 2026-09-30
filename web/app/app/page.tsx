@@ -194,7 +194,9 @@ export default async function AppPage() {
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Navbar user={user} canCreateSujet={canCreateSujet} onglet="produits" />
-      <main className="w-full flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+      {/* Pas de padding-bottom : le bloc viewport-lock plus bas gère
+          la hauteur restante, un pb ajouterait du scroll fantôme. */}
+      <main className="w-full flex-1 px-4 pt-5 sm:px-6 sm:pt-8 lg:px-8">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h1 className="font-display text-2xl font-medium tracking-[-0.02em] text-ink">
             Produits
@@ -249,53 +251,67 @@ export default async function AppPage() {
           </div>
         </div>
 
-        {projets.length > 0 && (
-          <section
-            aria-label="Synthèse du portefeuille"
-            className="mb-6 grid grid-cols-3 gap-2.5"
-          >
-            <Tuile
-              valeur={aRisque}
-              label="Produits à risque"
-              tint="bg-danger-soft text-danger"
-              ton={aRisque > 0 ? "text-danger" : "text-success"}
-              icone="M12 4 2.5 20h19L12 4Zm0 6v4m0 3v.01"
-            />
-            <Tuile
-              valeur={bloquesTotal}
-              label="Sujets bloqués"
-              tint="bg-danger-soft text-danger"
-              ton={bloquesTotal > 0 ? "text-danger" : "text-success"}
-              icone="M7 10V7a5 5 0 0 1 10 0v3m-11 0h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Z"
-              href="/app/actions?filtre=bloques"
-            />
-            <Tuile
-              valeur={semaineTotal}
-              label="Échéances cette semaine"
-              tint="bg-warn-soft text-warn"
-              icone="M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm3-3v4m8-4v4M4 11h16"
-              href="/app/actions?filtre=semaine"
-            />
-          </section>
-        )}
+        {/* Viewport-lock à partir des tuiles synthèse : sur lg+ la hauteur
+            est exactement viewport - navbar (57 px). Une fois qu'on a
+            scrollé la barre du haut (titre + boutons + recherche), les
+            tuiles se calent sous la navbar, et la mosaïque + les
+            transverses défilent en interne sans jamais faire déborder la
+            page. Sur mobile, scroll classique. */}
+        <div className="mt-5 lg:flex lg:h-[calc(100dvh-57px)] lg:flex-col lg:pt-4 lg:pb-4">
+          {projets.length > 0 && (
+            <section
+              aria-label="Synthèse du portefeuille"
+              className="mb-4 grid shrink-0 grid-cols-3 gap-2.5"
+            >
+              <Tuile
+                valeur={aRisque}
+                label="Produits à risque"
+                tint="bg-danger-soft text-danger"
+                ton={aRisque > 0 ? "text-danger" : "text-success"}
+                icone="M12 4 2.5 20h19L12 4Zm0 6v4m0 3v.01"
+              />
+              <Tuile
+                valeur={bloquesTotal}
+                label="Sujets bloqués"
+                tint="bg-danger-soft text-danger"
+                ton={bloquesTotal > 0 ? "text-danger" : "text-success"}
+                icone="M7 10V7a5 5 0 0 1 10 0v3m-11 0h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Z"
+                href="/app/actions?filtre=bloques"
+              />
+              <Tuile
+                valeur={semaineTotal}
+                label="Échéances cette semaine"
+                tint="bg-warn-soft text-warn"
+                icone="M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm3-3v4m8-4v4M4 11h16"
+                href="/app/actions?filtre=semaine"
+              />
+            </section>
+          )}
 
-        {projets.length === 0 ? (
-          <p className="mt-24 text-center text-[15px] text-stone">
-            {dirigeant
-              ? "Aucun produit pour l'instant. Créez le premier avec « Nouveau produit »."
-              : "Vous ne faites partie d'aucun produit pour l'instant."}
-          </p>
-        ) : (
-          <ListeProjets projets={projets} today={today} />
-        )}
+          {/* Zone scrollable : mosaïque des produits puis transverses,
+              une seule barre de défilement pour l'ensemble. Sur mobile
+              (< lg), pas de min-h-0 ni d'overflow, donc la page défile
+              comme d'habitude. */}
+          <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1">
+            {projets.length === 0 ? (
+              <p className="mt-24 text-center text-[15px] text-stone">
+                {dirigeant
+                  ? "Aucun produit pour l'instant. Créez le premier avec « Nouveau produit »."
+                  : "Vous ne faites partie d'aucun produit pour l'instant."}
+              </p>
+            ) : (
+              <ListeProjets projets={projets} today={today} />
+            )}
 
-        {/* Ce qui ne relève d'aucun produit se range ici, sous la grille. */}
-        <div className={projets.length === 0 ? "mt-10" : "mt-7"}>
-          <SujetsTransverses
-            sujets={transverses}
-            peutCreer={dirigeant}
-            today={today}
-          />
+            {/* Ce qui ne relève d'aucun produit se range ici, sous la grille. */}
+            <div className={projets.length === 0 ? "mt-10" : "mt-7"}>
+              <SujetsTransverses
+                sujets={transverses}
+                peutCreer={dirigeant}
+                today={today}
+              />
+            </div>
+          </div>
         </div>
       </main>
       <BottomNav onglet="produits" canCreate={canCreateSujet} />
