@@ -114,8 +114,8 @@ export default function SujetsProjet({
   }
 
   return (
-    <section>
-      <div className="mb-3 flex items-center justify-between">
+    <section className="flex h-full flex-col">
+      <div className="mb-3 flex shrink-0 items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-stone">
           Sujets actifs
         </h2>
@@ -144,7 +144,7 @@ export default function SujetsProjet({
       {erreur && (
         <p
           role="alert"
-          className="mb-2 rounded-lg bg-danger-soft px-3 py-2 text-xs font-medium text-danger"
+          className="mb-2 shrink-0 rounded-lg bg-danger-soft px-3 py-2 text-xs font-medium text-danger"
         >
           {erreur}
         </p>
@@ -153,54 +153,62 @@ export default function SujetsProjet({
       {actifs.length === 0 ? (
         <p className="text-sm text-stone">Aucun sujet actif sur ce produit.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg bg-white shadow-card">
-          {/* table-fixed : les largeurs de colonnes déclarées dans le
-              thead s'imposent, sinon un titre long refuse de tronquer.
-              min-w assure un scroll horizontal en dessous d'un seuil
-              plutôt qu'un tassement illisible. */}
-          <table className="w-full min-w-[720px] table-fixed border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-hairline text-[11px] font-semibold uppercase tracking-wide text-stone">
-                <th scope="col" className="w-12 py-2.5 pl-4 text-left">
-                  <span className="sr-only">Terminé</span>
-                </th>
-                <th scope="col" className="py-2.5 pr-3 text-left font-semibold">
-                  Sujet
-                </th>
-                <th scope="col" className="w-24 py-2.5 pr-3 text-center font-semibold">
-                  Type
-                </th>
-                <th scope="col" className="w-28 py-2.5 pr-3 text-center font-semibold">
-                  Criticité
-                </th>
-                <th scope="col" className="w-28 py-2.5 pr-3 text-center font-semibold">
-                  État
-                </th>
-                <th scope="col" className="w-24 py-2.5 pr-3 text-center font-semibold">
-                  Échéance
-                </th>
-                <th scope="col" className="w-20 py-2.5 pr-4 text-center font-semibold">
-                  Porteur
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-hairline">
-              {actifs.map((s) => (
-                <LigneSujet
-                  key={s.id}
-                  sujet={s}
-                  projet={projet}
-                  today={today}
-                  onCocher={() => cloturer(s)}
-                  onOuvrir={() => setFiche(s)}
-                />
-              ))}
-            </tbody>
-          </table>
+        // min-h-0 pour laisser flex-1 vraiment shrinker sous la hauteur
+        // de son contenu ; overflow-hidden pour que les coins arrondis
+        // clip le contenu scrollable interne.
+        <div className="min-h-0 flex-1 overflow-hidden rounded-lg bg-white shadow-card">
+          <div className="h-full overflow-auto">
+            {/* table-fixed : les largeurs de colonnes déclarées dans le
+                thead s'imposent, sinon un titre long refuse de tronquer.
+                min-w assure un scroll horizontal en dessous d'un seuil
+                plutôt qu'un tassement illisible. */}
+            <table className="w-full min-w-[720px] table-fixed border-collapse text-sm">
+              {/* thead sticky : reste visible en tête pendant le scroll
+                  interne des rows. Fond blanc + border-b sur les th pour
+                  que les rows ne s'aperçoivent pas dessous. */}
+              <thead className="sticky top-0 z-10 bg-white">
+                <tr className="text-[11px] font-semibold uppercase tracking-wide text-stone">
+                  <th scope="col" className="w-12 border-b border-hairline py-2.5 pl-4 text-left">
+                    <span className="sr-only">Terminé</span>
+                  </th>
+                  <th scope="col" className="border-b border-hairline py-2.5 pr-3 text-left font-semibold">
+                    Sujet
+                  </th>
+                  <th scope="col" className="w-24 border-b border-hairline py-2.5 pr-3 text-center font-semibold">
+                    Type
+                  </th>
+                  <th scope="col" className="w-28 border-b border-hairline py-2.5 pr-3 text-center font-semibold">
+                    Criticité
+                  </th>
+                  <th scope="col" className="w-28 border-b border-hairline py-2.5 pr-3 text-center font-semibold">
+                    État
+                  </th>
+                  <th scope="col" className="w-24 border-b border-hairline py-2.5 pr-3 text-center font-semibold">
+                    Échéance
+                  </th>
+                  <th scope="col" className="w-20 border-b border-hairline py-2.5 pr-4 text-center font-semibold">
+                    Porteur
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-hairline">
+                {actifs.map((s) => (
+                  <LigneSujet
+                    key={s.id}
+                    sujet={s}
+                    projet={projet}
+                    today={today}
+                    onCocher={() => cloturer(s)}
+                    onOuvrir={() => setFiche(s)}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
       {termines.length > 0 && (
-        <div className="mt-3">
+        <div className="mt-3 shrink-0">
           <button
             type="button"
             onClick={() => setVoirTermines((v) => !v)}

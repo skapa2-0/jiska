@@ -367,7 +367,7 @@ export default async function ProjetPage({
           </div>
 
           <div className="mt-5 grid gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_380px]">
-            <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+            <div className="min-w-0 lg:min-h-0">
               <SujetsProjet
                 sujets={sujets}
                 projet={projetOption}
