@@ -172,18 +172,26 @@ export default function SujetsProjet({
         </p>
       )}
 
-      {actifs.length === 0 ? (
+      {actifs.length === 0 && termines.length === 0 ? (
         <p className="text-sm text-stone">Aucun sujet actif sur ce produit.</p>
       ) : (
         // min-h-0 pour laisser flex-1 vraiment shrinker sous la hauteur
-        // de son contenu ; overflow-hidden pour que les coins arrondis
-        // clip le contenu scrollable interne.
-        <div className="min-h-0 flex-1 overflow-hidden rounded-lg bg-white shadow-card">
-          <div className="h-full overflow-auto">
-            {/* table-fixed : les largeurs de colonnes déclarées dans le
-                thead s'imposent, sinon un titre long refuse de tronquer.
-                min-w assure un scroll horizontal en dessous d'un seuil
-                plutôt qu'un tassement illisible. */}
+        // de son contenu. overflow-auto (sur les deux axes) porte à la
+        // fois le scroll vertical du tableau + accordéon terminés et le
+        // scroll horizontal si le viewport est trop étroit pour la
+        // table. Le shadow-card et rounded-lg vivent sur ce même
+        // conteneur : l'accordéon des terminés s'intègre dans la carte
+        // au lieu de déborder par-dessus.
+        <div className="min-h-0 flex-1 overflow-auto rounded-lg bg-white shadow-card">
+          {actifs.length === 0 ? (
+            <p className="p-4 text-sm text-stone">
+              Aucun sujet actif sur ce produit.
+            </p>
+          ) : (
+            // table-fixed : les largeurs de colonnes déclarées dans le
+            // thead s'imposent, sinon un titre long refuse de tronquer.
+            // min-w assure un scroll horizontal en dessous d'un seuil
+            // plutôt qu'un tassement illisible.
             <table className="w-full min-w-[720px] table-fixed border-collapse text-sm">
               {/* thead sticky : reste visible en tête pendant le scroll
                   interne des rows. Fond blanc + border-b sur les th pour
@@ -226,78 +234,75 @@ export default function SujetsProjet({
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-      )}
-      {termines.length > 0 && (
-        <div className="mt-3 shrink-0">
-          <button
-            type="button"
-            onClick={() => setVoirTermines((v) => !v)}
-            aria-expanded={voirTermines}
-            className="flex items-center gap-1.5 text-xs font-medium text-stone transition hover:text-ink"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 16 16"
-              className={`h-3.5 w-3.5 transition-transform duration-300 ${voirTermines ? "rotate-90" : ""}`}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m6 4 4 4-4 4" />
-            </svg>
-            {termines.length} sujet{termines.length > 1 ? "s" : ""} terminé
-            {termines.length > 1 ? "s" : ""}
-          </button>
-          {/* Accordéon animé : la grille passe de 0fr à 1fr en 300 ms,
-              ce qui rétrécit / dilate la ligne sans à-coup. Les
-              éléments au-dessus et en dessous (bouton, Équipe) suivent
-              la hauteur naturellement. L'enfant est en overflow-hidden
-              pour ne rien laisser dépasser pendant la transition. */}
-          <div
-            className={`grid transition-[grid-template-rows,margin-top] duration-300 ease-in-out ${
-              voirTermines
-                ? "mt-2 grid-rows-[1fr]"
-                : "mt-0 grid-rows-[0fr]"
-            }`}
-          >
-            <ul className="divide-y divide-hairline overflow-hidden rounded-lg bg-surface/60">
-              {termines.map((s) => (
-                <li
-                  key={s.id}
-                  className="flex items-center gap-3 px-4 py-2.5"
+          )}
+          {termines.length > 0 && (
+            // Accordéon des terminés : vit à l'intérieur de la même
+            // zone scrollable que le tableau. Quand il s'ouvre, la
+            // scrollbar interne prend le relais si la place manque,
+            // au lieu de faire déborder la section hors du viewport.
+            <div className="border-t border-hairline">
+              <button
+                type="button"
+                onClick={() => setVoirTermines((v) => !v)}
+                aria-expanded={voirTermines}
+                className="flex w-full items-center gap-1.5 px-4 py-3 text-xs font-medium text-stone transition hover:bg-surface hover:text-ink"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 16 16"
+                  className={`h-3.5 w-3.5 transition-transform duration-300 ${voirTermines ? "rotate-90" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 16 16"
-                    className="h-3.5 w-3.5 shrink-0 text-success"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="m3 8 3.5 3.5L13 5" />
-                  </svg>
-                  <span className="min-w-0 flex-1 truncate text-sm text-mute line-through">
-                    {s.title}
-                  </span>
-                  {s.can_edit && (
-                    <button
-                      type="button"
-                      onClick={() => rouvrir(s)}
-                      className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-brand transition hover:bg-brand/10"
+                  <path d="m6 4 4 4-4 4" />
+                </svg>
+                {termines.length} sujet{termines.length > 1 ? "s" : ""} terminé
+                {termines.length > 1 ? "s" : ""}
+              </button>
+              <div
+                className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
+                  voirTermines ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                }`}
+              >
+                <ul className="divide-y divide-hairline overflow-hidden border-t border-hairline bg-surface/40">
+                  {termines.map((s) => (
+                    <li
+                      key={s.id}
+                      className="flex items-center gap-3 px-4 py-2.5"
                     >
-                      Rouvrir
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 16 16"
+                        className="h-3.5 w-3.5 shrink-0 text-success"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="m3 8 3.5 3.5L13 5" />
+                      </svg>
+                      <span className="min-w-0 flex-1 truncate text-sm text-mute line-through">
+                        {s.title}
+                      </span>
+                      {s.can_edit && (
+                        <button
+                          type="button"
+                          onClick={() => rouvrir(s)}
+                          className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-brand transition hover:bg-brand/10"
+                        >
+                          Rouvrir
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
