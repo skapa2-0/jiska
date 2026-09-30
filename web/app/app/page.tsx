@@ -8,6 +8,7 @@ import type { SemaineRow } from "@/lib/semaine";
 import BottomNav from "./bottom-nav";
 import Navbar from "./navbar";
 import ListeProjets from "./produits/liste-projets";
+import RechercheInput from "./produits/recherche-input";
 import SujetsTransverses from "./sujets-transverses";
 import type { SujetTransverse } from "./sujets-transverses";
 import type { CarteProjet } from "./produits/liste-projets";
@@ -242,6 +243,7 @@ export default async function AppPage() {
               Passer en revue
             </a>
           )}
+          {projets.length > 0 && <RechercheInput />}
           </div>
         </div>
 

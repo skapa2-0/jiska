@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Avatar, { displayName } from "../avatar";
 import type { Personne } from "../avatar";
 import ProjetLogo from "../projet-logo";
@@ -33,9 +32,10 @@ function joursDepuis(iso: string | null, today: string): number | null {
   return Math.round((Date.parse(today) - Date.parse(iso)) / 86400000);
 }
 
-// Mosaïque unique de tous les produits, ordre alphabétique. Une seule
-// recherche : pas de tri, pas de regroupement en « À risque / En cours /
-// En sommeil » qui compartimentait la vue.
+// Mosaïque unique de tous les produits, ordre alphabétique. La recherche
+// vit dans l'URL (`?q=`) et est portée par le composant RechercheInput
+// posé à côté des boutons en tête de page ; ListeProjets se contente
+// de la lire pour filtrer.
 export default function ListeProjets({
   projets,
   today,
@@ -43,7 +43,8 @@ export default function ListeProjets({
   projets: CarteProjet[];
   today: string;
 }) {
-  const [recherche, setRecherche] = useState("");
+  const params = useSearchParams();
+  const recherche = params.get("q")?.trim() ?? "";
 
   const visibles = [...projets]
     .filter((p) =>
@@ -55,28 +56,14 @@ export default function ListeProjets({
     )
     .sort((a, b) => a.name.localeCompare(b.name, "fr"));
 
-  return (
-    <>
-      <div className="mb-5 flex justify-end">
-        <input
-          type="search"
-          placeholder="Rechercher un produit…"
-          aria-label="Rechercher un produit"
-          value={recherche}
-          onChange={(e) => setRecherche(e.target.value)}
-          className="w-full rounded-lg border border-hairline bg-white px-4 py-2 text-sm text-ink placeholder-stone outline-none transition focus:ring-2 focus:ring-brand sm:w-72"
-        />
-      </div>
-
-      {visibles.length === 0 ? (
-        <p className="mt-20 text-center text-[15px] text-stone">
-          Aucun produit ne correspond à la recherche.
-        </p>
-      ) : (
-        <Grille projets={visibles} today={today} />
-      )}
-    </>
-  );
+  if (visibles.length === 0) {
+    return (
+      <p className="mt-20 text-center text-[15px] text-stone">
+        Aucun produit ne correspond à la recherche.
+      </p>
+    );
+  }
+  return <Grille projets={visibles} today={today} />;
 }
 
 function Grille({
