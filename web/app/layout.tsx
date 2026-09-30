@@ -2,6 +2,8 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { frFR } from "@clerk/localizations";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { NotificationProvider } from "@/lib/notifications";
+import NotifToasts from "./app/notif-toasts";
 import "./globals.css";
 
 // Geist en display (proche de l'Aeonik de la DA), Inter pour le corps.
@@ -49,7 +51,10 @@ export default function RootLayout({
           localization={frFR}
           publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
         >
-          {children}
+          <NotificationProvider>
+            {children}
+            <NotifToasts />
+          </NotificationProvider>
         </ClerkProvider>
       </body>
     </html>

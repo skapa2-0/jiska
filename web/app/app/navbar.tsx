@@ -1,4 +1,5 @@
 import UserMenu from "./user-menu";
+import NotifCloche from "./notif-cloche";
 import { estAdmin } from "@/lib/auth";
 import type { SessionUser } from "@/lib/auth";
 
@@ -58,6 +59,7 @@ export default function Navbar({
             Nouveau produit
           </a>
         )}
+        <NotifCloche />
         <UserMenu user={user} />
       </div>
     </header>

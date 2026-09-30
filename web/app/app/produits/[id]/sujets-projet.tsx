@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { CRITICITES, ETATS, TYPES_SUJET } from "@/lib/sujets";
 import type { SujetRow } from "@/lib/sujets";
+import { useNotifications } from "@/lib/notifications";
 import Avatar, { displayName } from "../../avatar";
 import type { ProjectOption } from "../../dashboard";
 import FicheSujet from "../../fiche-sujet";
@@ -57,8 +58,8 @@ export default function SujetsProjet({
   // Sujets rouverts en optimistic (id → nouvel état pour rester
   // hors des « terminés » le temps que le rendu serveur revienne).
   const [rouvertsOpt, setRouvertsOpt] = useState<Set<string>>(new Set());
-  const [erreur, setErreur] = useState<string | null>(null);
   const [voirTermines, setVoirTermines] = useState(false);
+  const { notifier } = useNotifications();
 
   const estTermineOpt = (s: SujetRow) =>
     (s.etat === "termine" || clotures.has(s.id)) && !rouvertsOpt.has(s.id);
@@ -72,7 +73,6 @@ export default function SujetsProjet({
 
   async function cloturer(s: SujetRow) {
     if (!s.can_edit) return;
-    setErreur(null);
     animerMaj(() => {
       setClotures((prev) => new Set(prev).add(s.id));
       setRouvertsOpt((prev) => {
@@ -99,13 +99,17 @@ export default function SujetsProjet({
         suivant.delete(s.id);
         return suivant;
       });
-      setErreur(e instanceof Error ? e.message : "Échec de la clôture.");
+      notifier({
+        ton: "error",
+        texte: e instanceof Error ? e.message : "Échec de la clôture.",
+        detail: s.title,
+        autoClose: true,
+      });
     }
   }
 
   async function rouvrir(s: SujetRow) {
     if (!s.can_edit) return;
-    setErreur(null);
     animerMaj(() => {
       setRouvertsOpt((prev) => new Set(prev).add(s.id));
       setClotures((prev) => {
@@ -131,7 +135,12 @@ export default function SujetsProjet({
         suivant.delete(s.id);
         return suivant;
       });
-      setErreur(e instanceof Error ? e.message : "Échec de la réouverture.");
+      notifier({
+        ton: "error",
+        texte: e instanceof Error ? e.message : "Échec de la réouverture.",
+        detail: s.title,
+        autoClose: true,
+      });
     }
   }
 
@@ -162,15 +171,6 @@ export default function SujetsProjet({
           </button>
         )}
       </div>
-
-      {erreur && (
-        <p
-          role="alert"
-          className="mb-2 shrink-0 rounded-lg bg-danger-soft px-3 py-2 text-xs font-medium text-danger"
-        >
-          {erreur}
-        </p>
-      )}
 
       {actifs.length === 0 && termines.length === 0 ? (
         <p className="text-sm text-stone">Aucun sujet actif sur ce produit.</p>

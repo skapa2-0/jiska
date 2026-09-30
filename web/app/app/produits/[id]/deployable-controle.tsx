@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useNotifications } from "@/lib/notifications";
 
 // Sur la fiche produit, la déployabilité se lit dans les deux sens et se
 // pose d'un clic : c'est le filet de sécurité de la détection en réunion,
@@ -18,14 +19,13 @@ export default function DeployableControle({
   peutMarquer: boolean;
 }) {
   const router = useRouter();
+  const { notifier } = useNotifications();
   const [deployable, setDeployable] = useState(initial);
   const [chargement, setChargement] = useState(false);
-  const [erreur, setErreur] = useState("");
 
   async function basculer() {
     const cible = !deployable;
     setChargement(true);
-    setErreur("");
     try {
       const res = await fetch(`/api/projects/${projetId}/deployable`, {
         method: "PATCH",
@@ -34,13 +34,21 @@ export default function DeployableControle({
       });
       const data = await res.json();
       if (!res.ok) {
-        setErreur(data.error ?? "Échec du marquage.");
+        notifier({
+          ton: "error",
+          texte: data.error ?? "Échec du marquage.",
+          autoClose: true,
+        });
         return;
       }
       setDeployable(data.deployable);
       router.refresh();
     } catch {
-      setErreur("Impossible de joindre le serveur.");
+      notifier({
+        ton: "error",
+        texte: "Impossible de joindre le serveur.",
+        autoClose: true,
+      });
     } finally {
       setChargement(false);
     }
@@ -56,11 +64,6 @@ export default function DeployableControle({
             ? "Ce produit est annoncé comme livrable."
             : "Ce produit n'est pas annoncé comme livrable."}
         </p>
-        {erreur && (
-          <p role="alert" className="mt-1 text-xs text-danger">
-            {erreur}
-          </p>
-        )}
       </div>
       <button
         type="button"

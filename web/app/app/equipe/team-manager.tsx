@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import Avatar, { displayName } from "../avatar";
 import Confirmation from "../confirmer";
+import { useNotifications } from "@/lib/notifications";
 import { libelleRole } from "@/lib/roles";
 import type { Role } from "@/lib/roles";
 
@@ -27,21 +28,17 @@ export default function TeamManager({
   members: Member[];
   selfId: string;
 }) {
+  const { notifier } = useNotifications();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("collaborateur");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
   const [aSupprimer, setASupprimer] = useState<Member | null>(null);
   // Un envoi d'invitation en cours : sert à désactiver uniquement le
   // bouton concerné, pas toute la page.
   const [envoiId, setEnvoiId] = useState<string | null>(null);
-  const [inviteMsg, setInviteMsg] = useState<{ ok: boolean; text: string } | null>(
-    null,
-  );
 
   async function envoyerInvitation(id: string, adresse: string) {
     setEnvoiId(id);
-    setInviteMsg(null);
     try {
       const res = await fetch(`/api/users/${id}/inviter`, {
         method: "POST",
@@ -50,15 +47,24 @@ export default function TeamManager({
       });
       const data = await res.json();
       if (!res.ok) {
-        setInviteMsg({ ok: false, text: data.error ?? "Échec de l'envoi." });
+        notifier({
+          ton: "error",
+          texte: data.error ?? "Échec de l'envoi.",
+          autoClose: true,
+        });
         return;
       }
-      setInviteMsg({
-        ok: true,
-        text: `Invitation envoyée à ${data.email}.`,
+      notifier({
+        ton: "success",
+        texte: `Invitation envoyée à ${data.email}.`,
+        autoClose: true,
       });
     } catch {
-      setInviteMsg({ ok: false, text: "Impossible de joindre le serveur." });
+      notifier({
+        ton: "error",
+        texte: "Impossible de joindre le serveur.",
+        autoClose: true,
+      });
     } finally {
       setEnvoiId(null);
     }
@@ -67,7 +73,6 @@ export default function TeamManager({
   async function handleCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
-    setMessage("");
     try {
       const res = await fetch("/api/users", {
         method: "POST",
@@ -76,18 +81,31 @@ export default function TeamManager({
       });
       const data = await res.json();
       if (!res.ok) {
-        setMessage(data.error ?? "Échec de la création du compte.");
+        notifier({
+          ton: "error",
+          texte: data.error ?? "Échec de la création du compte.",
+          autoClose: true,
+        });
         return;
       }
       // Le compte peut exister sans que l'invitation soit partie : il
       // faut le dire plutôt que recharger comme si tout allait bien.
       if (data.avertissement) {
-        setMessage(data.avertissement);
+        notifier({
+          ton: "info",
+          texte: data.avertissement,
+          autoClose: false,
+        });
+        window.location.reload();
         return;
       }
       window.location.reload();
     } catch {
-      setMessage("Impossible de joindre le serveur.");
+      notifier({
+        ton: "error",
+        texte: "Impossible de joindre le serveur.",
+        autoClose: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -99,25 +117,16 @@ export default function TeamManager({
     if (res.ok) window.location.reload();
     else {
       const data = await res.json().catch(() => null);
-      setMessage(data?.error ?? "Échec de la suppression.");
+      notifier({
+        ton: "error",
+        texte: data?.error ?? "Échec de la suppression.",
+        autoClose: true,
+      });
     }
   }
 
   return (
     <>
-      {inviteMsg && (
-        <p
-          role="alert"
-          className={`mt-6 rounded-lg px-4 py-3 text-sm ${
-            inviteMsg.ok
-              ? "bg-success-soft text-success"
-              : "bg-danger-soft text-danger"
-          }`}
-        >
-          {inviteMsg.text}
-        </p>
-      )}
-
       <ul className="mt-8 divide-y divide-hairline rounded-lg bg-white shadow-card">
         {members.map((m) => (
           <li key={m.id} className="flex items-center gap-3 px-5 py-3.5">
@@ -213,11 +222,6 @@ export default function TeamManager({
             {loading ? "Envoi…" : "Créer et inviter"}
           </button>
         </div>
-        {message && (
-          <p role="alert" className="mt-3 text-sm text-danger">
-            {message}
-          </p>
-        )}
       </form>
 
       {aSupprimer && (

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useNotifications } from "@/lib/notifications";
 import Avatar, { displayName } from "../avatar";
 
 type Auteur = {
@@ -68,19 +69,16 @@ export default function TicketsManager({
   developeur: boolean;
 }) {
   const router = useRouter();
+  const { notifier } = useNotifications();
   const [titre, setTitre] = useState("");
   const [description, setDescription] = useState("");
   const [priorite, setPriorite] = useState("normale");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(
-    null,
-  );
   const [majId, setMajId] = useState<string | null>(null);
 
   async function creer(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
-    setMessage(null);
     try {
       const res = await fetch("/api/tickets", {
         method: "POST",
@@ -89,16 +87,24 @@ export default function TicketsManager({
       });
       const data = await res.json();
       if (!res.ok) {
-        setMessage({ ok: false, text: data.error ?? "Échec de l'envoi." });
+        notifier({
+          ton: "error",
+          texte: data.error ?? "Échec de l'envoi.",
+          autoClose: true,
+        });
         return;
       }
       setTitre("");
       setDescription("");
       setPriorite("normale");
-      setMessage({ ok: true, text: "Ticket envoyé, merci." });
+      notifier({ ton: "success", texte: "Ticket envoyé, merci.", autoClose: true });
       router.refresh();
     } catch {
-      setMessage({ ok: false, text: "Impossible de joindre le serveur." });
+      notifier({
+        ton: "error",
+        texte: "Impossible de joindre le serveur.",
+        autoClose: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -106,7 +112,6 @@ export default function TicketsManager({
 
   async function changerStatut(id: string, statut: string) {
     setMajId(id);
-    setMessage(null);
     try {
       const res = await fetch(`/api/tickets/${id}`, {
         method: "PATCH",
@@ -115,12 +120,20 @@ export default function TicketsManager({
       });
       const data = await res.json();
       if (!res.ok) {
-        setMessage({ ok: false, text: data.error ?? "Échec de la mise à jour." });
+        notifier({
+          ton: "error",
+          texte: data.error ?? "Échec de la mise à jour.",
+          autoClose: true,
+        });
         return;
       }
       router.refresh();
     } catch {
-      setMessage({ ok: false, text: "Impossible de joindre le serveur." });
+      notifier({
+        ton: "error",
+        texte: "Impossible de joindre le serveur.",
+        autoClose: true,
+      });
     } finally {
       setMajId(null);
     }
@@ -191,18 +204,6 @@ export default function TicketsManager({
         </div>
       </form>
 
-      {message && (
-        <p
-          role="alert"
-          className={`mt-4 rounded-lg px-4 py-3 text-sm ${
-            message.ok
-              ? "bg-success-soft text-success"
-              : "bg-danger-soft text-danger"
-          }`}
-        >
-          {message.text}
-        </p>
-      )}
 
       <h2 className="mt-8 text-sm font-semibold text-ink">
         {developeur ? "Tous les tickets" : "Vos tickets"}
