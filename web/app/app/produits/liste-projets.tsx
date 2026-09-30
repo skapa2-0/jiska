@@ -10,7 +10,6 @@ import { SemaineLigne } from "../semaine";
 import type { Semaine } from "@/lib/semaine";
 import type { Repartition } from "@/lib/sujets";
 import { BarreRepartition } from "../repartition";
-import Select from "../select";
 
 export type CarteProjet = {
   id: string;
@@ -29,24 +28,14 @@ export type CarteProjet = {
   equipe: Personne[];
 };
 
-const TRIS = [
-  { value: "nom", label: "Par nom" },
-  { value: "bloques", label: "Bloqués d'abord" },
-  { value: "actifs", label: "Sujets actifs" },
-  { value: "echeance", label: "Prochaine échéance" },
-];
-
-// Jours d'inactivité au-delà desquels un produit est « en sommeil ».
-const SOMMEIL_JOURS = 14;
-
 function joursDepuis(iso: string | null, today: string): number | null {
   if (!iso) return null;
   return Math.round((Date.parse(today) - Date.parse(iso)) / 86400000);
 }
 
-// Grille des produits avec recherche libre et tri. Par défaut (tri
-// « risque »), les cartes sont regroupées en sections : À risque,
-// En cours, En sommeil.
+// Mosaïque unique de tous les produits, ordre alphabétique. Une seule
+// recherche : pas de tri, pas de regroupement en « À risque / En cours /
+// En sommeil » qui compartimentait la vue.
 export default function ListeProjets({
   projets,
   today,
@@ -55,78 +44,27 @@ export default function ListeProjets({
   today: string;
 }) {
   const [recherche, setRecherche] = useState("");
-  const [tri, setTri] = useState("");
 
-  let visibles = projets.filter((p) => {
-    if (!recherche) return true;
-    return `${p.name} ${p.description}`
-      .toLowerCase()
-      .includes(recherche.toLowerCase());
-  });
-
-  visibles = [...visibles].sort((a, b) => {
-    switch (tri) {
-      case "nom":
-        return a.name.localeCompare(b.name, "fr");
-      case "bloques":
-        return b.bloques - a.bloques;
-      case "actifs":
-        return b.actifs - a.actifs;
-      case "echeance":
-        if (!a.echeance) return 1;
-        if (!b.echeance) return -1;
-        return a.echeance.localeCompare(b.echeance);
-      default: {
-        // Tri par risque : bloqués, puis retards, puis échéance proche.
-        if (a.bloques !== b.bloques) return b.bloques - a.bloques;
-        if (a.retards !== b.retards) return b.retards - a.retards;
-        if (a.echeance !== b.echeance) {
-          if (!a.echeance) return 1;
-          if (!b.echeance) return -1;
-          return a.echeance.localeCompare(b.echeance);
-        }
-        return a.name.localeCompare(b.name, "fr");
-      }
-    }
-  });
-
-  // Sections uniquement dans l'ordre risque : un tri explicite rend
-  // une grille plate.
-  const groupes = [
-    { titre: "À risque", items: [] as CarteProjet[] },
-    { titre: "En cours", items: [] as CarteProjet[] },
-    { titre: "En sommeil", items: [] as CarteProjet[] },
-  ];
-  if (!tri) {
-    for (const p of visibles) {
-      const inactifs = joursDepuis(p.derniere, today);
-      const i =
-        p.bloques > 0 || p.retards > 0
-          ? 0
-          : inactifs === null || inactifs > SOMMEIL_JOURS
-            ? 2
-            : 1;
-      groupes[i].items.push(p);
-    }
-  }
+  const visibles = [...projets]
+    .filter((p) =>
+      recherche
+        ? `${p.name} ${p.description}`
+            .toLowerCase()
+            .includes(recherche.toLowerCase())
+        : true,
+    )
+    .sort((a, b) => a.name.localeCompare(b.name, "fr"));
 
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        <Select
-          ariaLabel="Trier les produits"
-          placeholder="Risque d'abord"
-          value={tri}
-          onChange={setTri}
-          options={TRIS}
-        />
+      <div className="mb-5 flex justify-end">
         <input
           type="search"
           placeholder="Rechercher un produit…"
           aria-label="Rechercher un produit"
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
-          className="ml-auto w-full rounded-lg border border-hairline bg-white px-4 py-2 text-sm text-ink placeholder-stone outline-none transition focus:ring-2 focus:ring-brand sm:w-72"
+          className="w-full rounded-lg border border-hairline bg-white px-4 py-2 text-sm text-ink placeholder-stone outline-none transition focus:ring-2 focus:ring-brand sm:w-72"
         />
       </div>
 
@@ -134,23 +72,8 @@ export default function ListeProjets({
         <p className="mt-20 text-center text-[15px] text-stone">
           Aucun produit ne correspond à la recherche.
         </p>
-      ) : tri ? (
-        <Grille projets={visibles} today={today} />
       ) : (
-        groupes.map(
-          (g) =>
-            g.items.length > 0 && (
-              <section key={g.titre} className="mb-7 last:mb-0">
-                <h2 className="mb-3 flex items-baseline gap-2 text-sm font-semibold uppercase tracking-wide text-stone">
-                  {g.titre}
-                  <span className="font-medium normal-case tracking-normal">
-                    {g.items.length}
-                  </span>
-                </h2>
-                <Grille projets={g.items} today={today} />
-              </section>
-            ),
-        )
+        <Grille projets={visibles} today={today} />
       )}
     </>
   );
