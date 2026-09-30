@@ -73,21 +73,11 @@ export default function BlocSemaine({ semaine }: { semaine: Semaine }) {
             <span className="font-display text-2xl font-medium text-ink">
               {semaine.avancement} %
             </span>
-            <div className="relative h-2 min-w-0 flex-1 rounded-full bg-surface">
+            <div className="h-2 min-w-0 flex-1 rounded-full bg-surface">
               <div
                 className={`h-full rounded-full ${ton(semaine.avancement)}`}
                 style={{ width: `${semaine.avancement}%` }}
               />
-              {/* Repère du point de départ : où en était ce même périmètre
-                  quand la réunion a été clôturée. Le chemin parcouru se
-                  lit d'un coup d'œil, sans lire le chiffre. */}
-              {semaine.depart !== null && semaine.depart > 0 && (
-                <span
-                  aria-hidden="true"
-                  className="absolute top-[-3px] h-[14px] w-px bg-ink/45"
-                  style={{ left: `${semaine.depart}%` }}
-                />
-              )}
             </div>
           </div>
           <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium">
