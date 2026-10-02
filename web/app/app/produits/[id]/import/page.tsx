@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { canManageSujets, estAdmin, getSessionUser, isResponsable } from "@/lib/auth";
+import { canManageSujets, estAdmin, estDansUnProjet, getSessionUser } from "@/lib/auth";
 import { chargerImport, chargerImportsEnAttente } from "@/lib/imports";
 import BottomNav from "../../../bottom-nav";
 import Navbar from "../../../navbar";
@@ -29,7 +29,7 @@ export default async function ImportProduitPage({
     chargerProduits(id),
     chargerImportsEnAttente(id),
     repriseId ? chargerImport(repriseId, id) : Promise.resolve(null),
-    estAdmin(user) ? Promise.resolve(true) : isResponsable(user.id),
+    estAdmin(user) ? Promise.resolve(true) : estDansUnProjet(user.id),
   ]);
 
   const produit = produits[0];

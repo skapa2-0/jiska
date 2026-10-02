@@ -62,7 +62,9 @@ export default async function ActionsPage({
          ${sqlSemainePortefeuille(vis)}`,
       visParams,
     ),
-    query<SujetRow & { is_proj_resp: boolean }>(
+    query<SujetRow & { is_proj_member: boolean }>(
+      // is_proj_member : être membre du produit suffit désormais pour
+      // tout modifier dedans (anciennement réservé au responsable).
       `SELECT s.id, s.project_id,
               COALESCE(p.name, '${NOM_TRANSVERSE}') AS project_name,
               ${sqlLogoUrl("p")} AS project_logo, s.title, s.action,
@@ -71,8 +73,7 @@ export default async function ActionsPage({
               s.criticite, s.etat, s.commentaire,
               EXISTS (SELECT 1 FROM project_members m
                        WHERE m.project_id = s.project_id
-                         AND m.user_id = $${visParams.length + 1}
-                         AND m.is_responsable) AS is_proj_resp
+                         AND m.user_id = $${visParams.length + 1}) AS is_proj_member
          FROM sujets s
          LEFT JOIN projects p ON p.id = s.project_id
         WHERE s.project_id IS NULL OR s.project_id IN (${vis})
@@ -83,14 +84,13 @@ export default async function ActionsPage({
       id: string;
       name: string;
       logo: string | null;
-      is_resp: boolean;
+      is_member: boolean;
       responsable_id: string | null;
     }>(
       `SELECT p.id, p.name, ${sqlLogoUrl("p")} AS logo,
               EXISTS (SELECT 1 FROM project_members m
                        WHERE m.project_id = p.id
-                         AND m.user_id = $${visParams.length + 1}
-                         AND m.is_responsable) AS is_resp,
+                         AND m.user_id = $${visParams.length + 1}) AS is_member,
               (SELECT m.user_id FROM project_members m
                 WHERE m.project_id = p.id AND m.is_responsable LIMIT 1) AS responsable_id
          FROM projects p
@@ -124,7 +124,7 @@ export default async function ActionsPage({
     name: p.name,
     logo: p.logo,
     responsableId: p.responsable_id,
-    canManage: dirigeant || p.is_resp,
+    canManage: dirigeant || p.is_member,
     members: memberRows
       .filter((m) => m.project_id === p.id)
       .map((m) => ({
@@ -138,8 +138,8 @@ export default async function ActionsPage({
 
   const sujets = sujetRows.map((s) => ({
     ...s,
-    can_manage: dirigeant || s.is_proj_resp,
-    can_edit: dirigeant || s.is_proj_resp || s.porteur_id === user.id,
+    can_manage: dirigeant || s.is_proj_member,
+    can_edit: dirigeant || s.is_proj_member || s.porteur_id === user.id,
   }));
 
   const canCreateSujet = dirigeant || projects.some((p) => p.canManage);

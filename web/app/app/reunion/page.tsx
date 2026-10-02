@@ -43,8 +43,7 @@ export default async function ReunionPage() {
                 WHERE m.project_id = p.id AND m.is_responsable LIMIT 1) AS responsable_id,
               EXISTS (SELECT 1 FROM project_members m
                        WHERE m.project_id = p.id
-                         AND m.user_id = $${visParams.length + 1}
-                         AND m.is_responsable) AS is_resp
+                         AND m.user_id = $${visParams.length + 1}) AS is_resp
          FROM projects p
         WHERE p.id IN (${vis})
         ORDER BY p.name`,

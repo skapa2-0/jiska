@@ -1,18 +1,13 @@
 import { NextResponse } from "next/server";
-import { estAdmin, getSessionUser } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 
-// Création de projet : dirigeants uniquement. Les membres sont ajoutés
-// d'un coup, avec un responsable désigné parmi eux.
+// Création de projet : ouvert à toute personne authentifiée. Les
+// membres sont ajoutés d'un coup, avec un responsable désigné parmi
+// eux. (La suppression reste admin-only — destructif.)
 export async function POST(request: Request) {
   const me = await getSessionUser();
   if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
-  if (!estAdmin(me)) {
-    return NextResponse.json(
-      { error: "Seuls les dirigeants peuvent créer un produit." },
-      { status: 403 },
-    );
-  }
 
   let body: {
     name?: string;

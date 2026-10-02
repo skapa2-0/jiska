@@ -1,11 +1,10 @@
 import UserMenu from "./user-menu";
 import NotifCloche from "./notif-cloche";
-import { estAdmin } from "@/lib/auth";
 import type { SessionUser } from "@/lib/auth";
 
 // Barre du haut de l'espace : les actions dépendent des permissions.
-// « Nouveau produit » : dirigeants seuls. « Nouveau sujet » : dirigeants
-// et responsables de projet.
+// « Nouveau produit » : ouvert à tout utilisateur authentifié.
+// « Nouveau sujet » : tout membre d'au moins un produit (ou admin).
 export type Onglet = "produits" | "actions";
 
 export default function Navbar({
@@ -50,15 +49,13 @@ export default function Navbar({
             Nouveau sujet
           </a>
         )}
-        {estAdmin(user) && (
-          <a
-            href="/app/produits/nouveau"
-            className="hidden items-center gap-1.5 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85 md:flex"
-          >
-            <PlusIcon />
-            Nouveau produit
-          </a>
-        )}
+        <a
+          href="/app/produits/nouveau"
+          className="hidden items-center gap-1.5 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85 md:flex"
+        >
+          <PlusIcon />
+          Nouveau produit
+        </a>
         <NotifCloche />
         <UserMenu user={user} />
       </div>

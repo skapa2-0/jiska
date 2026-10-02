@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { estAdmin, getSessionUser } from "@/lib/auth";
+import { estAdmin, estMembre, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 
 const LOGO_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
@@ -30,7 +30,8 @@ async function dirigeantEtProjet(id: string) {
 }
 
 // Modification d'un projet (nom, description, logo, membres,
-// responsable) : dirigeants seuls.
+// responsable) : tout membre du projet, ou dirigeant / développeur.
+// La suppression (DELETE) reste réservée aux admins — c'est destructif.
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -46,6 +47,12 @@ export async function PATCH(
   if (existe.length === 0) {
     return NextResponse.json({ error: "Produit introuvable." }, { status: 404 });
   }
+  if (!(await estMembre(me, id))) {
+    return NextResponse.json(
+      { error: "Seuls les membres du produit peuvent le modifier." },
+      { status: 403 },
+    );
+  }
 
   let body: {
     name?: string;
@@ -59,13 +66,6 @@ export async function PATCH(
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
-  }
-
-  if (!estAdmin(me)) {
-    return NextResponse.json(
-      { error: "Seuls les dirigeants peuvent gérer un produit." },
-      { status: 403 },
-    );
   }
 
   const sets: string[] = [];

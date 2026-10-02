@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
-import { estAdmin, getSessionUser } from "@/lib/auth";
+import { estMembre, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
 import BottomNav from "../../../bottom-nav";
 import Navbar from "../../../navbar";
 import ProjetForm from "../../projet-form";
 
-// Édition d'un projet : réservée aux dirigeants.
+// Édition d'un projet : ouverte à tout membre du projet (ou admin).
 export default async function ModifierProjetPage({
   params,
 }: {
@@ -14,10 +14,10 @@ export default async function ModifierProjetPage({
 }) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  if (!estAdmin(user)) redirect("/app");
 
   const { id } = await params;
   if (!/^\d+$/.test(id)) redirect("/app");
+  if (!(await estMembre(user, id))) redirect("/app");
 
   const [projets, membres, people] = await Promise.all([
     query<{

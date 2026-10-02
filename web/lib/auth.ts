@@ -60,16 +60,41 @@ export async function isResponsable(userId: string): Promise<boolean> {
   return rows.length > 0;
 }
 
-// Peut gérer les sujets d'un projet (créer, tout modifier, supprimer) :
-// dirigeant, ou responsable de ce projet.
-export async function canManageSujets(
+// Vrai dès que l'utilisateur fait partie d'au moins un produit, tous
+// rôles confondus. Sert à décider si on affiche « Nouveau sujet »
+// dans la navbar : tout membre d'un produit peut créer un sujet dans
+// ce produit (plus seulement le responsable).
+export async function estDansUnProjet(userId: string): Promise<boolean> {
+  const rows = await query(
+    "SELECT 1 FROM project_members WHERE user_id = $1 LIMIT 1",
+    [userId],
+  );
+  return rows.length > 0;
+}
+
+// Vrai si l'utilisateur fait partie du projet (membre ou responsable).
+// Sert à ouvrir aux collaborateurs les actions auparavant réservées au
+// responsable : édition du produit, création / clôture de sujets,
+// import de réunion, bascule du déployable. Un dirigeant garde tous
+// les droits même sans être membre explicitement.
+export async function estMembre(
   user: SessionUser,
   projectId: string,
 ): Promise<boolean> {
   if (estAdmin(user)) return true;
   const rows = await query(
-    "SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2 AND is_responsable",
+    "SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2 LIMIT 1",
     [projectId, user.id],
   );
   return rows.length > 0;
+}
+
+// Alias historique conservé pour les appels existants : « peut gérer les
+// sujets d'un projet » = être membre de ce projet (ou admin). La notion
+// de « seul responsable gérant » a été ouverte à tous les membres.
+export async function canManageSujets(
+  user: SessionUser,
+  projectId: string,
+): Promise<boolean> {
+  return estMembre(user, projectId);
 }

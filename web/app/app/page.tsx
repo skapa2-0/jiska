@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { estAdmin, getSessionUser, isResponsable } from "@/lib/auth";
+import { estAdmin, estDansUnProjet, getSessionUser } from "@/lib/auth";
 import { chargerImportsEnAttente } from "@/lib/imports";
 import { query } from "@/lib/db";
 import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
@@ -185,7 +185,7 @@ export default async function AppPage() {
       : null,
   }));
 
-  const canCreateSujet = dirigeant || (await isResponsable(user.id));
+  const canCreateSujet = dirigeant || (await estDansUnProjet(user.id));
   // Une analyse déjà payée qui dort en base doit se voir depuis l'accueil.
   const enAttente = dirigeant ? await chargerImportsEnAttente(null) : [];
 

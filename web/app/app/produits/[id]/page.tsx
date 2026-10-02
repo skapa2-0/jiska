@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { estAdmin, getSessionUser, isResponsable } from "@/lib/auth";
+import { estAdmin, estDansUnProjet, getSessionUser } from "@/lib/auth";
 import { chargerImportsEnAttente } from "@/lib/imports";
 import { query } from "@/lib/db";
 import { sqlAvatarUrl, sqlLogoUrl } from "@/lib/media";
@@ -181,7 +181,11 @@ export default async function ProjetPage({
       },
     ]),
   );
-  const canManage = dirigeant || equipe.some((m) => m.id === user.id && m.is_responsable);
+  // Un membre du produit (quel que soit son rôle plateforme) peut
+  // désormais tout modifier dans ce produit : créer / clôturer des
+  // sujets, marquer le déployable, éditer les paramètres. La
+  // suppression du produit reste admin-only.
+  const canManage = dirigeant || equipe.some((m) => m.id === user.id);
 
   const repartition = repartitionSujets(sujetRows);
 
@@ -249,7 +253,7 @@ export default async function ProjetPage({
   const actifs = sujets.filter((s) => s.etat !== "termine");
   const termines = sujets.length - actifs.length;
   const bloques = actifs.filter((s) => s.etat === "bloque").length;
-  const canCreateSujet = dirigeant || (await isResponsable(user.id));
+  const canCreateSujet = dirigeant || (await estDansUnProjet(user.id));
   const importsEnAttente = canManage ? await chargerImportsEnAttente(id) : [];
   const today = new Date().toISOString().slice(0, 10);
 
@@ -299,7 +303,7 @@ export default async function ProjetPage({
                 )}
               </a>
             )}
-            {dirigeant && (
+            {canManage && (
               <a
                 href={`/app/produits/${projet.id}/modifier`}
                 className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85"

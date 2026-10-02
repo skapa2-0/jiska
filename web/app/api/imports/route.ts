@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     }
   } else if (!(await canManageSujets(me, projectId))) {
     return NextResponse.json(
-      { error: "Seuls les dirigeants et le responsable du produit peuvent importer." },
+      { error: "Seuls les membres du produit peuvent importer une réunion de produit." },
       { status: 403 },
     );
   }
