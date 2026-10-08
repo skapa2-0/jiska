@@ -76,6 +76,8 @@ export default async function ProjetPage({
       logo: string | null;
       deployable: boolean;
       created_at: string;
+      resume_ia: string | null;
+      resume_ia_date: string | null;
       sem_engages: string;
       sem_avancement: string | null;
       sem_termines: string;
@@ -86,6 +88,8 @@ export default async function ProjetPage({
       `SELECT p.id, p.name, p.description, p.deployable,
               ${sqlLogoUrl("p")} AS logo,
               p.created_at::date::text AS created_at,
+              p.resume_ia,
+              p.resume_ia_date::text AS resume_ia_date,
               ${sqlSemaine("p")}
          FROM projects p WHERE p.id = $1`,
       [id],
@@ -319,6 +323,26 @@ export default async function ProjetPage({
             </a>
           </div>
         </div>
+
+        {/* Résumé IA : bref contexte dit à la dernière réunion appliquée
+            qui parlait du produit. Hors viewport-lock : il scrolle avec
+            l'en-tête, ne vient pas s'intercaler sous la navbar quand on
+            scrolle. Rien à afficher tant qu'aucun import appliqué pour ce
+            produit : pas de bandeau vide. */}
+        {projet.resume_ia && (
+          <div
+            className="mt-4 rounded-lg bg-surface px-4 py-2.5 text-sm text-ink"
+            aria-label="Résumé IA du produit"
+          >
+            <p className="leading-snug">{projet.resume_ia}</p>
+            {projet.resume_ia_date && (
+              <p className="mt-1 text-xs text-mute">
+                Résumé IA : réunion du{" "}
+                {projet.resume_ia_date.split("-").reverse().join("/")}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Bloc « viewport-lock » à partir d'Avancement de la semaine :
             sur lg+ il fait exactement viewport - navbar (57 px). Une

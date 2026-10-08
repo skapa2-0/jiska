@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { canManageSujets, estAdmin, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import type { Proposition, PropositionDeploiement } from "@/lib/extraction";
+import { genererResume } from "@/lib/resume-projet";
+import type { Criticite, Etat, TypeSujet } from "@/lib/sujets";
 import {
   appliquerPatch,
   chargerSujet,
@@ -79,8 +81,11 @@ export async function POST(
     propositions: Proposition[];
     deploiements: PropositionDeploiement[];
     statut: string;
+    transcript: string;
+    date_reunion: string;
   }>(
-    `SELECT project_id, propositions, deploiements, statut
+    `SELECT project_id, propositions, deploiements, statut, transcript,
+            date_reunion::text AS date_reunion
        FROM reunion_imports WHERE id = $1`,
     [id],
   );
@@ -117,6 +122,10 @@ export async function POST(
   let creations = 0;
   let deploiements = 0;
   const erreurs: { ref: string; message: string }[] = [];
+  // Produits touchés avec succès par au moins une proposition retenue :
+  // sert à ne régénérer le résumé IA que de ceux qu'évoque la réunion.
+  // Les sujets transverses (projectId null) sont exclus volontairement.
+  const produitsTouches = new Set<string>();
 
   for (const r of retenues) {
     const origine = origines.get(r.ref);
@@ -147,6 +156,7 @@ export async function POST(
         continue;
       }
       majs += 1;
+      if (r.projectId) produitsTouches.add(r.projectId);
     } else {
       const res = await creerSujet(
         me,
@@ -159,6 +169,7 @@ export async function POST(
         continue;
       }
       creations += 1;
+      if (r.projectId) produitsTouches.add(r.projectId);
     }
 
     await apprendre(me.id, origine, r);
@@ -195,6 +206,47 @@ export async function POST(
     traites.add(annonce.projectId);
     deploiements += 1;
   }
+
+  // Résumés IA : un appel modèle par produit touché. En parallèle pour que
+  // la latence totale ne soit pas la somme. Un échec par produit est
+  // silencieux (resume_ia reste à sa valeur précédente), on ne veut pas
+  // qu'une coupure du modèle rejette l'application d'un import.
+  await Promise.all(
+    [...produitsTouches].map(async (projectId) => {
+      const [produit] = await query<{ name: string; description: string }>(
+        "SELECT name, description FROM projects WHERE id = $1",
+        [projectId],
+      );
+      if (!produit) return;
+      const sujets = await query<{
+        title: string;
+        type: TypeSujet;
+        etat: Etat;
+        criticite: Criticite;
+        action: string;
+      }>(
+        `SELECT title, type, etat, criticite, action
+           FROM sujets WHERE project_id = $1
+          ORDER BY (etat = 'termine'), id`,
+        [projectId],
+      );
+      const resume = await genererResume(
+        { nom: produit.name, description: produit.description, sujets },
+        imp.date_reunion,
+        imp.transcript,
+      );
+      if (resume) {
+        await query(
+          `UPDATE projects
+              SET resume_ia = $1,
+                  resume_ia_date = $2,
+                  resume_ia_import_id = $3
+            WHERE id = $4`,
+          [resume, imp.date_reunion, id, projectId],
+        );
+      }
+    }),
+  );
 
   await query(
     "UPDATE reunion_imports SET statut = 'applique', applied_at = now() WHERE id = $1",

@@ -164,6 +164,16 @@ function ensureSchema(): Promise<void> {
        -- de validation humaine (table créée avant l'ajout de la colonne).
        ALTER TABLE reunion_imports ADD COLUMN IF NOT EXISTS deploiements jsonb
          NOT NULL DEFAULT '[]'::jsonb;
+       -- Résumé IA du produit : 2-3 phrases, calées sur la dernière réunion
+       -- appliquée qui parlait du produit. NULL tant qu'aucun import appliqué.
+       -- La saisie manuelle de sujets ne le rafraîchit pas : c'est volontaire,
+       -- on veut le contexte dit en réunion, pas un résumé auto-maintenu.
+       -- La colonne resume_ia_import_id référence reunion_imports : d'où ce
+       -- bloc placé APRÈS la création de reunion_imports.
+       ALTER TABLE projects ADD COLUMN IF NOT EXISTS resume_ia text;
+       ALTER TABLE projects ADD COLUMN IF NOT EXISTS resume_ia_date date;
+       ALTER TABLE projects ADD COLUMN IF NOT EXISTS resume_ia_import_id bigint
+         REFERENCES reunion_imports(id) ON DELETE SET NULL;
        -- Lexique : un terme entendu en réunion vers un produit ou un sujet.
        -- Alimenté quand l'utilisateur corrige la cible d'une proposition.
        CREATE TABLE IF NOT EXISTS lexique (
