@@ -27,6 +27,15 @@ export type ProduitImport = {
   sujets: { id: string; titre: string }[];
 };
 
+type ReunionFireflies = {
+  id: string;
+  titre: string;
+  dateReunion: string;
+  heureLocale: string;
+  dureeMinutes: number;
+  nbParticipants: number;
+};
+
 type Statut = "attente" | "accepte" | "rejete";
 
 // Un import déjà analysé, rouvert pour être vérifié : l'analyse coûte une
@@ -126,6 +135,13 @@ export default function ImportTranscript({
   const [bilan, setBilan] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Sélecteur Fireflies : liste des réunions du lundi vers 11h récupérées
+  // depuis le compte Fireflies. null = pas encore demandée, [] = demandée
+  // et vide, remplie = à afficher. Réservée à la portée portefeuille.
+  const [ffReunions, setFfReunions] = useState<ReunionFireflies[] | null>(null);
+  const [ffChargement, setFfChargement] = useState(false);
+  const [ffErreur, setFfErreur] = useState("");
+
   const parId = useMemo(
     () => new Map(produits.map((p) => [p.id, p])),
     [produits],
@@ -135,6 +151,63 @@ export default function ImportTranscript({
     for (const p of produits) for (const u of p.membres) m.set(u.id, u);
     return m;
   }, [produits]);
+
+  async function chargerFireflies() {
+    setFfChargement(true);
+    setFfErreur("");
+    try {
+      const res = await fetch("/api/fireflies/reunions-lundi");
+      const data = await res.json();
+      if (!res.ok) {
+        setFfErreur(data.error ?? "Échec Fireflies.");
+        setFfReunions([]);
+        return;
+      }
+      setFfReunions(data.reunions ?? []);
+    } catch {
+      setFfErreur("Impossible de joindre Fireflies.");
+      setFfReunions([]);
+    } finally {
+      setFfChargement(false);
+    }
+  }
+
+  // Import d'une réunion Fireflies : saute l'étape de collage, l'API
+  // récupère le transcript et lance l'analyse en une seule fois.
+  async function analyserFireflies(firefliesId: string) {
+    setChargement(true);
+    setMessage("");
+    try {
+      const res = await fetch("/api/fireflies/importer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ firefliesId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage(data.error ?? "Échec de l'import.");
+        return;
+      }
+      setImportId(data.id);
+      setPropositions(data.propositions);
+      setEcartes(data.ecartes ?? []);
+      setDeploiements(data.deploiements ?? []);
+      setChampsInitiaux(figerChamps(data.propositions ?? []));
+      setStatuts(
+        Object.fromEntries(
+          [
+            ...(data.propositions as Proposition[]),
+            ...((data.deploiements ?? []) as PropositionDeploiement[]),
+          ].map((p) => [p.ref, "attente" as Statut]),
+        ),
+      );
+      if (data.dateReunion) setDateReunion(data.dateReunion);
+    } catch {
+      setMessage("Impossible de joindre le serveur.");
+    } finally {
+      setChargement(false);
+    }
+  }
 
   async function analyser() {
     setChargement(true);
@@ -282,6 +355,72 @@ export default function ImportTranscript({
   if (!importId) {
     return (
       <div className="mt-8 max-w-2xl">
+        {porteeProjetId === null && (
+          <section className="mb-8 rounded-lg bg-surface p-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-sm font-semibold text-ink">
+                Depuis Fireflies
+              </h2>
+              <p className="text-xs text-stone">
+                Réunions détectées le lundi vers 11h
+              </p>
+            </div>
+            {ffReunions === null && (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={chargerFireflies}
+                  disabled={ffChargement || chargement}
+                  className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {ffChargement ? "Chargement…" : "Charger les réunions"}
+                </button>
+                {ffErreur && (
+                  <p role="alert" className="mt-3 text-sm text-danger">
+                    {ffErreur}
+                  </p>
+                )}
+              </div>
+            )}
+            {ffReunions !== null && ffReunions.length === 0 && !ffErreur && (
+              <p className="mt-4 text-sm text-mute">
+                Aucune réunion du lundi vers 11h sur les 50 dernières de Fireflies.
+              </p>
+            )}
+            {ffReunions !== null && ffReunions.length > 0 && (
+              <ul className="mt-4 space-y-2">
+                {ffReunions.map((r) => (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      onClick={() => analyserFireflies(r.id)}
+                      disabled={chargement}
+                      className="group block w-full rounded-lg bg-white p-3 text-left shadow-card transition hover:ring-2 hover:ring-brand disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <p className="line-clamp-1 text-sm font-semibold text-ink">
+                        {r.titre}
+                      </p>
+                      <p className="mt-0.5 text-xs text-mute">
+                        {jolieDate(r.dateReunion)} à {r.heureLocale} ·{" "}
+                        {r.dureeMinutes} min · {r.nbParticipants} participants
+                      </p>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {ffReunions !== null && ffErreur && (
+              <p role="alert" className="mt-3 text-sm text-danger">
+                {ffErreur}
+              </p>
+            )}
+            <p className="mt-4 text-xs text-stone">
+              Si la réunion que vous cherchez n&apos;apparaît pas, utilisez le
+              dépôt manuel ci-dessous.
+            </p>
+          </section>
+        )}
+
         <label className="mb-2 block text-sm font-medium text-ink">
           Date de la réunion
         </label>

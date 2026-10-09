@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { canManageSujets, estAdmin, getSessionUser } from "@/lib/auth";
-import { query } from "@/lib/db";
-import { chargerCatalogue, extraire } from "@/lib/extraction";
+import { lancerAnalyseImport } from "@/lib/imports";
 
 // Une réunion d'une heure fait rarement plus de 200 000 caractères ;
 // au-delà c'est un fichier qui n'a rien à faire ici.
@@ -65,39 +64,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const catalogue = await chargerCatalogue(projectId);
-  if (catalogue.produits.length === 0) {
-    return NextResponse.json(
-      { error: "Aucun produit à analyser." },
-      { status: 400 },
-    );
-  }
-
-  let resultat;
   try {
-    resultat = await extraire(catalogue, dateReunion, transcript);
+    const resultat = await lancerAnalyseImport(me.id, projectId, dateReunion, transcript);
+    return NextResponse.json({ ok: true, ...resultat }, { status: 201 });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Échec de l'analyse." },
       { status: 502 },
     );
   }
-
-  const rows = await query<{ id: string }>(
-    `INSERT INTO reunion_imports
-       (project_id, date_reunion, transcript, propositions, ecartes,
-        deploiements, created_by)
-     VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7) RETURNING id`,
-    [
-      projectId,
-      dateReunion,
-      transcript,
-      JSON.stringify(resultat.propositions),
-      JSON.stringify(resultat.ecartes),
-      JSON.stringify(resultat.deploiements),
-      me.id,
-    ],
-  );
-
-  return NextResponse.json({ ok: true, id: rows[0].id, ...resultat }, { status: 201 });
 }

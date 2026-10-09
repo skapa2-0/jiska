@@ -5,7 +5,8 @@
 // ces fonctions permettent de les retrouver.
 
 import { query } from "./db";
-import type { Proposition, PropositionDeploiement } from "./extraction";
+import { chargerCatalogue, extraire } from "./extraction";
+import type { Proposition, PropositionDeploiement, Resultat } from "./extraction";
 
 export type ImportEnAttente = {
   id: string;
@@ -87,4 +88,38 @@ export async function chargerImport(
         deploiements: r.deploiements ?? [],
       }
     : null;
+}
+
+// Analyse d'un transcript et insertion d'un import en attente de revue.
+// Factorisé pour que la saisie par collage (/api/imports) et la
+// récupération automatique Fireflies (/api/fireflies/importer) suivent
+// exactement le même chemin : mêmes garanties, même format en sortie.
+// L'auteur et l'autorisation sont vérifiés par la route appelante.
+export async function lancerAnalyseImport(
+  auteurId: string,
+  projectId: string | null,
+  dateReunion: string,
+  transcript: string,
+): Promise<{ id: string } & Resultat> {
+  const catalogue = await chargerCatalogue(projectId);
+  if (catalogue.produits.length === 0) {
+    throw new Error("Aucun produit à analyser.");
+  }
+  const resultat = await extraire(catalogue, dateReunion, transcript);
+  const rows = await query<{ id: string }>(
+    `INSERT INTO reunion_imports
+       (project_id, date_reunion, transcript, propositions, ecartes,
+        deploiements, created_by)
+     VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7) RETURNING id`,
+    [
+      projectId,
+      dateReunion,
+      transcript,
+      JSON.stringify(resultat.propositions),
+      JSON.stringify(resultat.ecartes),
+      JSON.stringify(resultat.deploiements),
+      auteurId,
+    ],
+  );
+  return { id: rows[0].id, ...resultat };
 }
