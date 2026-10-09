@@ -353,144 +353,163 @@ export default function ImportTranscript({
 
   // ---------- Dépôt ----------
   if (!importId) {
+    const avecFireflies = porteeProjetId === null;
+    // Deux colonnes quand on a Fireflies (portée portefeuille), une
+    // colonne compacte sinon (import produit). Grid plutôt qu'empilement
+    // vertical pour que la page tienne dans un viewport desktop sans
+    // scroll.
+    const grille = avecFireflies
+      ? "mt-6 grid gap-5 lg:grid-cols-2"
+      : "mt-6 max-w-2xl";
     return (
-      <div className="mt-8 max-w-2xl">
-        {porteeProjetId === null && (
-          <section className="mb-8 rounded-lg bg-surface p-5">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <div className={grille}>
+        {avecFireflies && (
+          <section className="rounded-lg bg-surface p-4">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-semibold text-ink">
                 Depuis Fireflies
               </h2>
-              <p className="text-xs text-stone">
-                Réunions détectées le lundi vers 11h
-              </p>
-            </div>
-            {ffReunions === null && (
-              <div className="mt-4">
+              {ffReunions === null ? (
                 <button
                   type="button"
                   onClick={chargerFireflies}
                   disabled={ffChargement || chargement}
-                  className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  {ffChargement ? "Chargement…" : "Charger les réunions"}
+                  {ffChargement ? "…" : "Charger"}
                 </button>
-                {ffErreur && (
-                  <p role="alert" className="mt-3 text-sm text-danger">
-                    {ffErreur}
-                  </p>
-                )}
-              </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={chargerFireflies}
+                  disabled={ffChargement || chargement}
+                  aria-label="Rafraîchir la liste"
+                  className="rounded-lg border border-hairline bg-white px-2.5 py-1 text-xs font-medium text-mute transition hover:bg-surface disabled:opacity-40"
+                >
+                  Rafraîchir
+                </button>
+              )}
+            </div>
+            <p className="mt-0.5 text-xs text-stone">
+              Lundi vers 11h, 10 plus récentes
+            </p>
+            {ffReunions === null && !ffErreur && (
+              <p className="mt-3 text-xs text-mute">
+                Clique sur « Charger » pour voir les réunions.
+              </p>
+            )}
+            {ffErreur && (
+              <p role="alert" className="mt-3 text-sm text-danger">
+                {ffErreur}
+              </p>
             )}
             {ffReunions !== null && ffReunions.length === 0 && !ffErreur && (
-              <p className="mt-4 text-sm text-mute">
-                Aucune réunion du lundi vers 11h sur les 50 dernières de Fireflies.
+              <p className="mt-3 text-sm text-mute">
+                Aucune réunion détectée.
               </p>
             )}
             {ffReunions !== null && ffReunions.length > 0 && (
-              <ul className="mt-4 space-y-2">
+              <ul className="mt-3 space-y-1.5">
                 {ffReunions.map((r) => (
                   <li key={r.id}>
                     <button
                       type="button"
                       onClick={() => analyserFireflies(r.id)}
                       disabled={chargement}
-                      className="group block w-full rounded-lg bg-white p-3 text-left shadow-card transition hover:ring-2 hover:ring-brand disabled:cursor-not-allowed disabled:opacity-40"
+                      className="block w-full rounded-lg bg-white px-3 py-2 text-left shadow-card transition hover:ring-2 hover:ring-brand disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      <p className="line-clamp-1 text-sm font-semibold text-ink">
+                      <p className="line-clamp-1 text-sm font-medium text-ink">
                         {r.titre}
                       </p>
-                      <p className="mt-0.5 text-xs text-mute">
-                        {jolieDate(r.dateReunion)} à {r.heureLocale} ·{" "}
-                        {r.dureeMinutes} min · {r.nbParticipants} participants
+                      <p className="mt-0.5 text-[11px] text-stone">
+                        {jolieDate(r.dateReunion)} · {r.heureLocale} ·{" "}
+                        {r.dureeMinutes} min · {r.nbParticipants} pers.
                       </p>
                     </button>
                   </li>
                 ))}
               </ul>
             )}
-            {ffReunions !== null && ffErreur && (
-              <p role="alert" className="mt-3 text-sm text-danger">
-                {ffErreur}
-              </p>
-            )}
-            <p className="mt-4 text-xs text-stone">
-              Si la réunion que vous cherchez n&apos;apparaît pas, utilisez le
-              dépôt manuel ci-dessous.
-            </p>
           </section>
         )}
 
-        <label className="mb-2 block text-sm font-medium text-ink">
-          Date de la réunion
-        </label>
-        <DatePicker
-          ariaLabel="Date de la réunion"
-          value={dateReunion}
-          onChange={setDateReunion}
-          disabled={chargement}
-        />
-        <p className="mt-1.5 text-xs text-stone">
-          Indispensable : c&apos;est elle qui permet de résoudre « cette semaine »
-          ou « le 14 » en vraies échéances.
-        </p>
+        <section
+          className={`rounded-lg p-4 ${avecFireflies ? "bg-surface" : ""}`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-ink">
+              {avecFireflies ? "Dépôt manuel" : "Compte rendu de la réunion"}
+            </h2>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={chargement}
+              className="rounded-lg border border-hairline bg-white px-2.5 py-1 text-xs font-medium text-mute transition hover:bg-surface disabled:opacity-40"
+            >
+              {nomFichier || "Fichier…"}
+            </button>
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".txt,.md,.json,.srt,text/plain"
+            className="hidden"
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              if (!f) return;
+              setNomFichier(f.name);
+              setTranscript(await f.text());
+            }}
+          />
 
-        <div className="mb-2 mt-6 flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-sm font-medium text-ink">Compte rendu Fireflies</p>
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <div className="min-w-[180px] flex-1">
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-stone">
+                Date de la réunion
+              </label>
+              <DatePicker
+                ariaLabel="Date de la réunion"
+                value={dateReunion}
+                onChange={setDateReunion}
+                disabled={chargement}
+              />
+            </div>
+          </div>
+
+          <textarea
+            rows={8}
+            placeholder="Collez le résumé ou le transcript."
+            value={transcript}
+            onChange={(e) => setTranscript(e.target.value)}
+            disabled={chargement}
+            className={`${CHAMP_CLASSE} mt-3 resize-y bg-white font-mono text-[13px]`}
+          />
+          <p className="mt-1 text-[11px] text-stone">
+            {transcript.length.toLocaleString("fr-FR")} caractères.
+          </p>
+
+          {message && (
+            <p role="alert" className="mt-3 text-sm text-danger">
+              {message}
+            </p>
+          )}
+
           <button
             type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={chargement}
-            className="rounded-lg border border-hairline px-3.5 py-1.5 text-xs font-semibold text-ink transition hover:bg-surface"
+            onClick={analyser}
+            disabled={
+              chargement || !dateReunion || transcript.trim().length < 200
+            }
+            className="mt-4 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {nomFichier || "Importer un fichier"}
+            {chargement ? "Analyse en cours…" : "Analyser"}
           </button>
-        </div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".txt,.md,.json,.srt,text/plain"
-          className="hidden"
-          onChange={async (e) => {
-            const f = e.target.files?.[0];
-            if (!f) return;
-            setNomFichier(f.name);
-            setTranscript(await f.text());
-          }}
-        />
-        <textarea
-          rows={12}
-          placeholder="Collez le résumé ou le transcript, ou importez le fichier."
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          disabled={chargement}
-          className={`${CHAMP_CLASSE} resize-y font-mono text-[13px]`}
-        />
-        <p className="mt-1.5 text-xs text-stone">
-          {transcript.length.toLocaleString("fr-FR")} caractères. Le résumé donne
-          la structure, le transcript brut fournit les citations littérales : les
-          deux ensemble donnent le meilleur résultat.
-        </p>
-
-        {message && (
-          <p role="alert" className="mt-4 text-sm text-danger">
-            {message}
-          </p>
-        )}
-
-        <button
-          type="button"
-          onClick={analyser}
-          disabled={chargement || !dateReunion || transcript.trim().length < 200}
-          className="mt-6 w-full rounded-lg bg-ink py-3.5 text-[15px] font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {chargement ? "Analyse en cours…" : "Analyser le compte rendu"}
-        </button>
-        {chargement && (
-          <p className="mt-2 text-center text-xs text-stone">
-            Comptez environ une minute pour une réunion d&apos;une heure.
-          </p>
-        )}
+          {chargement && (
+            <p className="mt-1.5 text-center text-[11px] text-stone">
+              Environ 1 min pour une réunion d&apos;une heure.
+            </p>
+          )}
+        </section>
       </div>
     );
   }

@@ -30,23 +30,26 @@ export default async function ImportReunionPage({
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Navbar user={user} canCreateSujet onglet="produits" />
-      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-8 pt-5 sm:px-6 sm:pt-6">
         <a
           href="/app"
           className="text-sm font-medium text-mute transition hover:text-ink"
         >
           ← Tous les produits
         </a>
-        <h1 className="mt-3 font-display text-2xl font-medium tracking-[-0.02em] text-ink">
-          {reprise
-            ? `Vérifier la réunion du ${reprise.dateReunion.split("-").reverse().join("/")}`
-            : "Importer une réunion générale"}
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-stone">
-          {reprise
-            ? "Analyse déjà effectuée : il reste à accepter, corriger ou rejeter chaque proposition."
-            : `Le compte rendu est analysé sur l'ensemble du portefeuille (${produits.length} produit${produits.length > 1 ? "s" : ""}). Rien n'est écrit avant votre validation, proposition par proposition.`}
-        </p>
+        <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h1 className="font-display text-xl font-medium tracking-[-0.02em] text-ink sm:text-2xl">
+            {reprise
+              ? `Vérifier la réunion du ${reprise.dateReunion.split("-").reverse().join("/")}`
+              : "Importer une réunion générale"}
+          </h1>
+          {!reprise && (
+            <p className="text-xs text-stone">
+              Analyse sur l&apos;ensemble du portefeuille · {produits.length}{" "}
+              produit{produits.length > 1 ? "s" : ""} · validation requise
+            </p>
+          )}
+        </div>
 
         {!reprise && (
           <ImportsEnAttente imports={enAttente} base="/app/reunion/import" />
