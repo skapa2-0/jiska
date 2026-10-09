@@ -106,11 +106,18 @@ export async function lancerAnalyseImport(
     throw new Error("Aucun produit à analyser.");
   }
   const resultat = await extraire(catalogue, dateReunion, transcript);
+  // Un import sans proposition ni annonce de déployabilité n'a rien à
+  // valider : on le classe tout de suite en « abandonne » pour qu'il
+  // n'encombre pas la liste des imports en attente. L'écran de résultat
+  // reste utile (il montre les ecartes et explique pourquoi rien n'a
+  // été relevé), mais la revue ne sera plus relancée depuis la liste.
+  const vide = resultat.propositions.length === 0 && resultat.deploiements.length === 0;
+  const statut = vide ? "abandonne" : "a_verifier";
   const rows = await query<{ id: string }>(
     `INSERT INTO reunion_imports
        (project_id, date_reunion, transcript, propositions, ecartes,
-        deploiements, created_by)
-     VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7) RETURNING id`,
+        deploiements, created_by, statut)
+     VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7, $8) RETURNING id`,
     [
       projectId,
       dateReunion,
@@ -119,6 +126,7 @@ export async function lancerAnalyseImport(
       JSON.stringify(resultat.ecartes),
       JSON.stringify(resultat.deploiements),
       auteurId,
+      statut,
     ],
   );
   return { id: rows[0].id, ...resultat };
