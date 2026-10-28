@@ -45,6 +45,26 @@ export const CATEGORIES: Categorie[] = [
     description: "Ce que l'identité derrière le jeton peut voir ou modifier d'elle-même.",
     endpoints: [
       {
+        methode: "GET",
+        chemin: "/api/me",
+        titre: "Lire son profil",
+        description:
+          "Renvoie l'utilisateur dont le jeton est utilisé (identifiant, nom, e-mail, rôle, avatar).",
+        acces: "connecte",
+        reponse: `{
+  "user": {
+    "id": "3",
+    "email": "camille@exemple.fr",
+    "first_name": "Camille",
+    "last_name": "Durand",
+    "role": "collaborateur",
+    "avatar": null
+  }
+}`,
+        curl: `curl https://jiska.skapa.design/api/me \\
+  -H "Authorization: Bearer <TOKEN>"`,
+      },
+      {
         methode: "PATCH",
         chemin: "/api/me",
         titre: "Mettre à jour son profil",
@@ -125,6 +145,56 @@ export const CATEGORIES: Categorie[] = [
     description: "Fiche produit (ex-« projet » en interne), ses membres et son état déployable.",
     endpoints: [
       {
+        methode: "GET",
+        chemin: "/api/projects",
+        titre: "Lister les produits",
+        description:
+          "Renvoie les produits visibles par l'utilisateur avec leurs membres (dirigeant/developeur : tous ; collaborateur : ceux dont il est membre).",
+        acces: "connecte",
+        reponse: `{
+  "projects": [
+    {
+      "id": "42",
+      "name": "Jiska",
+      "description": "Pilotage hebdo",
+      "logo": "/api/logos/42?v=a1b2c3d4",
+      "logo_rounded": true,
+      "deployable": false,
+      "created_at": "2026-09-01 10:00:00+00",
+      "members": [
+        { "id": "3", "email": "camille@exemple.fr", "first_name": "Camille", "last_name": "Durand", "is_responsable": true }
+      ]
+    }
+  ]
+}`,
+        curl: `curl https://jiska.skapa.design/api/projects \\
+  -H "Authorization: Bearer <TOKEN>"`,
+      },
+      {
+        methode: "GET",
+        chemin: "/api/projects/{id}",
+        titre: "Détail d'un produit",
+        description:
+          "Fiche complète avec membres, résumé IA et date de dernier résumé. Réservé aux membres du produit (admin inclus).",
+        acces: "membre-produit",
+        reponse: `{
+  "project": {
+    "id": "42",
+    "name": "Jiska",
+    "description": "...",
+    "logo": "/api/logos/42?v=...",
+    "logo_rounded": true,
+    "deployable": false,
+    "created_at": "...",
+    "resume_ia": "...",
+    "resume_ia_date": "2026-10-21",
+    "members": [ ... ]
+  }
+}`,
+        curl: `curl https://jiska.skapa.design/api/projects/42 \\
+  -H "Authorization: Bearer <TOKEN>"`,
+      },
+      {
         methode: "POST",
         chemin: "/api/projects",
         titre: "Créer un produit",
@@ -204,6 +274,63 @@ export const CATEGORIES: Categorie[] = [
     description:
       "Sujets d'un produit (ou transverses, `project_id` à null). Un sujet porte une action, un état, une criticité, un porteur.",
     endpoints: [
+      {
+        methode: "GET",
+        chemin: "/api/sujets",
+        titre: "Lister les sujets",
+        description:
+          "Liste les sujets visibles. Filtres optionnels en query : `projectId`, `transverse=1`, `etat`, `type`, `criticite`, `porteurId`, `dueBefore`, `dueAfter`, `search`.",
+        acces: "connecte",
+        reponse: `{
+  "sujets": [
+    {
+      "id": "128",
+      "project_id": "42",
+      "project_name": "Jiska",
+      "title": "Migrer la base",
+      "action": "Lancer le dump de prod",
+      "due_date": "2026-11-10",
+      "type": "technique",
+      "porteur_id": "3",
+      "criticite": "haute",
+      "etat": "a_faire",
+      "commentaire": "",
+      "updated_at": "..."
+    }
+  ]
+}`,
+        curl: `curl "https://jiska.skapa.design/api/sujets?etat=en_cours&porteurId=3" \\
+  -H "Authorization: Bearer <TOKEN>"`,
+        notes: [
+          "`etat` : a_faire, en_cours, bloque, en_validation, termine.",
+          "`type` : technique, business. `criticite` : critique, haute, normale, faible.",
+          "Dates : AAAA-MM-JJ. `search` cherche en partiel dans le titre et l'action.",
+        ],
+      },
+      {
+        methode: "GET",
+        chemin: "/api/sujets/{id}",
+        titre: "Détail d'un sujet",
+        description:
+          "Récupère un sujet par identifiant. Visible par les membres du produit ou tous pour un sujet transverse.",
+        acces: "connecte",
+        reponse: `{
+  "sujet": {
+    "id": "128",
+    "project_id": "42",
+    "title": "Migrer la base",
+    "action": "Lancer le dump de prod",
+    "due_date": "2026-11-10",
+    "type": "technique",
+    "porteur_id": "3",
+    "criticite": "haute",
+    "etat": "a_faire",
+    "commentaire": ""
+  }
+}`,
+        curl: `curl https://jiska.skapa.design/api/sujets/128 \\
+  -H "Authorization: Bearer <TOKEN>"`,
+      },
       {
         methode: "POST",
         chemin: "/api/sujets",
@@ -366,8 +493,32 @@ export const CATEGORIES: Categorie[] = [
   {
     cle: "equipe",
     titre: "Équipe",
-    description: "Gestion des comptes utilisateurs. Réservé aux admins.",
+    description: "Lecture ouverte à tous les utilisateurs ; création et suppression réservées aux dirigeants.",
     endpoints: [
+      {
+        methode: "GET",
+        chemin: "/api/users",
+        titre: "Lister les comptes",
+        description:
+          "Renvoie tous les comptes (prénom, nom, e-mail, rôle, actif). Ouvert à tout utilisateur connecté : utile pour retrouver un porteur par son nom.",
+        acces: "connecte",
+        reponse: `{
+  "users": [
+    {
+      "id": "3",
+      "email": "camille@exemple.fr",
+      "first_name": "Camille",
+      "last_name": "Durand",
+      "role": "collaborateur",
+      "avatar": null,
+      "active": true,
+      "created_at": "..."
+    }
+  ]
+}`,
+        curl: `curl https://jiska.skapa.design/api/users \\
+  -H "Authorization: Bearer <TOKEN>"`,
+      },
       {
         methode: "POST",
         chemin: "/api/users",
@@ -412,6 +563,30 @@ export const CATEGORIES: Categorie[] = [
     description:
       "Ouverture par toute personne connectée, traitement réservé aux développeurs plateforme.",
     endpoints: [
+      {
+        methode: "GET",
+        chemin: "/api/tickets",
+        titre: "Lister les tickets",
+        description:
+          "Renvoie les tickets visibles. Un collaborateur voit uniquement les siens ; un développeur voit tout. Filtre optionnel `?statut=`.",
+        acces: "connecte",
+        reponse: `{
+  "tickets": [
+    {
+      "id": "33",
+      "titre": "Export CSV cassé",
+      "description": "...",
+      "priorite": "haute",
+      "statut": "ouvert",
+      "created_at": "...",
+      "updated_at": "...",
+      "auteur": { "id": "3", "email": "...", "first_name": "...", "last_name": "..." }
+    }
+  ]
+}`,
+        curl: `curl "https://jiska.skapa.design/api/tickets?statut=ouvert" \\
+  -H "Authorization: Bearer <TOKEN>"`,
+      },
       {
         methode: "POST",
         chemin: "/api/tickets",

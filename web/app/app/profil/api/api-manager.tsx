@@ -26,10 +26,12 @@ export default function ApiManager({
   role,
   tokensInitiaux,
   categories,
+  tools,
 }: {
   role: Role;
   tokensInitiaux: Token[];
   categories: Categorie[];
+  tools: { name: string; description: string }[];
 }) {
   const router = useRouter();
   const [tokens, setTokens] = useState<Token[]>(tokensInitiaux);
@@ -229,6 +231,13 @@ export default function ApiManager({
             )}
           </Bloc>
 
+          <Bloc
+            titre="Intégration MCP"
+            detail="Pour piloter Jiska depuis une IA (Claude Desktop, Claude Code, assistants compatibles Model Context Protocol)."
+          >
+            <McpSection role={role} tools={tools} copier={copier} />
+          </Bloc>
+
           <Bloc titre="Documentation" detail="Les endpoints que vous pouvez appeler avec un jeton. Filtrés selon votre rôle.">
             <Intro />
             <div className="mt-6 flex flex-col gap-6">
@@ -252,6 +261,132 @@ export default function ApiManager({
       )}
 
       <ToastHost toasts={toasts} />
+    </div>
+  );
+}
+
+function McpSection({
+  role,
+  tools,
+  copier,
+}: {
+  role: Role;
+  tools: { name: string; description: string }[];
+  copier: (valeur: string, message?: string) => void;
+}) {
+  const configClaudeDesktop = `{
+  "mcpServers": {
+    "jiska": {
+      "type": "http",
+      "url": "https://jiska.skapa.design/mcp",
+      "headers": {
+        "Authorization": "Bearer <VOTRE_JETON>"
+      }
+    }
+  }
+}`;
+
+  const configClaudeCode = `claude mcp add --transport http jiska \\
+  https://jiska.skapa.design/mcp \\
+  --header "Authorization: Bearer <VOTRE_JETON>"`;
+
+  const exempleRequete = `curl -X POST https://jiska.skapa.design/mcp \\
+  -H "Authorization: Bearer <VOTRE_JETON>" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list"
+  }'`;
+
+  return (
+    <div className="flex flex-col gap-5 text-sm">
+      <div className="rounded-lg bg-surface p-4 text-ink">
+        <p>
+          <strong>Endpoint :</strong>{" "}
+          <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">
+            https://jiska.skapa.design/mcp
+          </code>
+        </p>
+        <p className="mt-2">
+          <strong>Protocole :</strong> Model Context Protocol, transport Streamable
+          HTTP (JSON-RPC 2.0). Pas de session : chaque requête est autonome.
+        </p>
+        <p className="mt-2">
+          <strong>Authentification :</strong> même en-tête
+          <code className="mx-1 rounded bg-white px-1.5 py-0.5 font-mono text-xs">
+            Authorization: Bearer &lt;votre jeton&gt;
+          </code>
+          que l&apos;API REST. Créez un jeton ci-dessus et copiez-le dans la config
+          de votre client.
+        </p>
+      </div>
+
+      <section>
+        <h3 className="mb-2 text-sm font-semibold text-ink">Claude Desktop</h3>
+        <p className="mb-2 text-xs text-stone">
+          Fichier{" "}
+          <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
+            claude_desktop_config.json
+          </code>{" "}
+          (macOS :{" "}
+          <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
+            ~/Library/Application Support/Claude/
+          </code>
+          ) :
+        </p>
+        <BlocCode titre="Configuration" code={configClaudeDesktop} copier={copier} />
+      </section>
+
+      <section>
+        <h3 className="mb-2 text-sm font-semibold text-ink">Claude Code</h3>
+        <p className="mb-2 text-xs text-stone">
+          Ajout en une commande (le jeton est stocké dans la config MCP du CLI) :
+        </p>
+        <BlocCode titre="Commande" code={configClaudeCode} copier={copier} />
+      </section>
+
+      <section>
+        <h3 className="mb-2 text-sm font-semibold text-ink">Test rapide</h3>
+        <p className="mb-2 text-xs text-stone">
+          Lister les tools disponibles depuis un terminal :
+        </p>
+        <BlocCode titre="curl" code={exempleRequete} copier={copier} />
+      </section>
+
+      <section>
+        <h3 className="mb-2 text-sm font-semibold text-ink">
+          Tools disponibles pour votre rôle ({libelleRole(role)})
+        </h3>
+        <p className="mb-3 text-xs text-stone">
+          {tools.length} tool{tools.length > 1 ? "s" : ""} appelable
+          {tools.length > 1 ? "s" : ""}. Les permissions suivent l&apos;API :
+          une tentative d&apos;écriture au-delà de vos droits renverra une erreur
+          403.
+        </p>
+        <div className="overflow-hidden rounded-lg border border-hairline">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-surface text-xs uppercase tracking-wide text-stone">
+              <tr>
+                <th className="px-4 py-2.5 font-medium">Nom</th>
+                <th className="px-4 py-2.5 font-medium">Description</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-hairline">
+              {tools.map((t) => (
+                <tr key={t.name}>
+                  <td className="px-4 py-2.5 font-mono text-xs font-semibold text-ink">
+                    {t.name}
+                  </td>
+                  <td className="px-4 py-2.5 text-xs text-stone">
+                    {t.description}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }

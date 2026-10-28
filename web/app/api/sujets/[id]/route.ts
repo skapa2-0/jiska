@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { canManageSujets, estAdmin, getSessionUser } from "@/lib/auth";
+import {
+  canManageSujets,
+  estAdmin,
+  estMembre,
+  getSessionUser,
+} from "@/lib/auth";
 import { query } from "@/lib/db";
 import {
   appliquerPatch,
@@ -7,6 +12,26 @@ import {
   estEchec,
   peutEditer,
 } from "@/lib/sujets-write";
+
+// Détail d'un sujet. Visible par les membres du produit ; un sujet
+// transverse (project_id null) est visible de tous (règle PRD).
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const me = await getSessionUser();
+  if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
+
+  const { id } = await params;
+  const sujet = await chargerSujet(id);
+  if (!sujet) {
+    return NextResponse.json({ error: "Sujet introuvable." }, { status: 404 });
+  }
+  if (sujet.project_id !== null && !(await estMembre(me, sujet.project_id))) {
+    return NextResponse.json({ error: "Accès refusé." }, { status: 403 });
+  }
+  return NextResponse.json({ sujet });
+}
 
 export async function PATCH(
   request: Request,

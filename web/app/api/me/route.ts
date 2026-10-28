@@ -7,6 +7,14 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const AVATAR_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
 const AVATAR_MAX = 300_000;
 
+// Profil courant : utile aux clients de l'API (dont le MCP) pour savoir
+// qui porte le jeton et quel rôle il a, avant de décider des actions.
+export async function GET() {
+  const me = await getSessionUser();
+  if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
+  return NextResponse.json({ user: me });
+}
+
 // Mise à jour de son propre profil (nom, e-mail, photo).
 export async function PATCH(request: Request) {
   const me = await getSessionUser();

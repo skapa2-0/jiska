@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { listerTokens } from "@/lib/api-tokens";
 import { estAdmin, estDansUnProjet, getSessionUser } from "@/lib/auth";
+import { toolsPourRole } from "@/lib/mcp-tools";
 import BottomNav from "../../bottom-nav";
 import Navbar from "../../navbar";
 import ApiManager from "./api-manager";
@@ -9,7 +10,8 @@ import { endpointsPourRole } from "./endpoints";
 // Paramètres > API : gestion des jetons personnels (création,
 // révocation) et documentation précise des endpoints appelables. La
 // doc est filtrée selon le rôle : on ne montre que ce que la personne
-// peut appeler avec son propre jeton.
+// peut appeler avec son propre jeton. Même filtrage pour la liste des
+// tools MCP.
 export default async function ProfilApiPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
@@ -17,6 +19,10 @@ export default async function ProfilApiPage() {
   const canCreateSujet = estAdmin(user) || (await estDansUnProjet(user.id));
   const tokens = await listerTokens(user.id);
   const categories = endpointsPourRole(user.role);
+  const tools = toolsPourRole(user.role).map((t) => ({
+    name: t.name,
+    description: t.description,
+  }));
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -26,6 +32,7 @@ export default async function ProfilApiPage() {
           role={user.role}
           tokensInitiaux={tokens}
           categories={categories}
+          tools={tools}
         />
       </main>
       <BottomNav onglet="profil" canCreate={canCreateSujet} />

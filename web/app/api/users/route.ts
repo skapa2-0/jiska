@@ -3,8 +3,36 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { estAdmin, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { origineRequete } from "@/lib/http";
+import { sqlAvatarUrl } from "@/lib/media";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Liste des comptes. Ouverte à tout utilisateur connecté : les e-mails
+// et noms sont déjà visibles via les listes de membres de produits, et
+// un client (dont le MCP) a besoin de retrouver un porteur par son nom.
+export async function GET() {
+  const me = await getSessionUser();
+  if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
+
+  const users = await query<{
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    role: string;
+    avatar: string | null;
+    active: boolean;
+    created_at: string;
+  }>(
+    `SELECT id, email, first_name, last_name, role,
+            ${sqlAvatarUrl()} AS avatar,
+            clerk_id IS NOT NULL AS active,
+            created_at::text AS created_at
+       FROM users
+      ORDER BY last_name, first_name`,
+  );
+  return NextResponse.json({ users });
+}
 
 // Création de compte par un dirigeant. Deux écritures, dans cet ordre :
 // la ligne locale (qui porte le rôle et ouvre le droit d'entrer), puis

@@ -1,9 +1,77 @@
 import { NextResponse } from "next/server";
 import { estAdmin, estMembre, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { sqlLogoUrl } from "@/lib/media";
 
 const LOGO_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
 const LOGO_MAX = 300_000;
+
+// Détail d'un produit : fiche + membres (avec responsable désigné).
+// Visible par ses membres et par les admins.
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const me = await getSessionUser();
+  if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
+
+  const { id } = await params;
+  if (!/^\d+$/.test(id)) {
+    return NextResponse.json({ error: "Identifiant invalide." }, { status: 400 });
+  }
+  if (!(await estMembre(me, id))) {
+    return NextResponse.json({ error: "Accès refusé." }, { status: 403 });
+  }
+
+  const rows = await query<{
+    id: string;
+    name: string;
+    description: string;
+    logo: string | null;
+    logo_rounded: boolean;
+    deployable: boolean;
+    created_at: string;
+    resume_ia: string | null;
+    resume_ia_date: string | null;
+  }>(
+    `SELECT p.id, p.name, p.description, ${sqlLogoUrl("p")} AS logo,
+            p.logo_rounded, p.deployable,
+            p.created_at::text AS created_at,
+            p.resume_ia, p.resume_ia_date::text AS resume_ia_date
+       FROM projects p WHERE p.id = $1`,
+    [id],
+  );
+  if (rows.length === 0) {
+    return NextResponse.json({ error: "Produit introuvable." }, { status: 404 });
+  }
+
+  const membres = await query<{
+    user_id: string;
+    is_responsable: boolean;
+    email: string;
+    first_name: string;
+    last_name: string;
+  }>(
+    `SELECT m.user_id, m.is_responsable, u.email, u.first_name, u.last_name
+       FROM project_members m JOIN users u ON u.id = m.user_id
+      WHERE m.project_id = $1
+      ORDER BY u.last_name, u.first_name`,
+    [id],
+  );
+
+  return NextResponse.json({
+    project: {
+      ...rows[0],
+      members: membres.map((m) => ({
+        id: m.user_id,
+        email: m.email,
+        first_name: m.first_name,
+        last_name: m.last_name,
+        is_responsable: m.is_responsable,
+      })),
+    },
+  });
+}
 
 async function dirigeantEtProjet(id: string) {
   const me = await getSessionUser();
@@ -31,7 +99,7 @@ async function dirigeantEtProjet(id: string) {
 
 // Modification d'un projet (nom, description, logo, membres,
 // responsable) : tout membre du projet, ou dirigeant / développeur.
-// La suppression (DELETE) reste réservée aux admins — c'est destructif.
+// La suppression (DELETE) reste réservée aux admins : c'est destructif.
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
