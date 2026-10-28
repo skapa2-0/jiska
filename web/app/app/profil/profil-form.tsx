@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { FORMATS_IMAGE, reduireImage } from "@/lib/image";
 import Avatar from "../avatar";
+import { SettingsNavProfil } from "./settings-nav";
 
 type User = {
   id: string;
@@ -24,29 +25,17 @@ type User = {
 // CLAUDE.md : une donnée, un endroit).
 type Onglet = "profil" | "securite";
 
-const ONGLETS: { cle: Onglet; label: string; icone: ReactNode }[] = [
-  {
-    cle: "profil",
-    label: "Profil",
-    icone: (
-      <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-3.6 0-6.5 2-6.5 4.5V20h13v-1.5C18.5 16 15.6 14 12 14Z" />
-    ),
-  },
-  {
-    cle: "securite",
-    label: "Sécurité",
-    icone: (
-      <path d="M12 3 5 6v5.5c0 4 3 7.7 7 8.5 4-.8 7-4.5 7-8.5V6l-7-3Zm0 6a1.6 1.6 0 0 1 .8 3v2.2a.8.8 0 0 1-1.6 0V12A1.6 1.6 0 0 1 12 9Z" />
-    ),
-  },
-];
-
 type Toast = { id: number; ok: boolean; text: string; sortant: boolean };
 
 export default function ProfilForm({ user }: { user: User }) {
   const router = useRouter();
   const { user: compteClerk } = useUser();
-  const [onglet, setOnglet] = useState<Onglet>("profil");
+  // ?onglet=securite permet d'atterrir directement sur l'onglet sécurité
+  // (lien depuis la page /app/profil/api, par ex.).
+  const chercheur = useSearchParams();
+  const [onglet, setOnglet] = useState<Onglet>(
+    chercheur.get("onglet") === "securite" ? "securite" : "profil",
+  );
 
   const [prenom, setPrenom] = useState(user.first_name);
   const [nom, setNom] = useState(user.last_name);
@@ -169,51 +158,7 @@ export default function ProfilForm({ user }: { user: User }) {
 
   return (
     <div className="gap-8 lg:flex">
-      {/* Sidebar : vrai panneau gris à gauche sur desktop, tab-switcher au
-          même look en haut sur mobile. Le titre « Paramètres » vit en tête
-          du panneau plutôt qu'en haut de la page pour rapprocher le contenu
-          du haut. L'onglet actif « pop » en blanc pour se détacher du fond. */}
-      <div className="rounded-lg bg-surface p-3 lg:w-60 lg:shrink-0 lg:self-start">
-        <div className="mb-3 px-1">
-          <h1 className="font-display text-lg font-medium tracking-[-0.02em] text-ink">
-            Paramètres
-          </h1>
-          <p className="mt-0.5 text-xs text-stone">
-            Votre profil et la sécurité de votre accès.
-          </p>
-        </div>
-        <nav
-          aria-label="Sections des paramètres"
-          className="flex gap-1 lg:flex-col lg:gap-1"
-        >
-          {ONGLETS.map((o) => {
-          const actif = onglet === o.cle;
-          return (
-            <button
-              key={o.cle}
-              type="button"
-              aria-current={actif ? "page" : undefined}
-              onClick={() => setOnglet(o.cle)}
-              className={`flex flex-1 items-center justify-center gap-2.5 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition lg:flex-none lg:justify-start ${
-                actif
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-mute hover:bg-white/60 hover:text-ink"
-              }`}
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="h-4 w-4 shrink-0"
-                fill="currentColor"
-              >
-                {o.icone}
-              </svg>
-              {o.label}
-            </button>
-          );
-          })}
-        </nav>
-      </div>
+      <SettingsNavProfil onglet={onglet} setOnglet={setOnglet} />
 
       <div className="mt-6 min-w-0 flex-1 lg:mt-0">
         {onglet === "profil" ? (

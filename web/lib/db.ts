@@ -236,7 +236,26 @@ function ensureSchema(): Promise<void> {
          updated_at  timestamptz NOT NULL DEFAULT now()
        );
        CREATE INDEX IF NOT EXISTS tickets_auteur_idx ON tickets (auteur_id);
-       CREATE INDEX IF NOT EXISTS tickets_statut_idx ON tickets (statut);`,
+       CREATE INDEX IF NOT EXISTS tickets_statut_idx ON tickets (statut);
+       -- Clés d'API personnelles : chaque utilisateur peut émettre autant de
+       -- jetons qu'il veut depuis /app/profil/api. Un jeton porte strictement
+       -- les permissions de son propriétaire (rôle, appartenance aux produits) :
+       -- aucune portée stockée, c'est getSessionUser qui lit le header
+       -- Authorization: Bearer et renvoie l'utilisateur comme s'il était connecté
+       -- via Clerk. Jamais d'expiration automatique, seulement une révocation
+       -- manuelle (revoked_at renseigné). Seul le hash sha256 est conservé ;
+       -- le secret complet n'est montré qu'une fois à la création.
+       CREATE TABLE IF NOT EXISTS api_tokens (
+         id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+         user_id      bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+         label        text NOT NULL,
+         token_hash   text NOT NULL UNIQUE,
+         prefix       text NOT NULL,
+         last_used_at timestamptz,
+         revoked_at   timestamptz,
+         created_at   timestamptz NOT NULL DEFAULT now()
+       );
+       CREATE INDEX IF NOT EXISTS api_tokens_user_idx ON api_tokens (user_id);`,
     )
     .then(() => undefined);
   return schemaReady;
