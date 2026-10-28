@@ -53,7 +53,6 @@ export function SettingsNavProfil({
         className="flex gap-1 lg:flex-col lg:gap-1"
       >
         {ITEMS.map((o) => {
-          const actif = o.cle === onglet;
           if (o.cle === "api") {
             return (
               <Link
@@ -66,12 +65,14 @@ export function SettingsNavProfil({
               </Link>
             );
           }
+          const cle = o.cle; // narrow pour le callback onClick
+          const actif = cle === onglet;
           return (
             <button
-              key={o.cle}
+              key={cle}
               type="button"
               aria-current={actif ? "page" : undefined}
-              onClick={() => setOnglet(o.cle)}
+              onClick={() => setOnglet(cle)}
               className={boutonClasses(actif)}
             >
               <IconeSvg>{o.icone}</IconeSvg>
