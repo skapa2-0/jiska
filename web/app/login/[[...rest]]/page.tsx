@@ -7,14 +7,27 @@ import AccesRefuse from "./acces-refuse";
 
 // Connexion déléguée à Clerk. L'habillage reprend la DA de la plateforme
 // (voir lib/clerk-apparence.ts) pour que la page ne détonne pas.
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  // Un ?next= interne (toujours commençant par /) permet de rebondir
+  // après connexion, utilisé par /oauth/authorize pour reprendre le flow
+  // là où il s'est arrêté. On refuse toute URL externe par sécurité.
+  const params = await searchParams;
+  const next =
+    typeof params.next === "string" && params.next.startsWith("/")
+      ? params.next
+      : "/app";
+
   // Trois cas, et un seul écran pour les distinguer. C'est ici que la
   // boucle se casse : une session Clerk sans compte Jiska ne repart pas
   // vers /app, qui la renverrait aussitôt ici.
   const { userId } = await auth();
   let refuse: string | null | false = false;
   if (userId) {
-    if (await getSessionUser()) redirect("/app");
+    if (await getSessionUser()) redirect(next);
     const compte = await (await clerkClient()).users.getUser(userId);
     refuse = compte.primaryEmailAddress?.emailAddress ?? null;
   }
@@ -38,7 +51,7 @@ export default async function LoginPage() {
       </header>
       {refuse === false ? (
         <>
-          <SignIn appearance={apparenceClerk} />
+          <SignIn appearance={apparenceClerk} forceRedirectUrl={next} />
           <a
             href="/mot-de-passe-oublie"
             className="text-sm font-medium text-mute transition hover:text-ink"

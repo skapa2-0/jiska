@@ -1,47 +1,40 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { libelleRole } from "@/lib/roles";
 import type { Role } from "@/lib/roles";
 import { SettingsNavApi } from "../settings-nav";
 import type { Categorie, Endpoint } from "./endpoints";
 
-type Token = {
-  id: string;
-  label: string;
-  prefix: string;
-  created_at: string;
-  last_used_at: string | null;
-  revoked_at: string | null;
+type SessionOAuth = {
+  client_id: string;
+  client_name: string;
+  derniere_utilisation: string | null;
+  depuis: string;
 };
 
 type Toast = { id: number; ok: boolean; text: string; sortant: boolean };
 
-// Page de gestion des jetons d'API et doc d'utilisation. Jamais
-// d'expiration, pas de limite par utilisateur : on crée, on révoque,
-// on documente. Le secret complet n'est visible qu'à la création.
+// Paramètres > API : accès par OAuth 2.1 (plus de jetons manuels).
+// L'utilisateur voit ici la liste des applications autorisées (par
+// exemple « Claude Desktop ») et peut en révoquer une d'un clic. La doc
+// explique le flow côté client et liste les endpoints disponibles pour
+// son rôle.
 export default function ApiManager({
   role,
-  tokensInitiaux,
+  sessions: sessionsInit,
   categories,
   tools,
 }: {
   role: Role;
-  tokensInitiaux: Token[];
+  sessions: SessionOAuth[];
   categories: Categorie[];
   tools: { name: string; description: string }[];
 }) {
   const router = useRouter();
-  const [tokens, setTokens] = useState<Token[]>(tokensInitiaux);
-  const [label, setLabel] = useState("");
-  const [enCreation, setEnCreation] = useState(false);
-  const [secretAffiche, setSecretAffiche] = useState<{
-    secret: string;
-    label: string;
-  } | null>(null);
-  const [erreur, setErreur] = useState<string | null>(null);
+  const [sessions, setSessions] = useState(sessionsInit);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   function notifier(ok: boolean, text: string) {
@@ -60,58 +53,26 @@ export default function ApiManager({
     );
   }
 
-  async function creer(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const nom = label.trim();
-    if (!nom) {
-      setErreur("Donnez un nom à ce jeton.");
-      return;
-    }
-    setEnCreation(true);
-    setErreur(null);
-    try {
-      const res = await fetch("/api/me/tokens", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label: nom }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setErreur(data.error ?? "Échec de la création.");
-        return;
-      }
-      setTokens((prev) => [data.token, ...prev]);
-      setSecretAffiche({ secret: data.secret, label: data.token.label });
-      setLabel("");
-      router.refresh();
-    } catch {
-      setErreur("Impossible de joindre le serveur.");
-    } finally {
-      setEnCreation(false);
-    }
-  }
-
-  async function revoquer(token: Token) {
+  async function revoquer(s: SessionOAuth) {
     if (
       !window.confirm(
-        `Révoquer le jeton « ${token.label} » ? Les clients qui l'utilisent perdront immédiatement l'accès.`,
+        `Révoquer l'accès de « ${s.client_name} » ? Cette application devra réautoriser pour continuer.`,
       )
     ) {
       return;
     }
     try {
-      const res = await fetch(`/api/me/tokens/${token.id}`, { method: "DELETE" });
+      const res = await fetch(
+        `/api/me/sessions/${encodeURIComponent(s.client_id)}`,
+        { method: "DELETE" },
+      );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         notifier(false, data.error ?? "Échec de la révocation.");
         return;
       }
-      setTokens((prev) =>
-        prev.map((t) =>
-          t.id === token.id ? { ...t, revoked_at: new Date().toISOString() } : t,
-        ),
-      );
-      notifier(true, "Jeton révoqué.");
+      setSessions((prev) => prev.filter((x) => x.client_id !== s.client_id));
+      notifier(true, "Accès révoqué.");
       router.refresh();
     } catch {
       notifier(false, "Impossible de joindre le serveur.");
@@ -127,11 +88,6 @@ export default function ApiManager({
     }
   }
 
-  const actifs = useMemo(
-    () => tokens.filter((t) => !t.revoked_at).length,
-    [tokens],
-  );
-
   return (
     <div className="gap-8 lg:flex">
       <SettingsNavApi />
@@ -139,89 +95,48 @@ export default function ApiManager({
       <div className="mt-6 min-w-0 flex-1 lg:mt-0">
         <div className="flex flex-col gap-4">
           <Bloc
-            titre="Jetons d'API"
-            detail="Un jeton porte toutes vos permissions. Toute requête faite avec reste imputable à votre compte."
+            titre="Applications autorisées"
+            detail="Les intégrations qui ont obtenu un accès à votre Jiska via OAuth. Révoquer coupe tous leurs jetons immédiatement."
           >
-            <p className="mb-4 text-sm text-ink">
-              {actifs === 0
-                ? "Aucun jeton actif pour l'instant."
-                : actifs === 1
-                  ? "1 jeton actif."
-                  : `${actifs} jetons actifs.`}{" "}
-              <span className="text-stone">
-                Rôle courant : {libelleRole(role)}.
-              </span>
-            </p>
-
-            <form onSubmit={creer} className="flex flex-wrap items-end gap-3">
-              <div className="min-w-[16rem] flex-1">
-                <label htmlFor="t-label" className="mb-1.5 block text-sm font-medium text-ink">
-                  Nom du jeton
-                </label>
-                <input
-                  id="t-label"
-                  type="text"
-                  value={label}
-                  onChange={(e) => setLabel(e.target.value)}
-                  placeholder="Script de synchro, intégration Zapier, ..."
-                  maxLength={80}
-                  disabled={enCreation}
-                  className="w-full rounded-lg bg-surface px-4 py-3 text-sm text-ink placeholder-stone outline-none transition focus:bg-white focus:ring-2 focus:ring-brand disabled:opacity-60"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={enCreation}
-                className="rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Créer un jeton
-              </button>
-            </form>
-            {erreur && (
-              <p role="alert" className="mt-3 text-sm text-danger">
-                {erreur}
+            {sessions.length === 0 ? (
+              <p className="text-sm text-stone">
+                Aucune application connectée pour l&apos;instant. Lancez le flow
+                depuis votre client (Claude Desktop, Claude Code, …) et il
+                apparaîtra ici après consentement.
               </p>
-            )}
-
-            {tokens.length > 0 && (
-              <div className="mt-6 overflow-hidden rounded-lg border border-hairline">
+            ) : (
+              <div className="overflow-hidden rounded-lg border border-hairline">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-surface text-xs uppercase tracking-wide text-stone">
                     <tr>
-                      <th className="px-4 py-2.5 font-medium">Nom</th>
-                      <th className="px-4 py-2.5 font-medium">Préfixe</th>
-                      <th className="px-4 py-2.5 font-medium">Créé le</th>
-                      <th className="px-4 py-2.5 font-medium">Dernière utilisation</th>
-                      <th className="px-4 py-2.5 font-medium text-right">État</th>
+                      <th className="px-4 py-2.5 font-medium">Application</th>
+                      <th className="px-4 py-2.5 font-medium">Autorisée le</th>
+                      <th className="px-4 py-2.5 font-medium">Dernière activité</th>
+                      <th className="px-4 py-2.5 text-right font-medium">Accès</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-hairline">
-                    {tokens.map((t) => (
-                      <tr key={t.id} className={t.revoked_at ? "opacity-55" : ""}>
-                        <td className="px-4 py-3 font-medium text-ink">{t.label}</td>
-                        <td className="px-4 py-3 font-mono text-xs text-stone">
-                          {t.prefix}...
+                    {sessions.map((s) => (
+                      <tr key={s.client_id}>
+                        <td className="px-4 py-3 font-medium text-ink">
+                          {s.client_name}
                         </td>
                         <td className="px-4 py-3 text-xs text-stone">
-                          {formatDate(t.created_at)}
+                          {formatDate(s.depuis)}
                         </td>
                         <td className="px-4 py-3 text-xs text-stone">
-                          {t.last_used_at ? formatDate(t.last_used_at) : "jamais"}
+                          {s.derniere_utilisation
+                            ? formatDate(s.derniere_utilisation)
+                            : "jamais"}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {t.revoked_at ? (
-                            <span className="text-xs text-stone">
-                              Révoqué le {formatDate(t.revoked_at)}
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => revoquer(t)}
-                              className="rounded-lg px-3 py-1.5 text-sm font-medium text-danger transition hover:bg-danger-soft"
-                            >
-                              Révoquer
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => revoquer(s)}
+                            className="rounded-lg px-3 py-1.5 text-sm font-medium text-danger transition hover:bg-danger-soft"
+                          >
+                            Révoquer
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -232,14 +147,17 @@ export default function ApiManager({
           </Bloc>
 
           <Bloc
-            titre="Intégration MCP"
-            detail="Pour piloter Jiska depuis une IA (Claude Desktop, Claude Code, assistants compatibles Model Context Protocol)."
+            titre="Connecter Jiska à une IA"
+            detail="Pour piloter Jiska depuis Claude Desktop, Claude Code ou tout autre client compatible Model Context Protocol."
           >
             <McpSection role={role} tools={tools} copier={copier} />
           </Bloc>
 
-          <Bloc titre="Documentation" detail="Les endpoints que vous pouvez appeler avec un jeton. Filtrés selon votre rôle.">
-            <Intro />
+          <Bloc
+            titre="Documentation des endpoints"
+            detail="Pour appeler l'API directement (sans MCP). Filtrés selon votre rôle."
+          >
+            <IntroApi />
             <div className="mt-6 flex flex-col gap-6">
               {categories.map((cat) => (
                 <Section key={cat.cle} categorie={cat} copier={copier} />
@@ -248,17 +166,6 @@ export default function ApiManager({
           </Bloc>
         </div>
       </div>
-
-      {secretAffiche && (
-        <ModaleSecret
-          secret={secretAffiche.secret}
-          label={secretAffiche.label}
-          onFermer={() => setSecretAffiche(null)}
-          onCopier={() =>
-            copier(secretAffiche.secret, "Secret copié. Ne le partagez pas.")
-          }
-        />
-      )}
 
       <ToastHost toasts={toasts} />
     </div>
@@ -278,26 +185,12 @@ function McpSection({
   "mcpServers": {
     "jiska": {
       "type": "http",
-      "url": "https://jiska.skapa.design/mcp",
-      "headers": {
-        "Authorization": "Bearer <VOTRE_JETON>"
-      }
+      "url": "https://jiska.skapa.design/mcp"
     }
   }
 }`;
 
-  const configClaudeCode = `claude mcp add --transport http jiska \\
-  https://jiska.skapa.design/mcp \\
-  --header "Authorization: Bearer <VOTRE_JETON>"`;
-
-  const exempleRequete = `curl -X POST https://jiska.skapa.design/mcp \\
-  -H "Authorization: Bearer <VOTRE_JETON>" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tools/list"
-  }'`;
+  const configClaudeCode = `claude mcp add --transport http jiska https://jiska.skapa.design/mcp`;
 
   return (
     <div className="flex flex-col gap-5 text-sm">
@@ -309,23 +202,21 @@ function McpSection({
           </code>
         </p>
         <p className="mt-2">
-          <strong>Protocole :</strong> Model Context Protocol, transport Streamable
-          HTTP (JSON-RPC 2.0). Pas de session : chaque requête est autonome.
+          <strong>Authentification :</strong> OAuth 2.1 avec PKCE et Dynamic
+          Client Registration. Au premier appel, votre client vous ouvre
+          cette URL de Jiska pour que vous validiez l&apos;accès. Aucun
+          secret à copier.
         </p>
-        <p className="mt-2">
-          <strong>Authentification :</strong> même en-tête
-          <code className="mx-1 rounded bg-white px-1.5 py-0.5 font-mono text-xs">
-            Authorization: Bearer &lt;votre jeton&gt;
-          </code>
-          que l&apos;API REST. Créez un jeton ci-dessus et copiez-le dans la config
-          de votre client.
+        <p className="mt-2 text-xs text-stone">
+          Compatible Claude Desktop, Claude Code, Claude.ai web connector, et
+          tout client qui respecte la MCP Authorization spec (2025-03-26).
         </p>
       </div>
 
       <section>
         <h3 className="mb-2 text-sm font-semibold text-ink">Claude Desktop</h3>
         <p className="mb-2 text-xs text-stone">
-          Fichier{" "}
+          Ajoutez cette entrée dans{" "}
           <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
             claude_desktop_config.json
           </code>{" "}
@@ -333,7 +224,8 @@ function McpSection({
           <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
             ~/Library/Application Support/Claude/
           </code>
-          ) :
+          ) puis relancez Claude. Il vous ouvrira une page de connexion à la
+          première utilisation.
         </p>
         <BlocCode titre="Configuration" code={configClaudeDesktop} copier={copier} />
       </section>
@@ -341,17 +233,10 @@ function McpSection({
       <section>
         <h3 className="mb-2 text-sm font-semibold text-ink">Claude Code</h3>
         <p className="mb-2 text-xs text-stone">
-          Ajout en une commande (le jeton est stocké dans la config MCP du CLI) :
+          Une seule commande : le CLI déclenche automatiquement l&apos;écran
+          de consentement dans votre navigateur à la première utilisation.
         </p>
         <BlocCode titre="Commande" code={configClaudeCode} copier={copier} />
-      </section>
-
-      <section>
-        <h3 className="mb-2 text-sm font-semibold text-ink">Test rapide</h3>
-        <p className="mb-2 text-xs text-stone">
-          Lister les tools disponibles depuis un terminal :
-        </p>
-        <BlocCode titre="curl" code={exempleRequete} copier={copier} />
       </section>
 
       <section>
@@ -361,8 +246,8 @@ function McpSection({
         <p className="mb-3 text-xs text-stone">
           {tools.length} tool{tools.length > 1 ? "s" : ""} appelable
           {tools.length > 1 ? "s" : ""}. Les permissions suivent l&apos;API :
-          une tentative d&apos;écriture au-delà de vos droits renverra une erreur
-          403.
+          une tentative d&apos;écriture au-delà de vos droits renverra une
+          erreur 403.
         </p>
         <div className="overflow-hidden rounded-lg border border-hairline">
           <table className="w-full text-left text-sm">
@@ -391,7 +276,7 @@ function McpSection({
   );
 }
 
-function Intro() {
+function IntroApi() {
   return (
     <div className="rounded-lg bg-surface p-4 text-sm text-ink">
       <p>
@@ -401,21 +286,28 @@ function Intro() {
         </code>
       </p>
       <p className="mt-2">
-        <strong>Authentification :</strong> ajoutez l&apos;en-tête
+        <strong>Authentification :</strong> en-tête
         <code className="mx-1 rounded bg-white px-1.5 py-0.5 font-mono text-xs">
-          Authorization: Bearer &lt;votre jeton&gt;
+          Authorization: Bearer &lt;access_token&gt;
         </code>
-        à chaque requête. Toutes les réponses sont en JSON.
+        obtenu via OAuth 2.1 (
+        <code className="rounded bg-white px-1 py-0.5 font-mono text-xs">
+          /oauth/authorize
+        </code>{" "}
+        +{" "}
+        <code className="rounded bg-white px-1 py-0.5 font-mono text-xs">
+          /oauth/token
+        </code>
+        ). Métadonnées : <code className="rounded bg-white px-1 py-0.5 font-mono text-xs">/.well-known/oauth-authorization-server</code>.
       </p>
       <p className="mt-2">
-        <strong>Erreurs :</strong> en cas d&apos;échec, le serveur renvoie
-        un objet{" "}
-        <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">
+        <strong>Erreurs :</strong> réponses JSON
+        <code className="mx-1 rounded bg-white px-1.5 py-0.5 font-mono text-xs">
           {"{ error: string }"}
-        </code>{" "}
-        avec un code HTTP adapté (400 payload invalide, 401 jeton manquant
-        ou expiré, 403 permissions insuffisantes, 404 ressource absente,
-        409 conflit, 502 erreur côté service tiers).
+        </code>
+        avec code HTTP adapté (400 payload invalide, 401 token manquant ou
+        expiré, 403 permissions insuffisantes, 404 ressource absente, 409
+        conflit, 502 erreur côté service tiers).
       </p>
     </div>
   );
@@ -543,54 +435,6 @@ function BlocCode({
       <pre className="overflow-x-auto rounded-lg bg-ink/95 p-3 text-xs leading-relaxed text-white">
         <code>{code}</code>
       </pre>
-    </div>
-  );
-}
-
-function ModaleSecret({
-  secret,
-  label,
-  onFermer,
-  onCopier,
-}: {
-  secret: string;
-  label: string;
-  onFermer: () => void;
-  onCopier: () => void;
-}) {
-  // Secret montré une seule fois : la modale bloque toute autre action
-  // tant que l'utilisateur ne confirme pas qu'il a copié. On ne stocke
-  // que le hash côté serveur, impossible de rejouer cet écran.
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4">
-      <div className="w-full max-w-xl rounded-lg bg-white p-6 shadow-card">
-        <h2 className="text-base font-semibold text-ink">
-          Jeton créé : {label}
-        </h2>
-        <p className="mt-2 text-sm text-stone">
-          Copiez ce secret maintenant. Il ne vous sera plus jamais montré.
-          Nous n&apos;en gardons qu&apos;un hachage.
-        </p>
-        <pre className="mt-4 overflow-x-auto rounded-lg bg-surface p-3 font-mono text-xs text-ink">
-          <code>{secret}</code>
-        </pre>
-        <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={onCopier}
-            className="rounded-lg border border-hairline px-4 py-2 text-sm font-medium text-ink transition hover:bg-surface"
-          >
-            Copier le secret
-          </button>
-          <button
-            type="button"
-            onClick={onFermer}
-            className="rounded-lg bg-ink px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-85"
-          >
-            J&apos;ai copié, fermer
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

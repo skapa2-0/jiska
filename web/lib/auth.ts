@@ -1,8 +1,8 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
-import { utilisateurPourToken } from "./api-tokens";
 import { query } from "./db";
 import { sqlAvatarUrl } from "./media";
+import { utilisateurPourAcces } from "./oauth";
 import { estAdmin } from "./roles";
 import type { Role } from "./roles";
 
@@ -27,18 +27,18 @@ export type SessionUser = {
 const CHAMPS = `id, email, first_name, last_name, role,
                 ${sqlAvatarUrl()} AS avatar`;
 
-// Authentification par jeton d'API. On lit Authorization: Bearer <secret>
+// Authentification par access token OAuth. On lit Authorization: Bearer
 // avant Clerk : si le header est présent, c'est forcément un appel API
-// (le navigateur n'envoie pas de Bearer, il envoie le cookie Clerk).
-// Le jeton porte strictement les permissions de son propriétaire : on
-// renvoie la même SessionUser que si la personne était connectée.
+// / MCP (le navigateur n'envoie pas de Bearer, il envoie le cookie
+// Clerk). Le token porte strictement les permissions de son propriétaire :
+// on renvoie la même SessionUser que si la personne était connectée.
 async function utilisateurParBearer(): Promise<SessionUser | null> {
   const entetes = await headers();
   const brut = entetes.get("authorization") ?? entetes.get("Authorization");
   if (!brut) return null;
   const match = brut.match(/^Bearer\s+(.+)$/i);
   if (!match) return null;
-  const userId = await utilisateurPourToken(match[1].trim());
+  const userId = await utilisateurPourAcces(match[1].trim());
   if (!userId) return null;
   const rows = await query<SessionUser>(
     `SELECT ${CHAMPS} FROM users WHERE id = $1`,

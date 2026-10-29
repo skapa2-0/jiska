@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { getSessionUser } from "@/lib/auth";
 import type { SessionUser } from "@/lib/auth";
+import { origineRequete } from "@/lib/http";
 import { toolsPourRole } from "@/lib/mcp-tools";
 import type { ToolContext } from "@/lib/mcp-tools";
 
@@ -41,14 +42,15 @@ export async function POST(request: Request) {
   const brutAuth =
     entetes.get("authorization") ?? entetes.get("Authorization") ?? "";
   const match = brutAuth.match(/^Bearer\s+(.+)$/i);
+  const base = origineRequete(request);
   if (!match) {
-    return reponse401("Authentification requise. Posez l'en-tête Authorization: Bearer <jeton>.");
+    return reponse401(base, "Authentification requise.");
   }
   const bearer = match[1].trim();
 
   // getSessionUser lit le même Bearer via headers() et le résout.
   const me = await getSessionUser();
-  if (!me) return reponse401("Jeton invalide ou révoqué.");
+  if (!me) return reponse401(base, "Access token invalide ou expiré.");
 
   let corps: RpcRequete | RpcRequete[];
   try {
@@ -93,10 +95,17 @@ export function DELETE() {
   return new Response(null, { status: 405, headers: { allow: "POST" } });
 }
 
-function reponse401(message: string): NextResponse {
+// MCP Authorization : sur un 401, on pointe le client vers la ressource
+// metadata (RFC 9728), qui lui-même pointe vers le serveur OAuth. Un
+// client MCP conforme (Claude Desktop, Claude.ai) peut alors enchaîner
+// DCR + authorize + token sans aucune config préalable.
+function reponse401(base: string, message: string): NextResponse {
+  const metadata = `${base}/.well-known/oauth-protected-resource`;
   return NextResponse.json(erreur(null, -32001, message), {
     status: 401,
-    headers: { "www-authenticate": 'Bearer realm="jiska"' },
+    headers: {
+      "www-authenticate": `Bearer realm="jiska", resource_metadata="${metadata}"`,
+    },
   });
 }
 

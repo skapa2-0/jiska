@@ -237,25 +237,72 @@ function ensureSchema(): Promise<void> {
        );
        CREATE INDEX IF NOT EXISTS tickets_auteur_idx ON tickets (auteur_id);
        CREATE INDEX IF NOT EXISTS tickets_statut_idx ON tickets (statut);
-       -- Clés d'API personnelles : chaque utilisateur peut émettre autant de
-       -- jetons qu'il veut depuis /app/profil/api. Un jeton porte strictement
-       -- les permissions de son propriétaire (rôle, appartenance aux produits) :
-       -- aucune portée stockée, c'est getSessionUser qui lit le header
-       -- Authorization: Bearer et renvoie l'utilisateur comme s'il était connecté
-       -- via Clerk. Jamais d'expiration automatique, seulement une révocation
-       -- manuelle (revoked_at renseigné). Seul le hash sha256 est conservé ;
-       -- le secret complet n'est montré qu'une fois à la création.
-       CREATE TABLE IF NOT EXISTS api_tokens (
-         id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-         user_id      bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-         label        text NOT NULL,
-         token_hash   text NOT NULL UNIQUE,
-         prefix       text NOT NULL,
-         last_used_at timestamptz,
-         revoked_at   timestamptz,
-         created_at   timestamptz NOT NULL DEFAULT now()
+       -- Ancienne table de jetons API « collés à la main ». Remplacée par
+       -- le flow OAuth 2.1 ci-dessous : plus un seul chemin d'auth, et
+       -- les clients (Claude.ai, etc.) s'enregistrent et se connectent
+       -- en autonomie, sans jamais recevoir un secret long terme.
+       DROP TABLE IF EXISTS api_tokens;
+       -- OAuth 2.1 (PKCE obligatoire) + Dynamic Client Registration
+       -- (RFC 7591) + Server Metadata (RFC 8414). Chaque client qui veut
+       -- parler à Jiska (via l'API ou le MCP) s'enregistre d'abord ici,
+       -- obtient un client_id (pas de secret pour les clients publics
+       -- PKCE), fait signer l'utilisateur sur /oauth/authorize, puis
+       -- échange son code contre un access_token court et un
+       -- refresh_token longue durée.
+       CREATE TABLE IF NOT EXISTS oauth_clients (
+         client_id        text PRIMARY KEY,
+         client_name      text NOT NULL,
+         redirect_uris    jsonb NOT NULL,
+         -- Pas de client_secret : seuls les clients publics (PKCE) sont
+         -- supportés. Ouvrir le confidential flow signifierait émettre et
+         -- stocker des secrets côté intégration : plus de surface pour un
+         -- vol de secret, zéro gain tant que personne ne parle à Jiska
+         -- en server-to-server dans l'app elle-même.
+         created_at       timestamptz NOT NULL DEFAULT now()
        );
-       CREATE INDEX IF NOT EXISTS api_tokens_user_idx ON api_tokens (user_id);`,
+       CREATE TABLE IF NOT EXISTS oauth_auth_codes (
+         code                   text PRIMARY KEY,
+         client_id              text NOT NULL REFERENCES oauth_clients(client_id) ON DELETE CASCADE,
+         user_id                bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+         redirect_uri           text NOT NULL,
+         code_challenge         text NOT NULL,
+         code_challenge_method  text NOT NULL,
+         scope                  text NOT NULL,
+         expires_at             timestamptz NOT NULL,
+         consumed_at            timestamptz,
+         created_at             timestamptz NOT NULL DEFAULT now()
+       );
+       CREATE INDEX IF NOT EXISTS oauth_auth_codes_expires_idx ON oauth_auth_codes (expires_at);
+       -- Access tokens courts (1 h) : porteurs des permissions de
+       -- l'utilisateur. Révocation manuelle (révoque toute la ligne) ou
+       -- expiration automatique.
+       CREATE TABLE IF NOT EXISTS oauth_access_tokens (
+         token_hash    text PRIMARY KEY,
+         client_id     text NOT NULL REFERENCES oauth_clients(client_id) ON DELETE CASCADE,
+         user_id       bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+         scope         text NOT NULL,
+         expires_at    timestamptz NOT NULL,
+         last_used_at  timestamptz,
+         revoked_at    timestamptz,
+         created_at    timestamptz NOT NULL DEFAULT now()
+       );
+       CREATE INDEX IF NOT EXISTS oauth_access_tokens_user_idx ON oauth_access_tokens (user_id);
+       CREATE INDEX IF NOT EXISTS oauth_access_tokens_expires_idx ON oauth_access_tokens (expires_at);
+       -- Refresh tokens longs (90 j), avec rotation obligatoire :
+       -- chaque usage consomme l'ancien et en émet un nouveau. Détecter
+       -- une réutilisation d'un refresh déjà consommé signale un vol et
+       -- devrait révoquer toute la chaîne.
+       CREATE TABLE IF NOT EXISTS oauth_refresh_tokens (
+         token_hash    text PRIMARY KEY,
+         client_id     text NOT NULL REFERENCES oauth_clients(client_id) ON DELETE CASCADE,
+         user_id       bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+         scope         text NOT NULL,
+         consumed_at   timestamptz,
+         revoked_at    timestamptz,
+         expires_at    timestamptz NOT NULL,
+         created_at    timestamptz NOT NULL DEFAULT now()
+       );
+       CREATE INDEX IF NOT EXISTS oauth_refresh_tokens_user_idx ON oauth_refresh_tokens (user_id);`,
     )
     .then(() => undefined);
   return schemaReady;
