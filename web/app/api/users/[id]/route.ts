@@ -3,6 +3,69 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { estAdmin, getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 
+// Changement de rôle d'un compte par un dirigeant. Limité aux rôles
+// métier (dirigeant / collaborateur) : le rôle plateforme `developeur`
+// reste attribué par écriture directe en base, et on refuse ici de le
+// poser comme de le retirer depuis l'UI (le dévouer puis le rendre
+// contournerait la règle). On empêche aussi la personne de modifier
+// son propre rôle, pour qu'un dirigeant ne se verrouille pas dehors
+// par mégarde.
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const me = await getSessionUser();
+  if (!me) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
+  if (!estAdmin(me)) {
+    return NextResponse.json(
+      { error: "Réservé aux dirigeants." },
+      { status: 403 },
+    );
+  }
+
+  const { id } = await params;
+  if (!/^\d+$/.test(id)) {
+    return NextResponse.json({ error: "Identifiant invalide." }, { status: 400 });
+  }
+  if (id === me.id) {
+    return NextResponse.json(
+      { error: "Impossible de modifier votre propre rôle." },
+      { status: 400 },
+    );
+  }
+
+  let body: { role?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
+  }
+
+  if (body.role !== "dirigeant" && body.role !== "collaborateur") {
+    return NextResponse.json(
+      { error: "Rôle attendu : dirigeant ou collaborateur." },
+      { status: 400 },
+    );
+  }
+
+  const cibles = await query<{ role: string }>(
+    "SELECT role FROM users WHERE id = $1",
+    [id],
+  );
+  if (cibles.length === 0) {
+    return NextResponse.json({ error: "Compte introuvable." }, { status: 404 });
+  }
+  if (cibles[0].role === "developeur") {
+    return NextResponse.json(
+      { error: "Le rôle développeur ne se modifie pas depuis l'interface." },
+      { status: 403 },
+    );
+  }
+
+  await query("UPDATE users SET role = $1 WHERE id = $2", [body.role, id]);
+  return NextResponse.json({ ok: true });
+}
+
 // Suppression d'un compte par un dirigeant (jamais le sien). La ligne
 // Jiska est l'autorité d'accès (un compte Clerk sans ligne locale est
 // refusé au login), mais on propage la suppression à Clerk pour éviter

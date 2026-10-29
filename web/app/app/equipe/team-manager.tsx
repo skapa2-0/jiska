@@ -36,6 +36,44 @@ export default function TeamManager({
   // Un envoi d'invitation en cours : sert à désactiver uniquement le
   // bouton concerné, pas toute la page.
   const [envoiId, setEnvoiId] = useState<string | null>(null);
+  // Changement de rôle en cours sur un compte précis (grise les deux
+  // pastilles de la ligne concernée).
+  const [roleId, setRoleId] = useState<string | null>(null);
+
+  async function changerRole(member: Member, nouveau: "dirigeant" | "collaborateur") {
+    if (member.role === nouveau) return;
+    setRoleId(member.id);
+    try {
+      const res = await fetch(`/api/users/${member.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: nouveau }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        notifier({
+          ton: "error",
+          texte: data.error ?? "Échec du changement de rôle.",
+          autoClose: true,
+        });
+        return;
+      }
+      notifier({
+        ton: "success",
+        texte: `${displayName(member)} est maintenant ${nouveau === "dirigeant" ? "dirigeant" : "collaborateur"}.`,
+        autoClose: true,
+      });
+      window.location.reload();
+    } catch {
+      notifier({
+        ton: "error",
+        texte: "Impossible de joindre le serveur.",
+        autoClose: true,
+      });
+    } finally {
+      setRoleId(null);
+    }
+  }
 
   async function envoyerInvitation(id: string, adresse: string) {
     setEnvoiId(id);
@@ -128,43 +166,78 @@ export default function TeamManager({
   return (
     <>
       <ul className="mt-8 divide-y divide-hairline rounded-lg bg-white shadow-card">
-        {members.map((m) => (
-          <li key={m.id} className="flex items-center gap-3 px-5 py-3.5">
-            <Avatar personne={m} taille="h-8 w-8 text-sm" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-ink">
-                {displayName(m)}
-              </p>
-              <p className="truncate text-xs text-mute">{m.email}</p>
-              <p className="truncate text-xs text-stone">
-                {libelleRole(m.role as Role)} ·
-                depuis le {m.created_at.split("-").reverse().join("/")} ·{" "}
-                <span className={m.active ? "text-success" : "text-warn"}>
-                  {m.active ? "accès activé" : "jamais connecté"}
+        {members.map((m) => {
+          const modifiable =
+            m.id !== selfId && m.role !== "developeur";
+          return (
+            <li key={m.id} className="flex items-center gap-3 px-5 py-3.5">
+              <Avatar personne={m} taille="h-8 w-8 text-sm" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-ink">
+                  {displayName(m)}
+                </p>
+                <p className="truncate text-xs text-mute">{m.email}</p>
+                <p className="truncate text-xs text-stone">
+                  depuis le {m.created_at.split("-").reverse().join("/")} ·{" "}
+                  <span className={m.active ? "text-success" : "text-warn"}>
+                    {m.active ? "accès activé" : "jamais connecté"}
+                  </span>
+                </p>
+              </div>
+              {modifiable ? (
+                <div className="flex gap-1.5">
+                  {(
+                    [
+                      ["collaborateur", "Collaborateur"],
+                      ["dirigeant", "Dirigeant"],
+                    ] as const
+                  ).map(([valeur, label]) => {
+                    const actif = m.role === valeur;
+                    return (
+                      <button
+                        key={valeur}
+                        type="button"
+                        aria-pressed={actif}
+                        onClick={() => changerRole(m, valeur)}
+                        disabled={roleId === m.id}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+                          actif
+                            ? "border-brand bg-brand/5 text-ink ring-1 ring-brand"
+                            : "border-hairline text-mute hover:bg-surface"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <span className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-semibold text-mute">
+                  {libelleRole(m.role as Role)}
                 </span>
-              </p>
-            </div>
-            {!m.active && (
-              <button
-                type="button"
-                onClick={() => envoyerInvitation(m.id, m.email)}
-                disabled={envoiId === m.id}
-                className="rounded-md px-3 py-1 text-xs font-semibold text-brand transition hover:bg-brand/5 disabled:opacity-40"
-              >
-                {envoiId === m.id ? "Envoi…" : "Inviter"}
-              </button>
-            )}
-            {m.id !== selfId && (
-              <button
-                type="button"
-                onClick={() => setASupprimer(m)}
-                className="rounded-md px-3 py-1 text-xs font-medium text-danger transition hover:bg-surface"
-              >
-                Supprimer
-              </button>
-            )}
-          </li>
-        ))}
+              )}
+              {!m.active && (
+                <button
+                  type="button"
+                  onClick={() => envoyerInvitation(m.id, m.email)}
+                  disabled={envoiId === m.id}
+                  className="rounded-md px-3 py-1 text-xs font-semibold text-brand transition hover:bg-brand/5 disabled:opacity-40"
+                >
+                  {envoiId === m.id ? "Envoi…" : "Inviter"}
+                </button>
+              )}
+              {m.id !== selfId && (
+                <button
+                  type="button"
+                  onClick={() => setASupprimer(m)}
+                  className="rounded-md px-3 py-1 text-xs font-medium text-danger transition hover:bg-surface"
+                >
+                  Supprimer
+                </button>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       <form

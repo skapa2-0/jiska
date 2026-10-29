@@ -162,6 +162,31 @@ export const TOOLS: Tool[] = [
       ),
   },
   {
+    name: "utilisateur_changer_role",
+    description:
+      "Bascule le rôle d'un compte entre dirigeant et collaborateur. Réservé aux dirigeants ; impossible de modifier son propre rôle ou celui d'un développeur.",
+    acces: "admin",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Identifiant du compte à modifier." },
+        role: {
+          type: "string",
+          enum: ["dirigeant", "collaborateur"],
+          description: "Nouveau rôle à poser.",
+        },
+      },
+      required: ["id", "role"],
+      additionalProperties: false,
+    },
+    handler: async (args, ctx) =>
+      joli(
+        await appeler(ctx, "PATCH", `/api/users/${exigerId(args, "id")}`, {
+          role: args.role,
+        }),
+      ),
+  },
+  {
     name: "utilisateur_supprimer",
     description:
       "Supprime un compte (local + Clerk + invitations). Réservé aux dirigeants ; impossible de supprimer son propre compte.",

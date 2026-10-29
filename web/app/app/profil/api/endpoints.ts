@@ -534,6 +534,21 @@ export const CATEGORIES: Categorie[] = [
   -d '{"email":"camille@exemple.fr","role":"collaborateur"}'`,
       },
       {
+        methode: "PATCH",
+        chemin: "/api/users/{id}",
+        titre: "Changer le rôle d'un compte",
+        description:
+          "Bascule le rôle entre dirigeant et collaborateur. Impossible de modifier son propre rôle ou celui d'un développeur.",
+        acces: "admin",
+        payload: `{ "role": "dirigeant" }`,
+        reponse: `{ "ok": true }`,
+        curl: `curl -X PATCH https://jiska.skapa.design/api/users/19 \\
+  -H "Authorization: Bearer <TOKEN>" \\
+  -H "Content-Type: application/json" \\
+  -d '{"role":"dirigeant"}'`,
+        notes: ["`role` : `dirigeant` ou `collaborateur` uniquement."],
+      },
+      {
         methode: "DELETE",
         chemin: "/api/users/{id}",
         titre: "Supprimer un compte",
