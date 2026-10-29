@@ -62,7 +62,7 @@ export const CATEGORIES: Categorie[] = [
   }
 }`,
         curl: `curl https://jiska.skapa.design/api/me \\
-  -H "Authorization: Bearer <TOKEN>"`,
+  -H "Authorization: Bearer <ACCESS_TOKEN>"`,
       },
       {
         methode: "PATCH",
@@ -79,7 +79,7 @@ export const CATEGORIES: Categorie[] = [
 }`,
         reponse: `{ "ok": true }`,
         curl: `curl -X PATCH https://jiska.skapa.design/api/me \\
-  -H "Authorization: Bearer <TOKEN>" \\
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{"firstName":"Camille","lastName":"Durand"}'`,
         notes: [
@@ -88,54 +88,15 @@ export const CATEGORIES: Categorie[] = [
         ],
       },
       {
-        methode: "GET",
-        chemin: "/api/me/tokens",
-        titre: "Lister ses jetons d'API",
-        description:
-          "Renvoie la liste de vos jetons avec leur libellé, préfixe, date de création et dernière utilisation. Jamais le secret.",
-        acces: "connecte",
-        reponse: `{
-  "tokens": [
-    {
-      "id": "12",
-      "label": "Script de synchro",
-      "prefix": "jska_a7b2",
-      "created_at": "2026-10-28 14:30:00+00",
-      "last_used_at": "2026-10-28 14:35:12+00",
-      "revoked_at": null
-    }
-  ]
-}`,
-        curl: `curl https://jiska.skapa.design/api/me/tokens \\
-  -H "Authorization: Bearer <TOKEN>"`,
-      },
-      {
-        methode: "POST",
-        chemin: "/api/me/tokens",
-        titre: "Créer un jeton d'API",
-        description:
-          "Émet un nouveau jeton. Le secret complet est renvoyé une seule fois dans ce retour : copiez-le immédiatement.",
-        acces: "connecte",
-        payload: `{ "label": "Script de synchro" }`,
-        reponse: `{
-  "token": { "id": "12", "label": "Script de synchro", "prefix": "jska_a7b2", "created_at": "...", "last_used_at": null, "revoked_at": null },
-  "secret": "jska_a7b2cDe..."
-}`,
-        curl: `curl -X POST https://jiska.skapa.design/api/me/tokens \\
-  -H "Authorization: Bearer <TOKEN>" \\
-  -H "Content-Type: application/json" \\
-  -d '{"label":"Script de synchro"}'`,
-      },
-      {
         methode: "DELETE",
-        chemin: "/api/me/tokens/{id}",
-        titre: "Révoquer un jeton",
+        chemin: "/api/me/sessions/{client_id}",
+        titre: "Révoquer une application autorisée",
         description:
-          "Rend un jeton inutilisable immédiatement. L'opération est irréversible.",
+          "Coupe tous les access tokens et refresh tokens actifs d'un client OAuth pour la personne connectée. L'application devra redemander un consentement.",
         acces: "connecte",
         reponse: `{ "ok": true }`,
-        curl: `curl -X DELETE https://jiska.skapa.design/api/me/tokens/12 \\
-  -H "Authorization: Bearer <TOKEN>"`,
+        curl: `curl -X DELETE https://jiska.skapa.design/api/me/sessions/jska_cl_xxxxxxxx \\
+  -H "Authorization: Bearer <ACCESS_TOKEN>"`,
       },
     ],
   },
@@ -168,7 +129,7 @@ export const CATEGORIES: Categorie[] = [
   ]
 }`,
         curl: `curl https://jiska.skapa.design/api/projects \\
-  -H "Authorization: Bearer <TOKEN>"`,
+  -H "Authorization: Bearer <ACCESS_TOKEN>"`,
       },
       {
         methode: "GET",
@@ -192,7 +153,7 @@ export const CATEGORIES: Categorie[] = [
   }
 }`,
         curl: `curl https://jiska.skapa.design/api/projects/42 \\
-  -H "Authorization: Bearer <TOKEN>"`,
+  -H "Authorization: Bearer <ACCESS_TOKEN>"`,
       },
       {
         methode: "POST",
@@ -211,7 +172,7 @@ export const CATEGORIES: Categorie[] = [
 }`,
         reponse: `{ "ok": true, "id": "42" }`,
         curl: `curl -X POST https://jiska.skapa.design/api/projects \\
-  -H "Authorization: Bearer <TOKEN>" \\
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{"name":"Jiska","memberIds":["3","7"],"responsableId":"3"}'`,
         notes: [
@@ -237,7 +198,7 @@ export const CATEGORIES: Categorie[] = [
 }`,
         reponse: `{ "ok": true }`,
         curl: `curl -X PATCH https://jiska.skapa.design/api/projects/42 \\
-  -H "Authorization: Bearer <TOKEN>" \\
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{"name":"Jiska 2"}'`,
       },
@@ -250,7 +211,7 @@ export const CATEGORIES: Categorie[] = [
         acces: "admin",
         reponse: `{ "ok": true }`,
         curl: `curl -X DELETE https://jiska.skapa.design/api/projects/42 \\
-  -H "Authorization: Bearer <TOKEN>"`,
+  -H "Authorization: Bearer <ACCESS_TOKEN>"`,
       },
       {
         methode: "PATCH",
@@ -262,7 +223,7 @@ export const CATEGORIES: Categorie[] = [
         payload: `{ "deployable": true }`,
         reponse: `{ "ok": true, "deployable": true }`,
         curl: `curl -X PATCH https://jiska.skapa.design/api/projects/42/deployable \\
-  -H "Authorization: Bearer <TOKEN>" \\
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{"deployable":true}'`,
       },
@@ -300,7 +261,7 @@ export const CATEGORIES: Categorie[] = [
   ]
 }`,
         curl: `curl "https://jiska.skapa.design/api/sujets?etat=en_cours&porteurId=3" \\
-  -H "Authorization: Bearer <TOKEN>"`,
+  -H "Authorization: Bearer <ACCESS_TOKEN>"`,
         notes: [
           "`etat` : a_faire, en_cours, bloque, en_validation, termine.",
           "`type` : technique, business. `criticite` : critique, haute, normale, faible.",
@@ -329,7 +290,7 @@ export const CATEGORIES: Categorie[] = [
   }
 }`,
         curl: `curl https://jiska.skapa.design/api/sujets/128 \\
-  -H "Authorization: Bearer <TOKEN>"`,
+  -H "Authorization: Bearer <ACCESS_TOKEN>"`,
       },
       {
         methode: "POST",
@@ -351,7 +312,7 @@ export const CATEGORIES: Categorie[] = [
 }`,
         reponse: `{ "ok": true, "id": "128" }`,
         curl: `curl -X POST https://jiska.skapa.design/api/sujets \\
-  -H "Authorization: Bearer <TOKEN>" \\
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{"projectId":"42","title":"Migrer la base","type":"technique"}'`,
         notes: [
@@ -375,7 +336,7 @@ export const CATEGORIES: Categorie[] = [
 }`,
         reponse: `{ "ok": true }`,
         curl: `curl -X PATCH https://jiska.skapa.design/api/sujets/128 \\
-  -H "Authorization: Bearer <TOKEN>" \\
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{"etat":"en_cours"}'`,
       },
@@ -388,7 +349,7 @@ export const CATEGORIES: Categorie[] = [
         acces: "membre-produit",
         reponse: `{ "ok": true }`,
         curl: `curl -X DELETE https://jiska.skapa.design/api/sujets/128 \\
-  -H "Authorization: Bearer <TOKEN>"`,
+  -H "Authorization: Bearer <ACCESS_TOKEN>"`,
       },
     ],
   },
@@ -407,7 +368,7 @@ export const CATEGORIES: Categorie[] = [
         acces: "admin",
         reponse: `{ "ok": true, "id": "7", "tenueLe": "2026-10-28", "engagements": 12 }`,
         curl: `curl -X POST https://jiska.skapa.design/api/reunions \\
-  -H "Authorization: Bearer <TOKEN>"`,
+  -H "Authorization: Bearer <ACCESS_TOKEN>"`,
       },
     ],
   },
@@ -431,7 +392,7 @@ export const CATEGORIES: Categorie[] = [
 }`,
         reponse: `{ "ok": true, "id": "17" }`,
         curl: `curl -X POST https://jiska.skapa.design/api/imports \\
-  -H "Authorization: Bearer <TOKEN>" \\
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{"projectId":"42","dateReunion":"2026-10-28","transcript":"..."}'`,
       },
@@ -448,7 +409,7 @@ export const CATEGORIES: Categorie[] = [
 }`,
         reponse: `{ "ok": true }`,
         curl: `curl -X POST https://jiska.skapa.design/api/imports/17/appliquer \\
-  -H "Authorization: Bearer <TOKEN>" \\
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{"propositions":[],"deploiements":[]}'`,
       },
@@ -461,7 +422,7 @@ export const CATEGORIES: Categorie[] = [
         acces: "admin",
         reponse: `{ "ok": true }`,
         curl: `curl -X POST https://jiska.skapa.design/api/imports/17/abandonner \\
-  -H "Authorization: Bearer <TOKEN>"`,
+  -H "Authorization: Bearer <ACCESS_TOKEN>"`,
       },
       {
         methode: "GET",
@@ -472,7 +433,7 @@ export const CATEGORIES: Categorie[] = [
         acces: "admin",
         reponse: `{ "reunions": [ { "id": "...", "title": "...", "date": "..." } ] }`,
         curl: `curl https://jiska.skapa.design/api/fireflies/reunions-lundi \\
-  -H "Authorization: Bearer <TOKEN>"`,
+  -H "Authorization: Bearer <ACCESS_TOKEN>"`,
       },
       {
         methode: "POST",
@@ -484,7 +445,7 @@ export const CATEGORIES: Categorie[] = [
         payload: `{ "firefliesId": "..." }`,
         reponse: `{ "ok": true, "id": "18" }`,
         curl: `curl -X POST https://jiska.skapa.design/api/fireflies/importer \\
-  -H "Authorization: Bearer <TOKEN>" \\
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{"firefliesId":"..."}'`,
       },
@@ -517,7 +478,7 @@ export const CATEGORIES: Categorie[] = [
   ]
 }`,
         curl: `curl https://jiska.skapa.design/api/users \\
-  -H "Authorization: Bearer <TOKEN>"`,
+  -H "Authorization: Bearer <ACCESS_TOKEN>"`,
       },
       {
         methode: "POST",
@@ -529,7 +490,7 @@ export const CATEGORIES: Categorie[] = [
         payload: `{ "email": "camille@exemple.fr", "role": "collaborateur" }`,
         reponse: `{ "ok": true, "id": "19" }`,
         curl: `curl -X POST https://jiska.skapa.design/api/users \\
-  -H "Authorization: Bearer <TOKEN>" \\
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{"email":"camille@exemple.fr","role":"collaborateur"}'`,
       },
@@ -543,7 +504,7 @@ export const CATEGORIES: Categorie[] = [
         payload: `{ "role": "dirigeant" }`,
         reponse: `{ "ok": true }`,
         curl: `curl -X PATCH https://jiska.skapa.design/api/users/19 \\
-  -H "Authorization: Bearer <TOKEN>" \\
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{"role":"dirigeant"}'`,
         notes: ["`role` : `dirigeant` ou `collaborateur` uniquement."],
@@ -557,7 +518,7 @@ export const CATEGORIES: Categorie[] = [
         acces: "admin",
         reponse: `{ "ok": true }`,
         curl: `curl -X DELETE https://jiska.skapa.design/api/users/19 \\
-  -H "Authorization: Bearer <TOKEN>"`,
+  -H "Authorization: Bearer <ACCESS_TOKEN>"`,
       },
       {
         methode: "POST",
@@ -568,7 +529,7 @@ export const CATEGORIES: Categorie[] = [
         acces: "admin",
         reponse: `{ "ok": true }`,
         curl: `curl -X POST https://jiska.skapa.design/api/users/19/inviter \\
-  -H "Authorization: Bearer <TOKEN>"`,
+  -H "Authorization: Bearer <ACCESS_TOKEN>"`,
       },
     ],
   },
@@ -600,7 +561,7 @@ export const CATEGORIES: Categorie[] = [
   ]
 }`,
         curl: `curl "https://jiska.skapa.design/api/tickets?statut=ouvert" \\
-  -H "Authorization: Bearer <TOKEN>"`,
+  -H "Authorization: Bearer <ACCESS_TOKEN>"`,
       },
       {
         methode: "POST",
@@ -616,7 +577,7 @@ export const CATEGORIES: Categorie[] = [
 }`,
         reponse: `{ "ok": true, "id": "33" }`,
         curl: `curl -X POST https://jiska.skapa.design/api/tickets \\
-  -H "Authorization: Bearer <TOKEN>" \\
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{"titre":"Export CSV cassé"}'`,
         notes: [
@@ -633,7 +594,7 @@ export const CATEGORIES: Categorie[] = [
         payload: `{ "statut": "en_cours" }`,
         reponse: `{ "ok": true }`,
         curl: `curl -X PATCH https://jiska.skapa.design/api/tickets/33 \\
-  -H "Authorization: Bearer <TOKEN>" \\
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
   -d '{"statut":"en_cours"}'`,
         notes: ["`statut` : `ouvert`, `en_cours`, `resolu` ou `ferme`."],
